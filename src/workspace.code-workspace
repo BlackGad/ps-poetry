@@ -1,0 +1,102 @@
+{
+	"folders": [ { "path": "." } ],
+	"settings": {
+		"python.testing.pytestEnabled": true,
+		"python.testing.pytestArgs": [],
+		"python.testing.cwd": "${workspaceFolder}",
+		"python.testing.pytestPath": "${workspaceFolder}/.venv/scripts/pytest",
+		"testing.defaultGutterClickAction": "debug",
+    	"python.analysis.inlayHints.variableTypes": true,
+    	"python.analysis.inlayHints.functionReturnTypes": true,
+		"python.analysis.autoImportCompletions": true,
+		"python.analysis.diagnosticMode": "workspace",
+		"[python]": {
+			"editor.defaultFormatter": "ms-python.autopep8",
+			"editor.formatOnSave": true
+		},
+		"python.formatting.provider": "autopep8",
+		"python.formatting.autopep8Path": "${workspaceFolder}/.venv/scripts/autopep8",
+	},
+	"extensions": {
+    "recommendations": [
+      "autopep8.autopep8",
+      "charliermarsh.ruff",
+      "tamasfe.even-better-toml",
+      "ms-python.vscode-pylance",
+      "ms-python.python",
+      "ms-python.debugpy"
+      ],
+    },
+	"launch": {
+		"configurations": [
+			{
+				"name": "Experiment",
+				"type": "debugpy",
+				"request": "launch",
+				"program": "${file}",
+				"console": "integratedTerminal",
+				"cwd": "${workspaceFolder}",
+				"justMyCode": false
+			},
+			{
+				"name": "Launch Poetry with debugpy",
+				"type": "debugpy",
+				"request": "launch",
+				"program": "${workspaceFolder}/launcher.py",
+				"preLaunchTask": "Debugging",
+				"console": "integratedTerminal",
+				"justMyCode": false,
+				"envFile": "${workspaceFolder}/debug.env",
+				"env": {
+				"PYTHONPATH": "${workspaceFolder}/src",
+				"POETRY_DYNAMIC_VERSIONING_BYPASS": "0.0.421"
+				}
+			}
+
+		]
+	},
+	"tasks": {
+		"version": "2.0.0",
+		"tasks": [ 
+		 {
+            "label": "Debugging",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+              "-NoProfile",
+              "-File",
+              "${workspaceFolder}/launcher.ps1",
+              "DEBUG_PROJECT_PATH=${input:targetProjectPath}",
+              "DEBUG_COMMAND_LINE=${input:targetCommandLine}"
+            ],
+            "group": "build",
+            "options": {
+              "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+          },
+		  {
+            "label": "Setup Environment",
+            "type": "shell",
+            "command": "Remove-Item -Path ../.poetry -Recurse -Force -ErrorAction SilentlyContinue; poetry build; cd ..; poetry sync",
+            "options": {
+              "cwd": "${workspaceFolder}/plugin"
+            },
+            "group": "build",
+            "problemMatcher": []
+          },
+		],
+		"inputs": [
+          {
+            "id": "targetProjectPath",
+            "type": "promptString",
+            "description": "Enter target project path"
+          },
+          {
+            "id": "targetCommandLine",
+            "type": "promptString",
+            "description": "Enter target command line arguments"
+          }
+        ]
+	}
+}

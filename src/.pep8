@@ -1,0 +1,6 @@
+[pycodestyle]
+# maximum allowed line length
+max-line-length = 200
+
+# ignore specific error/warning codes (comma-separated)
+# ignore = E203, W503

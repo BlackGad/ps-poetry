@@ -1,0 +1,20 @@
+[project]
+name        = "ps-plugin-core"
+description = ""
+requires-python = ">=3.10,<4.0"
+dynamic = ["version"]
+
+[project.entry-points."poetry.application.plugin"]
+entry = "ps.plugin.core.plugin:Plugin"
+
+[tool.poetry.dependencies]
+poetry = "^2.2.1"
+toml = "^0.10.2"
+
+[tool.poetry]
+packages = [ { include = "ps/plugin/core", from = "src" } ]
+version = "0.0.0"
+
+[build-system]
+requires    = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
