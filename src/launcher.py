@@ -6,7 +6,7 @@ from pathlib import Path
 from plugin.src.ps.plugin.core.plugin import Plugin
 from poetry.console.application import Application as PoetryApplication
 
-LOG_PREFIX = "[PS-Plugin]"
+LOG_PREFIX = "[PS-Launcher]"
 
 
 def log(message: str) -> None:

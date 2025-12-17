@@ -1,19 +1,19 @@
 [project]
-name        = "ps-plugin-core"
+name        = "ps-plugin-module-monorepo"
 description = ""
 requires-python = ">=3.10,<4.0"
 dynamic = ["version"]
-
-[project.entry-points."poetry.application.plugin"]
-entry = "ps.plugin.core.plugin:Plugin"
 
 [tool.poetry.dependencies]
 poetry = "^2.2.1"
 toml = "^0.10.2"
 pydantic = "^2.12.5"
 
+[project.entry-points."ps.module"]
+entry = "ps.plugin.module.monorepo.entry:Entry"
+
 [tool.poetry]
-packages = [ { include = "ps/plugin/core", from = "src" } ]
+packages = [ { include = "ps/plugin/module/monorepo", from = "src" } ]
 version = "0.0.0"
 
 [build-system]

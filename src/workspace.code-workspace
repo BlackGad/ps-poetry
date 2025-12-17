@@ -39,7 +39,7 @@
 				"justMyCode": false
 			},
 			{
-				"name": "Launch Poetry with debugpy",
+				"name": "Launcher debugpy",
 				"type": "debugpy",
 				"request": "launch",
 				"program": "${workspaceFolder}/launcher.py",
@@ -51,6 +51,20 @@
 				"PYTHONPATH": "${workspaceFolder}/src",
 				"POETRY_DYNAMIC_VERSIONING_BYPASS": "0.0.421"
 				}
+			},
+			{
+				"name": "Direct debugpy",
+				"type": "debugpy",
+				"request": "launch",
+				"module": "poetry",
+				"console": "integratedTerminal",
+				"justMyCode": false,
+				"cwd": "${workspaceFolder}",
+				"args": [
+					"env",
+					"info",
+					"-vvv"
+				]
 			}
 
 		]

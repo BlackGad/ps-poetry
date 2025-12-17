@@ -14,16 +14,27 @@ version = "0.0.0"
 [tool.poetry.dependencies]
 poetry = "^2.2.1"
 toml = "^0.10.2"
+pydantic = "^2.12.5"
+
+[project.entry-points."ps.module"]
+entry_folder = "experiments.ps_module_in_host"
+entry_class  = "experiments.ps_module_in_host:ModuleInHost"
+
 
 [tool.poetry.group.dev.dependencies]
-"ruff" = "^0.14.9"
+ruff = "^0.14.9"
 pytest = "^9.0.2"
 pytest-cov = "^7.0.0"
 autopep8 = "^2.3.2"
 pytest-asyncio = "^1.3.0"
+ps-plugin-module-monorepo = { path = "modules/monorepo", develop = true }
 
 [tool.poetry.requires-plugins]
 ps-plugin-core = {path = "plugin/dist/ps_plugin_core-0.0.0-py3-none-any.whl"}
+# ps-plugin-core = {path = "plugin", develop = true }
+
+[tool.ps-plugin-host]
+enabled = true
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
