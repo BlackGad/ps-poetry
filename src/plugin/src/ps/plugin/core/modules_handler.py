@@ -14,6 +14,7 @@ from .protocols import (
     ErrorProtocol,
     SignalProtocol,
 )
+from .logging import _log_debug, _log_verbose
 
 
 def _instantiate_module(module_type: Type, available_dependencies: dict[str, object]) -> object:
@@ -27,21 +28,21 @@ def _instantiate_module(module_type: Type, available_dependencies: dict[str, obj
     return module_type(**kwargs)
 
 
-def _load_module_class_types() -> Iterable[Type]:
+def _load_module_class_types() -> Iterable[tuple[str, Type]]:
     module_entry_points = metadata.entry_points(group="ps.module")
-    module_types: set[Type] = set()
+    module_types: list[tuple[str, Type]] = []
     for entry_point in module_entry_points:
         try:
+            entry_spec = f"{entry_point.value}"
             loaded_entry_point = entry_point.load()
             if inspect.isclass(loaded_entry_point):
                 if not issubclass(loaded_entry_point, ModuleProtocol):
                     raise TypeError(f"Module entry point class '{loaded_entry_point.__name__}' from '{entry_point.module}' does not implement required static method 'def get_module_name() -> str'.")
-                module_types.add(loaded_entry_point)
+                module_types.append((entry_spec, loaded_entry_point))
             elif inspect.ismodule(loaded_entry_point):
                 # Get all classes defined in this module
                 for _, obj in inspect.getmembers(loaded_entry_point, inspect.isclass):
-                    if obj.__module__ == loaded_entry_point.__name__:
-                        module_types.add(obj)
+                    module_types.append((entry_spec, obj))
             elif inspect.isfunction(loaded_entry_point):
                 raise TypeError("Module entry point cannot be a function.")
         except metadata.PackageNotFoundError:
@@ -69,8 +70,14 @@ class ModulesHandler:
         self._io = io
 
     def instantiate_modules(self, application: Application) -> None:
-        module_types = _load_module_class_types()
-
+        module_entries = _load_module_class_types()
+        module_types_list = [(entry_spec, module_type) for entry_spec, module_type in module_entries]
+        if module_types_list:
+            _log_verbose(self._io, f"Discovered {len(module_types_list)} module type(s)")
+            for entry_spec, cls_name in module_types_list:
+                _log_debug(self._io, f"  - <comment>{entry_spec}</comment> -> <fg=yellow>{cls_name.__name__}</>")
+        else:
+            _log_debug(self._io, "No module types discovered")
         # Determine supported protocols including custom ones
         protocols: List[Type] = [
             GlobalSetupProtocol,
@@ -79,16 +86,25 @@ class ModulesHandler:
             ErrorProtocol,
             SignalProtocol,
         ]
-        for module_type in module_types:
+
+        # Get unique module types for instantiation
+        unique_module_types = {module_type for _, module_type in module_types_list}
+
+        for module_type in unique_module_types:
             additional_protocols = _resolve_custom_protocols(module_type)
+            if additional_protocols:
+                _log_debug(self._io, f"Module <comment>{module_type.__name__}</comment> declares custom protocols: <fg=yellow>{[p.__name__ for p in additional_protocols]}</>")
             protocols.extend(additional_protocols)
 
-        for module_type in module_types:
+        for module_type in unique_module_types:
             # Get supported protocols for this module
             supported_protocols_by_module: List[Type] = [protocol for protocol in protocols if issubclass(module_type, protocol)]
             if not supported_protocols_by_module:
                 # Module class does not support any known protocol
                 continue
+            _log_debug(self._io, f"Module <comment>{module_type.__name__}</comment> supports {len(supported_protocols_by_module)} protocol(s):")
+            for protocol in supported_protocols_by_module:
+                _log_debug(self._io, f"  - <fg=yellow>{protocol.__name__}</>")
             # Instantiate the module
             module_instance = _instantiate_module(
                 module_type,
