@@ -10,7 +10,9 @@ toml = "^0.10.2"
 pydantic = "^2.12.5"
 
 [project.entry-points."ps.module"]
-entry = "ps.plugin.module.monorepo.entry:Entry"
+build_entry = "ps.plugin.module.monorepo.build_entry:BuildEntry"
+publish_entry = "ps.plugin.module.monorepo.publish_entry:PublishEntry"
+check_entry = "ps.plugin.module.monorepo.check_entry:CheckEntry"
 
 [tool.poetry]
 packages = [ { include = "ps/plugin/module/monorepo", from = "src" } ]

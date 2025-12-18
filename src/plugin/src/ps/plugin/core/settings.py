@@ -3,7 +3,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class PluginSettings(BaseModel):
-    NAME: ClassVar[str] = "ps-plugin-host"
+    NAME: ClassVar[str] = "ps-plugin"
 
     enabled: bool = False
 

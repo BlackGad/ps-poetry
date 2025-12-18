@@ -2,6 +2,7 @@ from typing import Iterable, List, Type
 import inspect
 from importlib import metadata
 
+from poetry.console.application import Application
 from cleo.io.io import IO
 
 from .protocols import (
@@ -15,11 +16,18 @@ from .protocols import (
 )
 
 
-class ProtocolExecutionError(Exception):
-    pass
+def _instantiate_module(module_type: Type, available_dependencies: dict[str, object]) -> object:
+    sig = inspect.signature(module_type.__init__)
+    kwargs = {}
+    for param_name, _ in sig.parameters.items():
+        if param_name == 'self':
+            continue
+        if param_name in available_dependencies:
+            kwargs[param_name] = available_dependencies[param_name]
+    return module_type(**kwargs)
 
 
-def _load_module_types() -> Iterable[Type]:
+def _load_module_class_types() -> Iterable[Type]:
     module_entry_points = metadata.entry_points(group="ps.module")
     module_types: set[Type] = set()
     for entry_point in module_entry_points:
@@ -41,14 +49,27 @@ def _load_module_types() -> Iterable[Type]:
     return module_types
 
 
+def _resolve_custom_protocols(module_cls: Type) -> List[Type]:
+    if not issubclass(module_cls, CustomProtocolsProtocol):
+        return []
+    custom_protocols = module_cls.declare_custom_protocols()
+    for protocol in custom_protocols:
+        if not hasattr(protocol, '__runtime_checkable__') or not protocol.__runtime_checkable__:
+            raise TypeError(
+                f"Custom protocol '{protocol.__name__}' declared by module '{module_cls.__name__}' "
+                f"must be decorated with @runtime_checkable"
+            )
+    return custom_protocols
+
+
 class ModulesHandler:
     def __init__(self, io: IO) -> None:
         self._modules_instances: List[object] = []
         self._managed_protocols: dict[Type, List[object]] = {}
         self._io = io
 
-    def instantiate_modules(self) -> None:
-        module_types = _load_module_types()
+    def instantiate_modules(self, application: Application) -> None:
+        module_types = _load_module_class_types()
 
         # Determine supported protocols including custom ones
         protocols: List[Type] = [
@@ -59,7 +80,7 @@ class ModulesHandler:
             SignalProtocol,
         ]
         for module_type in module_types:
-            additional_protocols = self._resolve_custom_protocols(module_type)
+            additional_protocols = _resolve_custom_protocols(module_type)
             protocols.extend(additional_protocols)
 
         for module_type in module_types:
@@ -69,8 +90,12 @@ class ModulesHandler:
                 # Module class does not support any known protocol
                 continue
             # Instantiate the module
-            sig = inspect.signature(module_type.__init__)
-            module_instance = module_type(io=self._io) if 'io' in sig.parameters else module_type()
+            module_instance = _instantiate_module(
+                module_type,
+                {
+                    "io": self._io,
+                    "application": application,
+                })
             self._modules_instances.append(module_instance)
             for protocol in supported_protocols_by_module:
                 self._managed_protocols.setdefault(protocol, []).append(module_instance)
@@ -80,8 +105,3 @@ class ModulesHandler:
 
     def is_protocol_managed(self, protocol: Type) -> bool:
         return protocol in self._managed_protocols
-
-    def _resolve_custom_protocols(self, module_cls: Type) -> List[Type]:
-        if issubclass(module_cls, CustomProtocolsProtocol):
-            return module_cls.declare_custom_protocols()
-        return []

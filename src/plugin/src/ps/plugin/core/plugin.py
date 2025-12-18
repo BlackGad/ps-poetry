@@ -63,7 +63,7 @@ class Plugin(ApplicationPlugin):
         try:
             settings: PluginSettings = PluginSettings.model_validate(settings_section)
             if not settings.enabled:
-                _log_verbose(io, "<warn>Disabled via configuration</warn>")
+                _log_verbose(io, f"<fg=yellow>Plugin disabled in configuration in {application.poetry.pyproject.file}</>")
                 return
         except Exception as e:
             _log_debug(io, f"<error>Not in a valid poetry project or configuration error: {e}</error>")
@@ -71,7 +71,7 @@ class Plugin(ApplicationPlugin):
 
         _log_verbose(io, "<info>Starting activation...</info>")
         self._modules_handler = ModulesHandler(io)
-        self._modules_handler.instantiate_modules()
+        self._modules_handler.instantiate_modules(application)
 
         global_setup_handlers = self._modules_handler.acquire_protocol_handlers(GlobalSetupProtocol)
 
