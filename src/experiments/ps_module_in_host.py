@@ -8,7 +8,3 @@ class ModuleInHost:
 
     def global_setup(self, application: Application) -> None:
         self._io.write_line("Module in host global setup executed")
-
-    @staticmethod
-    def get_module_name() -> str:
-        return "Test module in host"

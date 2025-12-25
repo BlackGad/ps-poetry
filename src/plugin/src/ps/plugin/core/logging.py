@@ -1,4 +1,10 @@
+from typing import Type, Union
 from cleo.io.io import IO
+
+
+def _get_module_name(obj: Union[Type, object]) -> str:
+    cls = obj if isinstance(obj, type) else type(obj)
+    return f"{cls.__module__}.{cls.__name__}"
 
 
 def _log_verbose(io: IO, message: str) -> None:
