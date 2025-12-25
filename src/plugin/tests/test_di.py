@@ -1,7 +1,9 @@
+import pytest
 import threading
-from typing import List
+from typing import List, Optional
 
 from ps.plugin.core.di import _DI
+from ps.plugin.sdk import DI
 
 
 class Counter:
@@ -20,6 +22,22 @@ class Service:
 class DependentService:
     def __init__(self, service: Service) -> None:
         self.service = service
+
+
+class ComplexService:
+    def __init__(
+        self,
+        name: str,
+        service: Service,
+        counter: Optional[Counter] = None,
+        services: Optional[List[Service]] = None,
+        default_value: str = "default",
+    ) -> None:
+        self.name = name
+        self.service = service
+        self.counter = counter
+        self.services = services or []
+        self.default_value = default_value
 
 
 def test_singleton_returns_same_instance():
@@ -219,3 +237,160 @@ def test_resolve_many_concurrent():
 
     assert len(results) == 10
     assert all(len(services) == 5 for services in results)
+
+
+def test_spawn_with_args_and_kwargs():
+    di = _DI()
+    di.singleton(Service).factory(lambda: Service("from-di"))
+
+    instance = di.spawn(Service, "manual-name")
+
+    assert instance.name == "manual-name"
+
+
+def test_spawn_with_kwargs():
+    di = _DI()
+    di.singleton(Service).factory(lambda: Service("from-di"))
+
+    instance = di.spawn(Service, name="manual-name")
+
+    assert instance.name == "manual-name"
+
+
+def test_spawn_resolves_simple_dependency():
+    di = _DI()
+    di.singleton(Service).factory(lambda: Service("resolved-service"))
+
+    instance = di.spawn(DependentService)
+
+    assert instance.service is not None
+    assert instance.service.name == "resolved-service"
+
+
+def test_spawn_resolves_optional_dependency():
+    di = _DI()
+    di.singleton(Counter).factory(lambda: Counter())
+
+    class ServiceWithOptional:
+        def __init__(self, counter: Optional[Counter] = None) -> None:
+            self.counter = counter
+
+    instance = di.spawn(ServiceWithOptional)
+
+    assert instance.counter is not None
+    assert instance.counter.value == 0
+
+
+def test_spawn_optional_dependency_not_registered():
+    di = _DI()
+
+    class ServiceWithOptional:
+        def __init__(self, counter: Optional[Counter] = None) -> None:
+            self.counter = counter
+
+    instance = di.spawn(ServiceWithOptional)
+
+    assert instance.counter is None
+
+
+def test_spawn_resolves_list_dependency():
+    di = _DI()
+    di.singleton(Service).factory(lambda: Service("service-1"))
+    di.singleton(Service).factory(lambda: Service("service-2"))
+
+    class ServiceWithList:
+        def __init__(self, services: List[Service]) -> None:
+            self.services = services
+
+    instance = di.spawn(ServiceWithList)
+
+    assert len(instance.services) == 2
+    assert instance.services[0].name == "service-2"
+    assert instance.services[1].name == "service-1"
+
+
+def test_spawn_uses_default_value_when_dependency_not_resolved():
+    di = _DI()
+
+    class ServiceWithDefault:
+        def __init__(self, value: str = "default") -> None:
+            self.value = value
+
+    instance = di.spawn(ServiceWithDefault)
+
+    assert instance.value == "default"
+
+
+def test_spawn_raises_when_required_dependency_not_resolved():
+    di = _DI()
+
+    with pytest.raises(ValueError) as exc_info:
+        di.spawn(DependentService)
+
+    assert "Cannot resolve required dependency" in str(exc_info.value)
+    assert "service" in str(exc_info.value)
+
+
+def test_spawn_mixed_args_kwargs_and_resolved():
+    di = _DI()
+    di.singleton(Service).factory(lambda: Service("resolved-service"))
+    di.singleton(Counter).factory(lambda: Counter())
+
+    instance = di.spawn(ComplexService, "manual-name")
+
+    assert instance.name == "manual-name"
+    assert instance.service.name == "resolved-service"
+    assert instance.counter is not None
+    assert instance.counter.value == 0
+    assert instance.services == []
+    assert instance.default_value == "default"
+
+
+def test_spawn_override_resolved_with_kwargs():
+    di = _DI()
+    di.singleton(Service).factory(lambda: Service("resolved-service"))
+    manual_service = Service("manual-service")
+
+    instance = di.spawn(DependentService, service=manual_service)
+
+    assert instance.service is manual_service
+    assert instance.service.name == "manual-service"
+
+
+def test_spawn_resolves_multiple_services_for_list():
+    di = _DI()
+    di.singleton(Service).factory(lambda: Service("first"))
+    di.singleton(Service).factory(lambda: Service("second"))
+    di.singleton(Service).factory(lambda: Service("third"))
+
+    class MultiServiceConsumer:
+        def __init__(self, services: List[Service]) -> None:
+            self.services = services
+
+    instance = di.spawn(MultiServiceConsumer)
+
+    assert len(instance.services) == 3
+
+
+def test_spawn_with_no_type_hints():
+    di = _DI()
+
+    class NoHintsService:
+        def __init__(self, value):  # type: ignore
+            self.value = value
+
+    instance = di.spawn(NoHintsService, "test-value")
+
+    assert instance.value == "test-value"
+
+
+def test_spawn_resolves_di_itself():
+    di = _DI()
+
+    class ServiceWithDI:
+        def __init__(self, di_instance: DI) -> None:
+            self.di_instance = di_instance
+
+    instance = di.spawn(ServiceWithDI)
+
+    assert instance.di_instance is di

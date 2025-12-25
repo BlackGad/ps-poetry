@@ -16,17 +16,6 @@ from ps.plugin.sdk import (
 from .logging import _log_debug, _log_verbose
 
 
-def _instantiate_module(module_type: Type, available_dependencies: dict[str, object]) -> object:
-    sig = inspect.signature(module_type.__init__)
-    kwargs = {}
-    for param_name, _ in sig.parameters.items():
-        if param_name == 'self':
-            continue
-        if param_name in available_dependencies:
-            kwargs[param_name] = available_dependencies[param_name]
-    return module_type(**kwargs)
-
-
 def _load_module_class_types() -> Iterable[tuple[str, Type]]:
     module_entry_points = metadata.entry_points(group="ps.module")
     type_to_entry: dict[Type, str] = {}
@@ -92,12 +81,7 @@ class ModulesHandler:
             for protocol in supported_protocols_by_module:
                 _log_debug(io, f"  - <fg=yellow>{protocol.__name__}</>")
             # Instantiate the module
-            module_instance = _instantiate_module(
-                module_type,
-                {
-                    "io": io,
-                    "application": application,
-                })
+            module_instance = self._di.spawn(module_type)
             self._modules_instances.append(module_instance)
             for protocol in supported_protocols_by_module:
                 self._managed_protocols.setdefault(protocol, []).append(module_instance)

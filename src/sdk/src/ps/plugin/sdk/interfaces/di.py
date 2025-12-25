@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Callable, List, Optional, ParamSpec, Type, TypeVar
+from typing import Any, Callable, List, Optional, ParamSpec, Type, TypeVar
 
 T = TypeVar("T")
 P = ParamSpec("P")
@@ -17,6 +17,9 @@ class DI(ABC):
 
     @abstractmethod
     def resolve_many(self, key: Type[T]) -> List[T]: ...
+
+    @abstractmethod
+    def spawn(self, cls: Type[T], *args: Any, **kwargs: Any) -> T: ...
 
 
 class Binding[T](ABC):
