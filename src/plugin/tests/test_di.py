@@ -394,3 +394,53 @@ def test_spawn_resolves_di_itself():
     instance = di.spawn(ServiceWithDI)
 
     assert instance.di_instance is di
+
+
+def test_spawn_with_string_annotations():
+    di = _DI()
+    di.singleton(Service).factory(lambda: Service("resolved"))
+
+    # Manually create class with string annotation
+    class ServiceWithStringAnnotation:
+        def __init__(self, service: "Service") -> None:
+            self.service = service
+
+    instance = di.spawn(ServiceWithStringAnnotation)
+
+    assert instance.service is not None
+    assert instance.service.name == "resolved"
+
+
+def test_register_and_resolve_with_string_type_name():
+    di = _DI()
+
+    # Register using the actual type first so it's in the registry
+    di.singleton(Service).factory(lambda: Service("string-resolved"))
+
+    # Resolve using string type name
+    instance = di.resolve("Service")
+
+    assert instance is not None
+    assert instance.name == "string-resolved"
+
+
+def test_resolve_many_with_string_type_name():
+    di = _DI()
+    di.singleton(Service).factory(lambda: Service("first"))
+    di.singleton(Service).factory(lambda: Service("second"))
+
+    services = di.resolve_many("Service")
+
+    assert len(services) == 2
+    assert services[0].name == "second"
+    assert services[1].name == "first"
+
+
+def test_resolve_string_type_not_registered():
+    di = _DI()
+
+    with pytest.raises(ValueError) as exc_info:
+        di.resolve("NonExistent")
+
+    assert "Cannot resolve type from string" in str(exc_info.value)
+    assert "NonExistent" in str(exc_info.value)

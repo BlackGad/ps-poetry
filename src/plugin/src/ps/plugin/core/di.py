@@ -1,7 +1,7 @@
 import inspect
 import threading
 from enum import IntEnum
-from typing import Any, Callable, List, Optional, ParamSpec, Type, TypeVar, Union, cast, get_args, get_origin
+from typing import Any, Callable, List, Optional, ParamSpec, Type, TypeVar, Union, cast, get_args, get_origin, get_type_hints
 
 from ps.plugin.sdk import DI, Binding
 
@@ -61,23 +61,41 @@ class _DI(DI):
         self._registry: dict[Type, _Registrations] = {}
         self._lock_registry_access = threading.Lock()
         self._signature_cache: dict[Type, inspect.Signature] = {}
+        self._type_name_cache: dict[str, Type] = {}
 
-    def singleton(self, cls: Type[T]) -> "Binding[T]":
-        return _Binding(self, cls, lifetime=_Lifetime.SINGLETON)
+    def _resolve_type(self, key: Type[T] | str) -> Type[T]:
+        """Resolve a type from either a Type object or a string name."""
+        if isinstance(key, str):
+            if key not in self._type_name_cache:
+                # Try to find the type in the registry by matching __name__
+                for registered_type in self._registry:
+                    if registered_type.__name__ == key:
+                        self._type_name_cache[key] = registered_type
+                        return registered_type
+                raise ValueError(f"Cannot resolve type from string '{key}' - no matching type registered")
+            return self._type_name_cache[key]
+        return key
 
-    def transient(self, cls: Type[T]) -> "Binding[T]":
-        return _Binding(self, cls, lifetime=_Lifetime.TRANSIENT)
+    def singleton(self, cls: Type[T] | str) -> "Binding[T]":
+        resolved_cls = self._resolve_type(cls) if isinstance(cls, str) else cls
+        return _Binding(self, resolved_cls, lifetime=_Lifetime.SINGLETON)
 
-    def resolve(self, key: Type[T]) -> Optional[T]:
+    def transient(self, cls: Type[T] | str) -> "Binding[T]":
+        resolved_cls = self._resolve_type(cls) if isinstance(cls, str) else cls
+        return _Binding(self, resolved_cls, lifetime=_Lifetime.TRANSIENT)
+
+    def resolve(self, key: Type[T] | str) -> Optional[T]:
+        resolved_key = self._resolve_type(key) if isinstance(key, str) else key
         with self._lock_registry_access:
-            registrations = self._registry.get(key)
+            registrations = self._registry.get(resolved_key)
         if registrations is None:
             return None
         return cast(T, registrations.resolve_first())
 
-    def resolve_many(self, key: Type[T]) -> List[T]:
+    def resolve_many(self, key: Type[T] | str) -> List[T]:
+        resolved_key = self._resolve_type(key) if isinstance(key, str) else key
         with self._lock_registry_access:
-            registrations = self._registry.get(key)
+            registrations = self._registry.get(resolved_key)
         if registrations is None:
             return []
         return registrations.resolve_all()
@@ -93,6 +111,12 @@ class _DI(DI):
             self._signature_cache[cls] = inspect.signature(cls.__init__)
         sig = self._signature_cache[cls]
 
+        # Get type hints (handles string annotations from __future__)
+        try:
+            type_hints = get_type_hints(cls.__init__)
+        except Exception:
+            type_hints = {}
+
         final_kwargs = dict(kwargs)
         params_list = list(sig.parameters.values())[1:]  # Skip 'self'
 
@@ -106,7 +130,8 @@ class _DI(DI):
             if param.name in final_kwargs:
                 continue
 
-            annotation = param.annotation
+            # Get resolved type hint or fall back to annotation
+            annotation = type_hints.get(param.name, param.annotation)
             if annotation == inspect.Parameter.empty:
                 continue
 
