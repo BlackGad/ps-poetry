@@ -12,6 +12,9 @@ pydantic = "^2.12.5"
 [project.entry-points."ps.module"]
 module_entry = "ps.plugin.module.monorepo"
 
+[tool.poetry.group.ps.dependencies]
+ps-plugin-sdk = { path = "../../sdk", develop = true }
+
 [tool.poetry]
 packages = [ { include = "ps/plugin/module/monorepo", from = "src" } ]
 version = "0.0.0"

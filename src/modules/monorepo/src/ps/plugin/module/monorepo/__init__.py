@@ -1,9 +1,5 @@
-from .build_entry import BuildEntry
-from .publish_entry import PublishEntry
-from .check_entry import CheckEntry
+from .monorepo_module import MonorepoModule
 
 __all__ = [
-    "BuildEntry",
-    "PublishEntry",
-    "CheckEntry",
+    "MonorepoModule",
 ]

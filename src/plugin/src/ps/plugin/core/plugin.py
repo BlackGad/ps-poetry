@@ -25,7 +25,7 @@ from ps.plugin.sdk import (
 from .di import _DI
 from .modules_handler import ModulesHandler
 from .logging import _log_debug, _log_verbose, _get_module_name
-from .parse_toml import get_data, parse_project
+from .parse_toml import get_data, parse_project, parse_plugin_settings_from_document
 
 
 def _create_standard_io() -> IO:
@@ -44,10 +44,8 @@ class Plugin(ApplicationPlugin):
 
         io = self._ensure_io(application)
         project_toml = application.poetry.pyproject.data
-        settings_section = get_data(project_toml, f"tool.{PluginSettings.NAME}", {})
-
         try:
-            settings: PluginSettings = PluginSettings.model_validate(settings_section)
+            settings: PluginSettings = parse_plugin_settings_from_document(project_toml)
             if not settings.enabled:
                 _log_verbose(io, f"<fg=yellow>ps-plugin not enabled or disabled in configuration in {application.poetry.pyproject.file}</>")
                 return
@@ -66,11 +64,11 @@ class Plugin(ApplicationPlugin):
         modules_handler = ModulesHandler(di)
         modules_handler.instantiate_modules(application)
 
-        global_setup_handlers = modules_handler.acquire_protocol_handlers(ActivateProtocol)
+        activate_handlers = modules_handler.acquire_protocol_handlers(ActivateProtocol)
 
-        _log_verbose(io, f"<info>Activating {len(global_setup_handlers)} global setup handlers</info>")
-        for handler in global_setup_handlers:
-            _log_debug(io, f"Executing global setup for module <comment>{_get_module_name(handler)}</comment>")
+        _log_verbose(io, f"<info>Activating {len(activate_handlers)} modules</info>")
+        for handler in activate_handlers:
+            _log_debug(io, f"Executing activate for module <comment>{_get_module_name(handler)}</comment>")
             handler.handle_activate(application)
 
         protocols_to_register = {
@@ -115,7 +113,7 @@ class Plugin(ApplicationPlugin):
         def _listener(event: Event, event_name: str, dispatcher: EventDispatcher) -> None:
             _log_debug(io, f"Processing <comment>{event_name}</comment> event")
             for handler in handlers:
-                _log_verbose(io, f"<info>Module <comment>{_get_module_name(handler)}</comment> handling event</info>")
+                _log_verbose(io, f"<info>Module <comment>{_get_module_name(handler)}</comment> handling {event_name} event</info>")
                 handle_method = getattr(handler, handle_method_name)
                 handle_method(event, event_name, dispatcher)
         event_dispatcher.add_listener(event_constant, _listener)

@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Any, Optional
+from ps.plugin.sdk.models.settings import PluginSettings
 from tomlkit import TOMLDocument, parse
 
 from ps.plugin.sdk import Project, ProjectDependency
@@ -90,6 +91,12 @@ def parse_dependencies_from_document(document: TOMLDocument) -> list[ProjectDepe
     return dependencies
 
 
+def parse_plugin_settings_from_document(document: TOMLDocument) -> PluginSettings:
+    project_toml = document
+    settings_section = get_data(project_toml, f"tool.{PluginSettings.NAME}", {})
+    return PluginSettings.model_validate(settings_section)
+
+
 def parse_project(project_path: Path) -> Project:
     with project_path.open('r', encoding='utf-8') as f:
         data = parse(f.read())
@@ -99,4 +106,5 @@ def parse_project(project_path: Path) -> Project:
         path=project_path,
         document=data,
         dependencies=parse_dependencies_from_document(data),
+        plugin_settings=parse_plugin_settings_from_document(data),
     )

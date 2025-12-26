@@ -20,7 +20,7 @@ When test files require lint cleanup, refer to **AGENTS_LINTING.md**.
 
 ## Test Execution Environment
 
-* Run tests ONLY using the MCP server
+* Run tests ONLY using the `test tool`
 * Do not modify environment paths
 * Assume Python environment is already configured
 

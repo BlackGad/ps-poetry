@@ -1,7 +1,10 @@
 from pathlib import Path
 from typing import Optional
+from dulwich import P
 from pydantic import BaseModel, ConfigDict, Field
 from tomlkit import TOMLDocument
+
+from .settings import PluginSettings
 
 
 class ProjectDependency(BaseModel):
@@ -40,3 +43,4 @@ class Project(BaseModel):
     path: Path
     document: TOMLDocument = Field(exclude=True)
     dependencies: list[ProjectDependency]
+    plugin_settings: PluginSettings

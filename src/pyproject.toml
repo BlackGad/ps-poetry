@@ -39,7 +39,7 @@ ps-plugin-core = {path = "plugin/dist/ps_plugin_core-0.0.0-py3-none-any.whl"}
 
 [tool.ps-plugin]
 enabled = true
-monorepo = true
+monorepo = "host"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
