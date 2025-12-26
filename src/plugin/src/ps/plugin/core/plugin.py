@@ -13,16 +13,19 @@ from poetry.console.application import Application
 
 from ps.plugin.sdk import (
     PluginSettings,
-    SetupProtocol,
+    ActivateProtocol,
     ListenerCommandProtocol,
     ListenerTerminateProtocol,
     ListenerErrorProtocol,
     ListenerSignalProtocol,
+    Project,
+    Priority
 )
+
 from .di import _DI
 from .modules_handler import ModulesHandler
 from .logging import _log_debug, _log_verbose, _get_module_name
-from .parse_toml import get_data
+from .parse_toml import get_data, parse_project
 
 
 def _create_standard_io() -> IO:
@@ -55,18 +58,20 @@ class Plugin(ApplicationPlugin):
         _log_verbose(io, "<info>Starting activation</info>")
 
         di = _DI()
-        di.singleton(IO).factory(lambda: io)
-        di.singleton(Application).factory(lambda: application)
+        di.register(IO).factory(lambda: io)
+        di.register(Application).factory(lambda: application)
+        di.register(PluginSettings).factory(lambda: settings)
+        di.register(Project, priority=Priority.MEDIUM).factory(lambda path: parse_project(path), application.poetry.pyproject_path)
 
         modules_handler = ModulesHandler(di)
         modules_handler.instantiate_modules(application)
 
-        global_setup_handlers = modules_handler.acquire_protocol_handlers(SetupProtocol)
+        global_setup_handlers = modules_handler.acquire_protocol_handlers(ActivateProtocol)
 
         _log_verbose(io, f"<info>Activating {len(global_setup_handlers)} global setup handlers</info>")
         for handler in global_setup_handlers:
             _log_debug(io, f"Executing global setup for module <comment>{_get_module_name(handler)}</comment>")
-            handler.global_setup(application)
+            handler.handle_activate(application)
 
         protocols_to_register = {
             ListenerCommandProtocol: cleo.events.console_events.COMMAND,

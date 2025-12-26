@@ -1,4 +1,4 @@
-from .interfaces.di import Binding, DI
+from .interfaces.di import Binding, DI, Lifetime, Priority
 from .models.project import Project, ProjectDependency
 from .models.settings import PluginSettings
 from .models.solution import Solution
@@ -7,7 +7,7 @@ from .protocols import (
     ListenerErrorProtocol,
     ListenerSignalProtocol,
     ListenerTerminateProtocol,
-    SetupProtocol,
+    ActivateProtocol,
 )
 
 __all__ = [
@@ -15,11 +15,13 @@ __all__ = [
     "ProjectDependency",
     "Project",
     "Solution",
-    "SetupProtocol",
+    "ActivateProtocol",
     "ListenerCommandProtocol",
     "ListenerTerminateProtocol",
     "ListenerErrorProtocol",
     "ListenerSignalProtocol",
     "DI",
     "Binding",
+    "Lifetime",
+    "Priority",
 ]

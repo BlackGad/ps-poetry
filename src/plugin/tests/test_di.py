@@ -3,7 +3,7 @@ import threading
 from typing import List, Optional
 
 from ps.plugin.core.di import _DI
-from ps.plugin.sdk import DI
+from ps.plugin.sdk import DI, Lifetime, Priority
 
 
 class Counter:
@@ -42,7 +42,7 @@ class ComplexService:
 
 def test_singleton_returns_same_instance():
     di = _DI()
-    di.singleton(Service).factory(lambda: Service("test"))
+    di.register(Service).factory(lambda: Service("test"))
 
     instance1 = di.resolve(Service)
     instance2 = di.resolve(Service)
@@ -55,7 +55,7 @@ def test_singleton_returns_same_instance():
 
 def test_transient_returns_different_instances():
     di = _DI()
-    di.transient(Service).factory(lambda: Service("test"))
+    di.register(Service, Lifetime.TRANSIENT).factory(lambda: Service("test"))
 
     instance1 = di.resolve(Service)
     instance2 = di.resolve(Service)
@@ -81,9 +81,9 @@ def test_resolve_many_returns_empty_list_when_not_registered():
 
 def test_resolve_many_returns_all_registrations():
     di = _DI()
-    di.singleton(Service).factory(lambda: Service("first"))
-    di.singleton(Service).factory(lambda: Service("second"))
-    di.singleton(Service).factory(lambda: Service("third"))
+    di.register(Service).factory(lambda: Service("first"))
+    di.register(Service).factory(lambda: Service("second"))
+    di.register(Service).factory(lambda: Service("third"))
 
     services = di.resolve_many(Service)
 
@@ -95,8 +95,8 @@ def test_resolve_many_returns_all_registrations():
 
 def test_resolve_returns_most_recent_registration():
     di = _DI()
-    di.singleton(Service).factory(lambda: Service("first"))
-    di.singleton(Service).factory(lambda: Service("second"))
+    di.register(Service).factory(lambda: Service("first"))
+    di.register(Service).factory(lambda: Service("second"))
 
     service = di.resolve(Service)
 
@@ -110,7 +110,7 @@ def test_singleton_with_implementation_type():
     class NoArgsService:
         pass
 
-    di.singleton(NoArgsService).implementation(NoArgsService)
+    di.register(NoArgsService).implementation(NoArgsService)
 
     service = di.resolve(NoArgsService)
 
@@ -120,7 +120,7 @@ def test_singleton_with_implementation_type():
 
 def test_factory_with_arguments():
     di = _DI()
-    di.singleton(Service).factory(Service, "custom-name")
+    di.register(Service).factory(Service, "custom-name")
 
     service = di.resolve(Service)
 
@@ -130,8 +130,8 @@ def test_factory_with_arguments():
 
 def test_multiple_types_can_be_registered():
     di = _DI()
-    di.singleton(Service).factory(lambda: Service("service"))
-    di.singleton(Counter).factory(lambda: Counter())
+    di.register(Service).factory(lambda: Service("service"))
+    di.register(Counter).factory(lambda: Counter())
 
     service = di.resolve(Service)
     counter = di.resolve(Counter)
@@ -150,7 +150,7 @@ def test_singleton_thread_safety():
         creation_count.increment()
         return Service("thread-safe")
 
-    di.singleton(Service).factory(create_service)
+    di.register(Service).factory(create_service)
 
     instances: List[Service] = []
     lock = threading.Lock()
@@ -174,7 +174,7 @@ def test_singleton_thread_safety():
 
 def test_transient_creates_new_instances_in_concurrent_calls():
     di = _DI()
-    di.transient(Service).factory(lambda: Service("transient"))
+    di.register(Service, Lifetime.TRANSIENT).factory(lambda: Service("transient"))
 
     instances: List[Service] = []
     lock = threading.Lock()
@@ -201,7 +201,7 @@ def test_concurrent_registration_and_resolution():
     lock = threading.Lock()
 
     def register_and_resolve(name: str) -> None:
-        di.singleton(Service).factory(lambda n=name: Service(n))
+        di.register(Service).factory(lambda n=name: Service(n))
         instance = di.resolve(Service)
         if instance is not None:
             with lock:
@@ -219,7 +219,7 @@ def test_concurrent_registration_and_resolution():
 def test_resolve_many_concurrent():
     di = _DI()
     for i in range(5):
-        di.singleton(Service).factory(lambda idx=i: Service(f"service-{idx}"))
+        di.register(Service).factory(lambda idx=i: Service(f"service-{idx}"))
 
     results: List[List[Service]] = []
     lock = threading.Lock()
@@ -241,7 +241,7 @@ def test_resolve_many_concurrent():
 
 def test_spawn_with_args_and_kwargs():
     di = _DI()
-    di.singleton(Service).factory(lambda: Service("from-di"))
+    di.register(Service).factory(lambda: Service("from-di"))
 
     instance = di.spawn(Service, "manual-name")
 
@@ -250,7 +250,7 @@ def test_spawn_with_args_and_kwargs():
 
 def test_spawn_with_kwargs():
     di = _DI()
-    di.singleton(Service).factory(lambda: Service("from-di"))
+    di.register(Service).factory(lambda: Service("from-di"))
 
     instance = di.spawn(Service, name="manual-name")
 
@@ -259,7 +259,7 @@ def test_spawn_with_kwargs():
 
 def test_spawn_resolves_simple_dependency():
     di = _DI()
-    di.singleton(Service).factory(lambda: Service("resolved-service"))
+    di.register(Service).factory(lambda: Service("resolved-service"))
 
     instance = di.spawn(DependentService)
 
@@ -269,7 +269,7 @@ def test_spawn_resolves_simple_dependency():
 
 def test_spawn_resolves_optional_dependency():
     di = _DI()
-    di.singleton(Counter).factory(lambda: Counter())
+    di.register(Counter).factory(lambda: Counter())
 
     class ServiceWithOptional:
         def __init__(self, counter: Optional[Counter] = None) -> None:
@@ -295,8 +295,8 @@ def test_spawn_optional_dependency_not_registered():
 
 def test_spawn_resolves_list_dependency():
     di = _DI()
-    di.singleton(Service).factory(lambda: Service("service-1"))
-    di.singleton(Service).factory(lambda: Service("service-2"))
+    di.register(Service).factory(lambda: Service("service-1"))
+    di.register(Service).factory(lambda: Service("service-2"))
 
     class ServiceWithList:
         def __init__(self, services: List[Service]) -> None:
@@ -333,8 +333,8 @@ def test_spawn_raises_when_required_dependency_not_resolved():
 
 def test_spawn_mixed_args_kwargs_and_resolved():
     di = _DI()
-    di.singleton(Service).factory(lambda: Service("resolved-service"))
-    di.singleton(Counter).factory(lambda: Counter())
+    di.register(Service).factory(lambda: Service("resolved-service"))
+    di.register(Counter).factory(lambda: Counter())
 
     instance = di.spawn(ComplexService, "manual-name")
 
@@ -348,7 +348,7 @@ def test_spawn_mixed_args_kwargs_and_resolved():
 
 def test_spawn_override_resolved_with_kwargs():
     di = _DI()
-    di.singleton(Service).factory(lambda: Service("resolved-service"))
+    di.register(Service).factory(lambda: Service("resolved-service"))
     manual_service = Service("manual-service")
 
     instance = di.spawn(DependentService, service=manual_service)
@@ -359,9 +359,9 @@ def test_spawn_override_resolved_with_kwargs():
 
 def test_spawn_resolves_multiple_services_for_list():
     di = _DI()
-    di.singleton(Service).factory(lambda: Service("first"))
-    di.singleton(Service).factory(lambda: Service("second"))
-    di.singleton(Service).factory(lambda: Service("third"))
+    di.register(Service).factory(lambda: Service("first"))
+    di.register(Service).factory(lambda: Service("second"))
+    di.register(Service).factory(lambda: Service("third"))
 
     class MultiServiceConsumer:
         def __init__(self, services: List[Service]) -> None:
@@ -398,7 +398,7 @@ def test_spawn_resolves_di_itself():
 
 def test_spawn_with_string_annotations():
     di = _DI()
-    di.singleton(Service).factory(lambda: Service("resolved"))
+    di.register(Service).factory(lambda: Service("resolved"))
 
     # Manually create class with string annotation
     class ServiceWithStringAnnotation:
@@ -415,7 +415,7 @@ def test_register_and_resolve_with_string_type_name():
     di = _DI()
 
     # Register using the actual type first so it's in the registry
-    di.singleton(Service).factory(lambda: Service("string-resolved"))
+    di.register(Service).factory(lambda: Service("string-resolved"))
 
     # Resolve using string type name
     instance = di.resolve("Service")
@@ -426,8 +426,8 @@ def test_register_and_resolve_with_string_type_name():
 
 def test_resolve_many_with_string_type_name():
     di = _DI()
-    di.singleton(Service).factory(lambda: Service("first"))
-    di.singleton(Service).factory(lambda: Service("second"))
+    di.register(Service).factory(lambda: Service("first"))
+    di.register(Service).factory(lambda: Service("second"))
 
     services = di.resolve_many("Service")
 
@@ -444,3 +444,136 @@ def test_resolve_string_type_not_registered():
 
     assert "Cannot resolve type from string" in str(exc_info.value)
     assert "NonExistent" in str(exc_info.value)
+
+
+def test_priority_low_then_high():
+    di = _DI()
+    di.register(Service, priority=Priority.LOW).factory(lambda: Service("low-priority"))
+    di.register(Service, priority=Priority.HIGH).factory(lambda: Service("high-priority"))
+
+    service = di.resolve(Service)
+
+    assert service is not None
+    assert service.name == "high-priority"
+
+
+def test_priority_high_then_low():
+    di = _DI()
+    di.register(Service, priority=Priority.HIGH).factory(lambda: Service("high-priority"))
+    di.register(Service, priority=Priority.LOW).factory(lambda: Service("low-priority"))
+
+    service = di.resolve(Service)
+
+    assert service is not None
+    assert service.name == "high-priority"
+
+
+def test_priority_multiple_levels():
+    di = _DI()
+    di.register(Service, priority=Priority.LOW).factory(lambda: Service("low"))
+    di.register(Service, priority=Priority.MEDIUM).factory(lambda: Service("medium"))
+    di.register(Service, priority=Priority.HIGH).factory(lambda: Service("high"))
+    di.register(Service, priority=Priority.LOW).factory(lambda: Service("another-low"))
+
+    service = di.resolve(Service)
+
+    assert service is not None
+    assert service.name == "high"
+
+
+def test_priority_same_priority_most_recent_wins():
+    di = _DI()
+    di.register(Service, priority=Priority.MEDIUM).factory(lambda: Service("first-medium"))
+    di.register(Service, priority=Priority.MEDIUM).factory(lambda: Service("second-medium"))
+    di.register(Service, priority=Priority.MEDIUM).factory(lambda: Service("third-medium"))
+
+    service = di.resolve(Service)
+
+    assert service is not None
+    assert service.name == "third-medium"
+
+
+def test_priority_resolve_many_returns_in_priority_order():
+    di = _DI()
+    di.register(Service, priority=Priority.LOW).factory(lambda: Service("low-1"))
+    di.register(Service, priority=Priority.HIGH).factory(lambda: Service("high-1"))
+    di.register(Service, priority=Priority.MEDIUM).factory(lambda: Service("medium-1"))
+    di.register(Service, priority=Priority.LOW).factory(lambda: Service("low-2"))
+    di.register(Service, priority=Priority.HIGH).factory(lambda: Service("high-2"))
+
+    services = di.resolve_many(Service)
+
+    assert len(services) == 5
+    assert services[0].name == "high-2"
+    assert services[1].name == "high-1"
+    assert services[2].name == "medium-1"
+    assert services[3].name == "low-2"
+    assert services[4].name == "low-1"
+
+
+def test_priority_default_is_low():
+    di = _DI()
+    di.register(Service).factory(lambda: Service("default-priority"))
+    di.register(Service, priority=Priority.LOW).factory(lambda: Service("explicit-low"))
+
+    service = di.resolve(Service)
+
+    # Both have LOW priority, most recent wins
+    assert service is not None
+    assert service.name == "explicit-low"
+
+
+def test_priority_with_different_lifetimes():
+    di = _DI()
+    di.register(Service, lifetime=Lifetime.SINGLETON, priority=Priority.LOW).factory(lambda: Service("singleton-low"))
+    di.register(Service, lifetime=Lifetime.TRANSIENT, priority=Priority.HIGH).factory(lambda: Service("transient-high"))
+
+    service1 = di.resolve(Service)
+    service2 = di.resolve(Service)
+
+    assert service1 is not None
+    assert service1.name == "transient-high"
+    # Transient should create new instances
+    assert service1 is not service2
+
+
+def test_priority_concurrent_registration():
+    di = _DI()
+
+    def register_service(name: str, priority: Priority) -> None:
+        di.register(Service, priority=priority).factory(lambda n=name: Service(n))
+
+    threads = [
+        threading.Thread(target=register_service, args=("low-1", Priority.LOW)),
+        threading.Thread(target=register_service, args=("high-1", Priority.HIGH)),
+        threading.Thread(target=register_service, args=("medium-1", Priority.MEDIUM)),
+        threading.Thread(target=register_service, args=("low-2", Priority.LOW)),
+    ]
+
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    # Resolve should return a high priority item
+    service = di.resolve(Service)
+    assert service is not None
+    assert "high" in service.name
+
+
+def test_priority_mixed_with_default():
+    di = _DI()
+    di.register(Service).factory(lambda: Service("default-1"))
+    di.register(Service, priority=Priority.HIGH).factory(lambda: Service("high"))
+    di.register(Service).factory(lambda: Service("default-2"))
+    di.register(Service, priority=Priority.MEDIUM).factory(lambda: Service("medium"))
+
+    service = di.resolve(Service)
+
+    assert service is not None
+    assert service.name == "high"
+
+    services = di.resolve_many(Service)
+    assert len(services) == 4
+    assert services[0].name == "high"
+    assert services[1].name == "medium"

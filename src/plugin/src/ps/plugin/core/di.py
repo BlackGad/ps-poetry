@@ -1,36 +1,31 @@
 import inspect
 import threading
-from enum import IntEnum
 from typing import Any, Callable, List, Optional, ParamSpec, Type, TypeVar, Union, cast, get_args, get_origin, get_type_hints
 
 from ps.plugin.sdk import DI, Binding
+from ps.plugin.sdk.interfaces.di import Lifetime, Priority
 
 T = TypeVar("T")
 P = ParamSpec("P")
 
 
-class _Lifetime(IntEnum):
-    UNKNOWN = 0
-    SINGLETON = 1
-    TRANSIENT = 2
-
-
 class _Registration[T]:
-    def __init__(self, lifetime: _Lifetime, factory: Callable[[], T]) -> None:
+    def __init__(self, lifetime: Lifetime, priority: Priority, factory: Callable[[], T]) -> None:
         self.lifetime = lifetime
+        self.priority = priority
         self.factory = factory
         self.instance: Optional[T] = None
         self._lock_singleton_creation = threading.Lock()
 
     def resolve(self) -> T:
         match self.lifetime:
-            case _Lifetime.SINGLETON:
+            case Lifetime.SINGLETON:
                 if self.instance is None:
                     with self._lock_singleton_creation:
                         if self.instance is None:
                             self.instance = self.factory()
                 return self.instance
-            case _Lifetime.TRANSIENT:
+            case Lifetime.TRANSIENT:
                 return self.factory()
             case _:
                 raise ValueError("Unknown lifetime for registration.")
@@ -43,7 +38,14 @@ class _Registrations:
 
     def add_registration(self, registration: _Registration) -> None:
         with self._lock_registrations_access:
-            self._registrations.insert(0, registration)
+            # Find the correct position based on priority (higher priority comes first)
+            insert_pos = 0
+            for i, existing in enumerate(self._registrations):
+                if registration.priority >= existing.priority:
+                    insert_pos = i
+                    break
+                insert_pos = i + 1
+            self._registrations.insert(insert_pos, registration)
 
     def resolve_first(self) -> object:
         with self._lock_registrations_access:
@@ -76,13 +78,9 @@ class _DI(DI):
             return self._type_name_cache[key]
         return key
 
-    def singleton(self, cls: Type[T] | str) -> "Binding[T]":
+    def register(self, cls: Type[T] | str, lifetime: Lifetime = Lifetime.SINGLETON, priority: Priority = Priority.LOW) -> "Binding[T]":
         resolved_cls = self._resolve_type(cls) if isinstance(cls, str) else cls
-        return _Binding(self, resolved_cls, lifetime=_Lifetime.SINGLETON)
-
-    def transient(self, cls: Type[T] | str) -> "Binding[T]":
-        resolved_cls = self._resolve_type(cls) if isinstance(cls, str) else cls
-        return _Binding(self, resolved_cls, lifetime=_Lifetime.TRANSIENT)
+        return _Binding(self, resolved_cls, lifetime=lifetime, priority=priority)
 
     def resolve(self, key: Type[T] | str) -> Optional[T]:
         resolved_key = self._resolve_type(key) if isinstance(key, str) else key
@@ -175,13 +173,14 @@ class _DI(DI):
 
 
 class _Binding[T](Binding[T]):
-    def __init__(self, di: _DI, cls: Type[T], lifetime: _Lifetime) -> None:
+    def __init__(self, di: _DI, cls: Type[T], lifetime: Lifetime, priority: Priority) -> None:
         self._di = di
         self._cls = cls
         self._lifetime = lifetime
+        self._priority = priority
 
     def implementation(self, impl: Type[T]) -> None:
-        self._di._register(self._cls, _Registration(self._lifetime, lambda: impl()))
+        self._di._register(self._cls, _Registration(self._lifetime, self._priority, lambda: impl()))
 
     def factory(self, factory: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> None:
-        self._di._register(self._cls, _Registration(self._lifetime, lambda: factory(*args, **kwargs)))
+        self._di._register(self._cls, _Registration(self._lifetime, self._priority, lambda: factory(*args, **kwargs)))

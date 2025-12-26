@@ -6,7 +6,7 @@ from poetry.console.application import Application
 from cleo.io.io import IO
 
 from ps.plugin.sdk import (
-    SetupProtocol,
+    ActivateProtocol,
     ListenerCommandProtocol,
     ListenerTerminateProtocol,
     ListenerErrorProtocol,
@@ -62,7 +62,7 @@ class ModulesHandler:
             _log_debug(io, "No module types discovered")
 
         protocols: List[Type] = [
-            SetupProtocol,
+            ActivateProtocol,
             ListenerCommandProtocol,
             ListenerTerminateProtocol,
             ListenerErrorProtocol,
