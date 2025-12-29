@@ -1178,6 +1178,25 @@ type = "directory"
 url = "plugin"
 
 [[package]]
+name = "ps-plugin-module-check"
+version = "0.0.0"
+description = ""
+optional = false
+python-versions = ">=3.10,<4.0"
+groups = ["ps"]
+files = []
+develop = true
+
+[package.dependencies]
+poetry = "^2.2.1"
+pydantic = "^2.12.5"
+toml = "^0.10.2"
+
+[package.source]
+type = "directory"
+url = "modules/check"
+
+[[package]]
 name = "ps-plugin-module-monorepo"
 version = "0.0.0"
 description = ""
@@ -2052,4 +2071,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<4.0"
-content-hash = "12ffd1efe906e00905adbe84cca22be3bccacc061d83ead56758a34bc1595237"
+content-hash = "ee3ff85fd0120ce1c304eda47ad88bf06d548c5970e17b854f87b7595d9a56c7"
