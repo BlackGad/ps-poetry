@@ -25,7 +25,7 @@ from ps.plugin.sdk import (
 from .di import _DI
 from .modules_handler import ModulesHandler
 from .logging import _log_debug, _log_verbose, _get_module_name
-from .parse_toml import get_data, parse_project, parse_plugin_settings_from_document
+from .parse_toml import parse_project, parse_plugin_settings_from_document
 
 
 def _create_standard_io() -> IO:
@@ -67,9 +67,13 @@ class Plugin(ApplicationPlugin):
         activate_handlers = modules_handler.acquire_protocol_handlers(ActivateProtocol)
 
         _log_verbose(io, f"<info>Activating {len(activate_handlers)} modules</info>")
+        disabled_handlers: set[object] = set()
         for handler in activate_handlers:
             _log_debug(io, f"Executing activate for module <comment>{_get_module_name(handler)}</comment>")
-            handler.handle_activate(application)
+            is_enabled = handler.handle_activate(application)
+            if not is_enabled:
+                disabled_handlers.add(handler)
+                _log_debug(io, f"Module <comment>{_get_module_name(handler)}</comment> disabled itself during activation")
 
         protocols_to_register = {
             ListenerCommandProtocol: cleo.events.console_events.COMMAND,
@@ -80,12 +84,17 @@ class Plugin(ApplicationPlugin):
 
         for protocol_type, event_constant in protocols_to_register.items():
             handlers = modules_handler.acquire_protocol_handlers(protocol_type)
+            # Filter handlers: exclude those that are disabled via activate
+            filtered_handlers = [
+                handler for handler in handlers
+                if handler not in disabled_handlers
+            ]
             self._register_protocol_listener(
                 io,
                 application.event_dispatcher,
                 protocol_type,
                 event_constant,
-                handlers)
+                filtered_handlers)
 
         self.poetry = application.poetry
         _log_verbose(io, "<info>Activation complete</info>")

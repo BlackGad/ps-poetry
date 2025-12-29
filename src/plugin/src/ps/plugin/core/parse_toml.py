@@ -98,6 +98,12 @@ def parse_plugin_settings_from_document(document: TOMLDocument) -> PluginSetting
 
 
 def parse_project(project_path: Path) -> Project:
+    if project_path.is_dir():
+        project_path = project_path / "pyproject.toml"
+
+    if not project_path.exists():
+        raise FileNotFoundError(f"Project file not found at path: {project_path}")
+
     with project_path.open('r', encoding='utf-8') as f:
         data = parse(f.read())
     return Project(

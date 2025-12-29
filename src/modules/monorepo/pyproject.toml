@@ -19,6 +19,10 @@ ps-plugin-sdk = { path = "../../sdk", develop = true }
 packages = [ { include = "ps/plugin/module/monorepo", from = "src" } ]
 version = "0.0.0"
 
+[tool.ps-plugin]
+enabled = true
+monorepo = "child"
+
 [build-system]
 requires    = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
