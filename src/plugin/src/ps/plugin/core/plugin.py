@@ -36,10 +36,6 @@ def _create_standard_io() -> IO:
 
 
 class Plugin(ApplicationPlugin):
-
-    def __init__(self):
-        super().__init__()
-
     def activate(self, application: Application) -> None:
         assert application.event_dispatcher is not None
 
@@ -61,7 +57,7 @@ class Plugin(ApplicationPlugin):
         di.register(Application).factory(lambda: application)
         di.register(PluginSettings).factory(lambda: settings)
         di.register(Project, priority=Priority.MEDIUM).factory(lambda path: parse_project(path), application.poetry.pyproject_path)
-        di.register(Environment).factory(lambda: Environment())
+        di.register(Environment).factory(Environment)
 
         modules_handler = ModulesHandler(di)
         modules_handler.instantiate_modules(application)
@@ -72,8 +68,7 @@ class Plugin(ApplicationPlugin):
         disabled_handlers: set[object] = set()
         for handler in activate_handlers:
             _log_debug(io, f"Executing activate for module <comment>{_get_module_name(handler)}</comment>")
-            is_enabled = handler.handle_activate(application)
-            if not is_enabled:
+            if not handler.handle_activate(application):
                 disabled_handlers.add(handler)
                 _log_debug(io, f"Module <comment>{_get_module_name(handler)}</comment> disabled itself during activation")
 
@@ -85,10 +80,8 @@ class Plugin(ApplicationPlugin):
         }
 
         for protocol_type, event_constant in protocols_to_register.items():
-            handlers = modules_handler.acquire_protocol_handlers(protocol_type)
-            # Filter handlers: exclude those that are disabled via activate
-            filtered_handlers = [
-                handler for handler in handlers
+            handlers = [
+                handler for handler in modules_handler.acquire_protocol_handlers(protocol_type)
                 if handler not in disabled_handlers
             ]
             self._register_protocol_listener(
@@ -96,7 +89,7 @@ class Plugin(ApplicationPlugin):
                 application.event_dispatcher,
                 protocol_type,
                 event_constant,
-                filtered_handlers)
+                handlers)
 
         self.poetry = application.poetry
         _log_verbose(io, "<info>Activation complete</info>")
