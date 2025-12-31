@@ -180,7 +180,7 @@ class _Binding[T](Binding[T]):
         self._priority = priority
 
     def implementation(self, impl: Type[T]) -> None:
-        self._di._register(self._cls, _Registration(self._lifetime, self._priority, lambda: impl()))
+        self._di._register(self._cls, _Registration(self._lifetime, self._priority, lambda: self._di.spawn(impl)))
 
     def factory(self, factory: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> None:
         self._di._register(self._cls, _Registration(self._lifetime, self._priority, lambda: factory(*args, **kwargs)))

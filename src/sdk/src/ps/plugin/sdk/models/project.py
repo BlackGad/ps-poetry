@@ -1,6 +1,5 @@
 from pathlib import Path
 from typing import Optional
-from dulwich import P
 from pydantic import BaseModel, ConfigDict, Field
 from tomlkit import TOMLDocument
 

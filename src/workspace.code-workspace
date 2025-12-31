@@ -28,6 +28,19 @@
       ],
     },
 	"launch": {
+		"inputs": [
+          {
+            "id": "targetProjectPath",
+            "type": "promptString",
+			"default": ".",
+            "description": "Enter target project path"
+          },
+          {
+            "id": "targetCommandLine",
+            "type": "promptString",
+            "description": "Enter target command line arguments"
+          }
+        ],
 		"configurations": [
 			{
 				"name": "Experiment",
@@ -60,11 +73,7 @@
 				"console": "integratedTerminal",
 				"justMyCode": false,
 				"cwd": "${workspaceFolder}",
-				"args": [
-					"env",
-					"info",
-					"-vvv"
-				]
+				"args": [ "${input:targetCommandLine}" ]
 			}
 
 		]
@@ -88,17 +97,7 @@
               "cwd": "${workspaceFolder}"
             },
             "problemMatcher": []
-          },
-		  {
-            "label": "Setup Environment",
-            "type": "shell",
-            "command": "Remove-Item -Path ../.poetry -Recurse -Force -ErrorAction SilentlyContinue; poetry build; cd ..; poetry sync",
-            "options": {
-              "cwd": "${workspaceFolder}/plugin"
-            },
-            "group": "build",
-            "problemMatcher": []
-          },
+          }
 		],
 		"inputs": [
           {

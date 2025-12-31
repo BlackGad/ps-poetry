@@ -17,12 +17,6 @@ Get-ChildItem -Path $WorkspaceRoot -Directory -Recurse -Filter "__pycache__" -Er
     Remove-Item -Path $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
 }
 
-# Build plugin
-Write-Host "Building plugin..." -ForegroundColor Cyan
-Push-Location -Path (Join-Path $WorkspaceRoot "plugin")
-poetry build
-Pop-Location
-
 # Sync workspace dependencies
 Write-Host "Syncing workspace dependencies..." -ForegroundColor Cyan
 Set-Location -Path $WorkspaceRoot

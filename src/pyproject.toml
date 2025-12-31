@@ -35,12 +35,13 @@ ps-plugin-module-check      = { path = "modules/check", develop = true }
 ps-plugin-module-monorepo   = { path = "modules/monorepo", develop = true }
 
 [tool.poetry.requires-plugins]
-ps-plugin-core = {path = "plugin/dist/ps_plugin_core-0.0.0-py3-none-any.whl"}
-# ps-plugin-core = {path = "plugin", develop = true }
+ps-plugin-core = {path = "plugin", develop = true }
 
 [tool.ps-plugin]
 enabled = true
 monorepo = "host"
+# include_checks = ["poetry"]
+exclude_checks = ["poetry"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

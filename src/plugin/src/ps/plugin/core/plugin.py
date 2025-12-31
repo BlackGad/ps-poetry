@@ -19,7 +19,8 @@ from ps.plugin.sdk import (
     ListenerErrorProtocol,
     ListenerSignalProtocol,
     Project,
-    Priority
+    Priority,
+    Environment,
 )
 
 from .di import _DI
@@ -60,6 +61,7 @@ class Plugin(ApplicationPlugin):
         di.register(Application).factory(lambda: application)
         di.register(PluginSettings).factory(lambda: settings)
         di.register(Project, priority=Priority.MEDIUM).factory(lambda path: parse_project(path), application.poetry.pyproject_path)
+        di.register(Environment).factory(lambda: Environment())
 
         modules_handler = ModulesHandler(di)
         modules_handler.instantiate_modules(application)
