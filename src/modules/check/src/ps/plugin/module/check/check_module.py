@@ -1,6 +1,7 @@
 from cleo.events.console_command_event import ConsoleCommandEvent
 from cleo.events.console_terminate_event import ConsoleTerminateEvent
 from cleo.events.event_dispatcher import EventDispatcher
+from typing import ClassVar
 
 from cleo.io.io import IO
 from cleo.io.buffered_io import BufferedIO
@@ -18,15 +19,40 @@ from ps.plugin.sdk.protocols import (
     ActivateProtocol,
     ListenerCommandProtocol,
     ListenerTerminateProtocol,
+    NameAwareProtocol,
 )
 from ps.plugin.sdk.interfaces import DI
 from ps.plugin.sdk.helpers import ensure_argument, ensure_option, filter_projects
 
-from .sdk.project_check import IProjectCheck
-from .sdk.solution_check import ISolutionCheck
+from .sdk import IProjectCheck, ISolutionCheck
 
 from .checks.project_poetry import ProjectPoetryCheck
 from .checks.solution_ruff import SolutionRuffCheck
+
+
+def _filter_checkers[T: NameAwareProtocol](available_checkers: list[T], check_settings: CheckSettings, io: IO, checker_type: str) -> list[T]:
+    include_checkers = (
+        [checker for checker in available_checkers if checker.name in check_settings.include_checks]
+        if check_settings.include_checks is not None
+        else available_checkers
+    )
+    exclude_checkers = (
+        [checker for checker in available_checkers if checker.name in check_settings.exclude_checks]
+        if check_settings.exclude_checks is not None
+        else []
+    )
+    io.write_line(f"<fg=magenta>{checker_type} checkers:</>")
+    if not available_checkers:
+        io.write_line(f"  <comment>No {checker_type.lower()} checkers available.</comment>")
+        return []
+    for checker in available_checkers:
+        status = "<fg=dark_gray>not included</>"
+        if checker in include_checkers:
+            status = "<fg=light_green>included</>"
+        if checker in exclude_checkers:
+            status = "<fg=light_red>excluded</>"
+        io.write_line(f"  - <fg=cyan>{checker.name}</>: {status}")
+    return [checker for checker in include_checkers if checker not in exclude_checkers]
 
 
 def _get_inputs(input: Input) -> list[str]:
@@ -76,7 +102,7 @@ def _perform_solution_check(di: DI, projects: list[Project], solution_checkers: 
             if io.is_debug():
                 io.write_line(f"<comment>Skipping solution checker '{checker.name}' as it cannot check the provided projects.</comment>")
             continue
-        io.write_line(f"- <comment>{checker.name}</comment>")
+        io.write_line(f" - <comment>{checker.name}</comment>")
         exception = checker.check(io, projects, fix)
         if exception is not None:
             io.write_line(f"<error>{exception}</error>")
@@ -93,7 +119,14 @@ _builtin_solution_checks = [
 ]
 
 
-class CheckModule(ActivateProtocol, ListenerCommandProtocol, ListenerTerminateProtocol):
+class CheckModule(
+    NameAwareProtocol,
+    ActivateProtocol,
+    ListenerCommandProtocol,
+    ListenerTerminateProtocol
+):
+    name: ClassVar[str] = "ps-check"
+
     def __init__(self, di: DI) -> None:
         for check_cls in _builtin_project_checks:
             di.register(IProjectCheck).implementation(check_cls)
@@ -134,9 +167,16 @@ class CheckModule(ActivateProtocol, ListenerCommandProtocol, ListenerTerminatePr
         # Get the "fix" option
         fix = _get_fix_option(event.io.input)
 
+        # Resolve plugin settings
+        plugin_settings = self._di.resolve(PluginSettings)
+        assert plugin_settings is not None
+        check_settings = CheckSettings.model_validate(plugin_settings.model_dump())
+
         # Resolve available project checkers
-        project_checkers = self._get_project_checkers(event.io)
-        solution_checkers = self._get_solution_checkers(event.io)
+        available_project_checkers = self._di.resolve_many(IProjectCheck)
+        project_checkers = _filter_checkers(available_project_checkers, check_settings, event.io, "Project")
+        available_solution_checkers = self._di.resolve_many(ISolutionCheck)
+        solution_checkers = _filter_checkers(available_solution_checkers, check_settings, event.io, "Solution")
 
         if fix:
             event.io.write_line("<fg=magenta>Automatic fix enabled</>")
@@ -150,43 +190,3 @@ class CheckModule(ActivateProtocol, ListenerCommandProtocol, ListenerTerminatePr
 
     def handle_terminate(self, event: ConsoleTerminateEvent, event_name: str, dispatcher: EventDispatcher) -> None:
         event.set_exit_code(self._exit_code)
-
-    def _get_project_checkers(self, io: IO) -> list[IProjectCheck]:
-        available_checkers = self._di.resolve_many(IProjectCheck)
-        plugin_settings = self._di.resolve(PluginSettings)
-        assert plugin_settings is not None
-        check_settings = CheckSettings.model_validate(plugin_settings.model_dump())
-        include_checkers = [checker for checker in available_checkers if checker.name in check_settings.include_checks] if check_settings.include_checks is not None else available_checkers
-        exclude_checkers = [checker for checker in available_checkers if checker.name in check_settings.exclude_checks] if check_settings.exclude_checks is not None else []
-        io.write_line("<fg=magenta>Project checkers:</>")
-        if not available_checkers:
-            io.write_line("  <comment>No project checkers are available.</comment>")
-            return []
-        for checker in available_checkers:
-            status = "<fg=dark_gray>not included</>"
-            if checker in include_checkers:
-                status = "<fg=light_green>included</>"
-            if checker in exclude_checkers:
-                status = "<fg=light_red>excluded</>"
-            io.write_line(f"  - <fg=cyan>{checker.name}</>: {status}")
-        return [checker for checker in include_checkers if checker not in exclude_checkers]
-
-    def _get_solution_checkers(self, io: IO) -> list[ISolutionCheck]:
-        available_checkers = self._di.resolve_many(ISolutionCheck)
-        plugin_settings = self._di.resolve(PluginSettings)
-        assert plugin_settings is not None
-        check_settings = CheckSettings.model_validate(plugin_settings.model_dump())
-        include_checkers = [checker for checker in available_checkers if checker.name in check_settings.include_checks] if check_settings.include_checks is not None else available_checkers
-        exclude_checkers = [checker for checker in available_checkers if checker.name in check_settings.exclude_checks] if check_settings.exclude_checks is not None else []
-        io.write_line("<fg=magenta>Solution checkers:</>")
-        if not available_checkers:
-            io.write_line("  <comment>No solution checkers available.</comment>")
-            return []
-        for checker in available_checkers:
-            status = "<fg=dark_gray>not included</>"
-            if checker in include_checkers:
-                status = "<fg=light_green>included</>"
-            if checker in exclude_checkers:
-                status = "<fg=light_red>excluded</>"
-            io.write_line(f"  - <fg=cyan>{checker.name}</>: {status}")
-        return [checker for checker in include_checkers if checker not in exclude_checkers]

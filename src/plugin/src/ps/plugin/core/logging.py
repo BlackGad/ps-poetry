@@ -2,9 +2,15 @@ from typing import Type, Union
 from cleo.io.io import IO
 
 
-def _get_module_name(obj: Union[Type, object]) -> str:
+def _get_module_name(obj: Union[Type, object], include_type: bool = False) -> str:
     cls = obj if isinstance(obj, type) else type(obj)
-    return f"{cls.__module__}.{cls.__name__}"
+    cls_name = f"<fg=dark_gray>{cls.__module__}.{cls.__name__}</>"
+    name_attr = getattr(cls, "name", None)
+
+    if isinstance(name_attr, str):
+        return f"<fg=light_green>{name_attr}</> ({cls_name})" if include_type else name_attr
+
+    return cls_name
 
 
 def _log_verbose(io: IO, message: str) -> None:

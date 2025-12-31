@@ -2,6 +2,7 @@ from cleo.io.io import IO
 from cleo.events.event_dispatcher import EventDispatcher
 from cleo.events.console_command_event import ConsoleCommandEvent
 from cleo.events.console_terminate_event import ConsoleTerminateEvent
+from typing import ClassVar
 
 from poetry.console.application import Application
 
@@ -9,6 +10,7 @@ from ps.plugin.sdk import (
     ActivateProtocol,
     ListenerCommandProtocol,
     ListenerTerminateProtocol,
+    NameAwareProtocol,
     DI,
     Project
 )
@@ -26,7 +28,9 @@ def _log_debug(io: IO, message: str) -> None:
         io.write_line(f"<fg=dark_gray>Monorepo:</> {message}")
 
 
-class MonorepoModule(ActivateProtocol, ListenerCommandProtocol, ListenerTerminateProtocol):
+class MonorepoModule(NameAwareProtocol, ActivateProtocol, ListenerCommandProtocol, ListenerTerminateProtocol):
+    name: ClassVar[str] = "ps-monorepo"
+
     def __init__(self, di: DI) -> None:
         self._di = di
 

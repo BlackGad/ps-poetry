@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import ClassVar, Optional
 from cleo.io.io import IO
 
 from poetry.factory import Factory
@@ -10,9 +10,7 @@ from ..sdk.project_check import IProjectCheck
 
 
 class ProjectPoetryCheck(IProjectCheck):
-    @property
-    def name(self) -> str:
-        return "poetry"
+    name: ClassVar[str] = "poetry"
 
     def check(self, io: IO, project: Project, fix: bool) -> Optional[Exception]:
         try:

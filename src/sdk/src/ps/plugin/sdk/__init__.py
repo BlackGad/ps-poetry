@@ -16,6 +16,7 @@ from .protocols import (
     ListenerSignalProtocol,
     ListenerTerminateProtocol,
     ActivateProtocol,
+    NameAwareProtocol,
 )
 from .helpers import (
     ensure_argument,
@@ -26,7 +27,7 @@ from .helpers import (
 
 __all__ = [
     "PluginSettings", "ProjectDependency", "Project", "Environment",
-    "ActivateProtocol", "ListenerCommandProtocol", "ListenerTerminateProtocol", "ListenerErrorProtocol", "ListenerSignalProtocol",
+    "ActivateProtocol", "ListenerCommandProtocol", "ListenerTerminateProtocol", "ListenerErrorProtocol", "ListenerSignalProtocol", "NameAwareProtocol",
     "DI", "Binding", "Lifetime", "Priority",
     "ensure_argument", "ensure_option", "DefaultOptionProtocol", "filter_projects",
 ]

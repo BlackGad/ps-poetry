@@ -1,15 +1,14 @@
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import ClassVar, Optional
 
 from cleo.io.io import IO
 
 from ps.plugin.sdk.models.project import Project
+from ps.plugin.sdk.protocols import NameAwareProtocol
 
 
-class ISolutionCheck(ABC):
-    @property
-    @abstractmethod
-    def name(self) -> str: ...
+class ISolutionCheck(NameAwareProtocol, ABC):
+    name: ClassVar[str]
 
     def can_check(self, projects: list[Project]) -> bool:
         return True

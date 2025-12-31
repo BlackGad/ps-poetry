@@ -13,31 +13,36 @@ from ps.plugin.sdk import (
     ListenerSignalProtocol,
     DI,
 )
-from .logging import _log_debug, _log_verbose
+from .logging import _log_debug, _log_verbose, _get_module_name
 
 
 def _load_module_class_types() -> Iterable[tuple[str, Type]]:
-    module_entry_points = metadata.entry_points(group="ps.module")
-    type_to_entry: dict[Type, str] = {}
+    all_entries: list[tuple[str, Type]] = []
 
-    def add_type(module_type: Type, entry_spec: str) -> None:
-        if module_type not in type_to_entry or len(entry_spec) > len(type_to_entry[module_type]):
-            type_to_entry[module_type] = entry_spec
-
-    for entry_point in module_entry_points:
+    for entry_point in metadata.entry_points(group="ps.module"):
         try:
             entry_spec = entry_point.value
             loaded_entry_point = entry_point.load()
+            classes_to_add: list[Type] = []
             if inspect.isclass(loaded_entry_point):
-                add_type(loaded_entry_point, entry_spec)
+                classes_to_add.append(loaded_entry_point)
             elif inspect.ismodule(loaded_entry_point):
-                for _, obj in inspect.getmembers(loaded_entry_point, inspect.isclass):
-                    if obj.__module__.startswith(loaded_entry_point.__name__):
-                        add_type(obj, entry_spec)
+                classes_to_add.extend(
+                    obj for _, obj in inspect.getmembers(loaded_entry_point, inspect.isclass)
+                    if obj.__module__.startswith(loaded_entry_point.__name__)
+                )
             elif inspect.isfunction(loaded_entry_point):
                 raise TypeError("Module entry point cannot be a function.")
+            all_entries.extend((entry_spec, module_type) for module_type in classes_to_add)
         except metadata.PackageNotFoundError:
             continue
+
+    # Keep only the longest entry_spec for each module_type
+    type_to_entry: dict[Type, str] = {}
+    for entry_spec, module_type in all_entries:
+        existing_spec = type_to_entry.get(module_type)
+        if existing_spec is None or len(entry_spec) > len(existing_spec):
+            type_to_entry[module_type] = entry_spec
 
     return [(entry_spec, module_type) for module_type, entry_spec in type_to_entry.items()]
 
@@ -57,7 +62,7 @@ class ModulesHandler:
         if module_types_list:
             _log_verbose(io, f"Discovered {len(module_types_list)} module type(s)")
             for entry_spec, cls_name in module_types_list:
-                _log_debug(io, f"  - <comment>{entry_spec}</comment> -> <fg=yellow>{cls_name.__name__}</>")
+                _log_debug(io, f"  - <comment>{entry_spec}</comment> -> {_get_module_name(cls_name, include_type=True)}")
         else:
             _log_debug(io, "No module types discovered")
 
@@ -77,7 +82,7 @@ class ModulesHandler:
             if not supported_protocols_by_module:
                 # Module class does not support any known protocol
                 continue
-            _log_debug(io, f"Module <comment>{module_type.__name__}</comment> supports {len(supported_protocols_by_module)} protocol(s):")
+            _log_debug(io, f"Module <comment>{_get_module_name(module_type)}</comment> supports {len(supported_protocols_by_module)} protocol(s):")
             for protocol in supported_protocols_by_module:
                 _log_debug(io, f"  - <fg=yellow>{protocol.__name__}</>")
             # Instantiate the module
@@ -88,6 +93,3 @@ class ModulesHandler:
 
     def acquire_protocol_handlers[T](self, protocol: Type[T]) -> List[T]:
         return self._managed_protocols.get(protocol, [])  # type: ignore
-
-    def is_protocol_managed(self, protocol: Type) -> bool:
-        return protocol in self._managed_protocols

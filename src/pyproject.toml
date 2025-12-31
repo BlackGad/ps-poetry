@@ -41,7 +41,7 @@ ps-plugin-core = {path = "plugin", develop = true }
 enabled = true
 monorepo = "host"
 # include_checks = ["poetry"]
-exclude_checks = ["poetry"]
+# exclude_checks = ["poetry"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

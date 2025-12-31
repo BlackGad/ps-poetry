@@ -1,5 +1,5 @@
 import subprocess
-from typing import Optional
+from typing import ClassVar, Optional
 from cleo.io.io import IO
 
 from ps.plugin.sdk import DI, Project, Environment
@@ -7,12 +7,10 @@ from ..sdk.solution_check import ISolutionCheck
 
 
 class SolutionRuffCheck(ISolutionCheck):
+    name: ClassVar[str] = "ruff"
+
     def __init__(self, di: DI) -> None:
         self._di = di
-
-    @property
-    def name(self) -> str:
-        return "ruff"
 
     def check(self, io: IO, projects: list[Project], fix: bool) -> Optional[Exception]:
         environment = self._di.resolve(Environment)
