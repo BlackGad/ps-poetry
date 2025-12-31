@@ -1,6 +1,8 @@
 from .interfaces import (
     Binding,
     DI,
+    IProjectCheck,
+    ISolutionCheck,
     Lifetime,
     Priority
 )
@@ -43,6 +45,8 @@ __all__ = [
     "NameAwareProtocol",
     "DI",
     "Binding",
+    "IProjectCheck",
+    "ISolutionCheck",
     "Lifetime",
     "Priority",
     "ensure_argument",

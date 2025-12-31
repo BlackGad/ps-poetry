@@ -2,8 +2,7 @@ import subprocess
 from typing import ClassVar, Optional
 from cleo.io.io import IO
 
-from ps.plugin.sdk import DI, Project, Environment
-from ..sdk.solution_check import ISolutionCheck
+from ps.plugin.sdk import DI, Project, Environment, ISolutionCheck
 
 
 class SolutionRuffCheck(ISolutionCheck):

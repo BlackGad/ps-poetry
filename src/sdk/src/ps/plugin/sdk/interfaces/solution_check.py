@@ -3,8 +3,8 @@ from typing import ClassVar, Optional
 
 from cleo.io.io import IO
 
-from ps.plugin.sdk.models.project import Project
-from ps.plugin.sdk.protocols import NameAwareProtocol
+from ..models.project import Project
+from ..protocols import NameAwareProtocol
 
 
 class ISolutionCheck(NameAwareProtocol, ABC):

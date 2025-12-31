@@ -5,8 +5,7 @@ from poetry.factory import Factory
 from poetry.console.commands.check import CheckCommand
 
 
-from ps.plugin.sdk import Project
-from ..sdk.project_check import IProjectCheck
+from ps.plugin.sdk import Project, IProjectCheck
 
 
 class ProjectPoetryCheck(IProjectCheck):

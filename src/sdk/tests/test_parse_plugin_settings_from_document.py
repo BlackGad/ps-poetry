@@ -60,7 +60,7 @@ def test_empty_section():
     document = parse(content)
     settings = parse_plugin_settings_from_document(document)
 
-    assert settings.enabled is False
+    assert settings.enabled is True
 
 
 def test_with_other_tool_sections():

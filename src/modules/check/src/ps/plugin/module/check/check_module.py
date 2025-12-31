@@ -24,7 +24,7 @@ from ps.plugin.sdk.protocols import (
 from ps.plugin.sdk.interfaces import DI
 from ps.plugin.sdk.helpers import ensure_argument, ensure_option, filter_projects
 
-from .sdk import IProjectCheck, ISolutionCheck
+from ps.plugin.sdk import IProjectCheck, ISolutionCheck
 
 from .checks.project_poetry import ProjectPoetryCheck
 from .checks.solution_ruff import SolutionRuffCheck
