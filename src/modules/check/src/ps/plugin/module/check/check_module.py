@@ -14,7 +14,7 @@ from poetry.console.application import Application
 
 
 from ps.plugin.module.check.check_settings import CheckSettings
-from ps.plugin.sdk.models import Project, PluginSettings
+from ps.plugin.sdk.models import Project, Environment
 from ps.plugin.sdk.protocols import (
     ActivateProtocol,
     ListenerCommandProtocol,
@@ -32,13 +32,13 @@ from .checks.solution_ruff import SolutionRuffCheck
 
 def _filter_checkers[T: NameAwareProtocol](available_checkers: list[T], check_settings: CheckSettings, io: IO, checker_type: str) -> list[T]:
     include_checkers = (
-        [checker for checker in available_checkers if checker.name in check_settings.include_checks]
-        if check_settings.include_checks is not None
+        [checker for checker in available_checkers if checker.name in check_settings.checks_include]
+        if check_settings.checks_include is not None
         else available_checkers
     )
     exclude_checkers = (
-        [checker for checker in available_checkers if checker.name in check_settings.exclude_checks]
-        if check_settings.exclude_checks is not None
+        [checker for checker in available_checkers if checker.name in check_settings.checks_exclude]
+        if check_settings.checks_exclude is not None
         else []
     )
     io.write_line(f"<fg=magenta>{checker_type} checkers:</>")
@@ -156,10 +156,13 @@ class CheckModule(
             return
         # Disable the original command execution
         event.disable_command()
+
+        environment = self._di.resolve(Environment)
+        assert environment is not None
+
         # Filter projects based on inputs
-        discovered_projects = self._di.resolve_many(Project)
         inputs = _get_inputs(event.io.input)
-        filtered_projects = filter_projects(inputs, discovered_projects)
+        filtered_projects = filter_projects(inputs, environment.projects)
         if not filtered_projects:
             event.io.write_line("<comment>No projects found to check.</comment>")
             return
@@ -168,9 +171,8 @@ class CheckModule(
         fix = _get_fix_option(event.io.input)
 
         # Resolve plugin settings
-        plugin_settings = self._di.resolve(PluginSettings)
-        assert plugin_settings is not None
-        check_settings = CheckSettings.model_validate(plugin_settings.model_dump())
+        plugin_settings = environment.host_project.plugin_settings
+        check_settings = CheckSettings.model_validate(plugin_settings.model_dump(), by_alias=True)
 
         # Resolve available project checkers
         available_project_checkers = self._di.resolve_many(IProjectCheck)

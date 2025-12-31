@@ -1,6 +1,6 @@
 from tomlkit import parse
 
-from ps.plugin.core.parse_toml import parse_plugin_settings_from_document
+from ps.plugin.sdk.helpers.parse_toml import parse_plugin_settings_from_document
 
 
 def test_default_settings_when_section_missing():

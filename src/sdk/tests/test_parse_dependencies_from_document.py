@@ -1,7 +1,7 @@
 from pathlib import Path
 from tomlkit import parse
 
-from ps.plugin.core.parse_toml import parse_dependencies_from_document
+from ps.plugin.sdk.helpers.parse_toml import parse_dependencies_from_document
 
 
 def test_simple_string_dependency():
@@ -59,11 +59,12 @@ python = "^3.10"
 mylocal = { path = "../mylocal", develop = true }
 """
     document = parse(content)
-    deps = parse_dependencies_from_document(document)
+    project_path = Path("myproject/pyproject.toml").resolve()
+    deps = parse_dependencies_from_document(document, project_path)
 
     assert len(deps) == 1
     assert deps[0].defined_name == "mylocal"
-    assert deps[0].path == Path("../mylocal")
+    assert deps[0].path == (project_path.parent / "../mylocal").resolve()
     assert deps[0].develop is True
 
 
@@ -244,9 +245,41 @@ python = "^3.10"
 mypath = { path = "../mypath" }
 """
     document = parse(content)
-    deps = parse_dependencies_from_document(document)
+    project_path = Path("myproject/pyproject.toml").resolve()
+    deps = parse_dependencies_from_document(document, project_path)
 
     assert len(deps) == 1
     assert deps[0].defined_name == "mypath"
     assert deps[0].defined_version is None
-    assert deps[0].path == Path("../mypath")
+    assert deps[0].path == (project_path.parent / "../mypath").resolve()
+
+
+def test_path_dependency_absolute():
+    content = """
+[tool.poetry.dependencies]
+python = "^3.10"
+mylocal = { path = "%s" }
+"""
+    abs_path = Path("/absolute/path/to/package").resolve()
+    content = content % str(abs_path).replace("\\", "/")
+    document = parse(content)
+    project_path = Path("myproject/pyproject.toml").resolve()
+    deps = parse_dependencies_from_document(document, project_path)
+
+    assert len(deps) == 1
+    assert deps[0].defined_name == "mylocal"
+    assert deps[0].path == abs_path
+
+
+def test_path_dependency_without_project_path():
+    content = """
+[tool.poetry.dependencies]
+python = "^3.10"
+mylocal = { path = "../mylocal" }
+"""
+    document = parse(content)
+    deps = parse_dependencies_from_document(document)
+
+    assert len(deps) == 1
+    assert deps[0].defined_name == "mylocal"
+    assert deps[0].path == Path("../mylocal")

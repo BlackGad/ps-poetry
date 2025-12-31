@@ -1,4 +1,4 @@
-from ps.plugin.core.parse_toml import parse_project
+from ps.plugin.sdk.helpers.parse_toml import parse_project
 
 
 def test_parse_project_with_pep621_format(tmp_path):
@@ -15,7 +15,7 @@ requests = "^2.32"
     pyproject.write_text(content, encoding='utf-8')
 
     project = parse_project(pyproject)
-
+    assert project is not None
     assert project.defined_name == "test-project"
     assert project.defined_version == "1.0.0"
     assert project.path == pyproject
@@ -37,7 +37,7 @@ numpy = "^1.24"
     pyproject.write_text(content, encoding='utf-8')
 
     project = parse_project(pyproject)
-
+    assert project is not None
     assert project.defined_name == "poetry-project"
     assert project.defined_version == "2.0.0"
     assert len(project.dependencies) == 1
@@ -57,7 +57,7 @@ setting = "value"
     pyproject.write_text(content, encoding='utf-8')
 
     project = parse_project(pyproject)
-
+    assert project is not None
     assert project.document is not None
     assert "tool" in project.document
     assert "custom" in project.document["tool"]  # type: ignore[operator]

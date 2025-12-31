@@ -18,15 +18,13 @@ from ps.plugin.sdk import (
     ListenerTerminateProtocol,
     ListenerErrorProtocol,
     ListenerSignalProtocol,
-    Project,
-    Priority,
     Environment,
+    parse_plugin_settings_from_document
 )
 
 from .di import _DI
 from .modules_handler import ModulesHandler
 from .logging import _log_debug, _log_verbose, _get_module_name
-from .parse_toml import parse_project, parse_plugin_settings_from_document
 
 
 def _create_standard_io() -> IO:
@@ -56,8 +54,7 @@ class Plugin(ApplicationPlugin):
         di.register(IO).factory(lambda: io)
         di.register(Application).factory(lambda: application)
         di.register(PluginSettings).factory(lambda: settings)
-        di.register(Project, priority=Priority.MEDIUM).factory(lambda path: parse_project(path), application.poetry.pyproject_path)
-        di.register(Environment).factory(Environment)
+        di.register(Environment).factory(lambda path: Environment(path), application.poetry.pyproject_path)
 
         modules_handler = ModulesHandler(di)
         modules_handler.instantiate_modules(application)
@@ -68,9 +65,13 @@ class Plugin(ApplicationPlugin):
         disabled_handlers: set[object] = set()
         for handler in activate_handlers:
             _log_debug(io, f"Executing activate for module <comment>{_get_module_name(handler)}</comment>")
-            if not handler.handle_activate(application):
-                disabled_handlers.add(handler)
-                _log_debug(io, f"Module <comment>{_get_module_name(handler)}</comment> disabled itself during activation")
+            try:
+                if not handler.handle_activate(application):
+                    disabled_handlers.add(handler)
+                    _log_debug(io, f"Module <comment>{_get_module_name(handler)}</comment> disabled itself during activation")
+            except Exception as e:
+                io.write_error_line(f"<error>Error during activation of module <comment>{_get_module_name(handler)}</comment>: {e}</error>")
+                raise
 
         protocols_to_register = {
             ListenerCommandProtocol: cleo.events.console_events.COMMAND,
