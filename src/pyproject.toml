@@ -37,9 +37,12 @@ ps-plugin-module-check      = { path = "modules/check", develop = true }
 ps-plugin-core = {path = "plugin", develop = true }
 
 [tool.ps-plugin]
-enabled = true
 # checks-include = ["poetry"]
-checks-exclude = ["poetry"]
+# checks-exclude = ["poetry"]
+modules-include = [
+    "ModuleInHost",
+    "ps-check"
+]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

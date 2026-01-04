@@ -8,6 +8,8 @@ class PluginSettings(BaseModel):
 
     enabled: Optional[bool] = None
     host_project: Optional[Path] = Field(default=None, alias="host-project")
+    modules_include: Optional[list[str]] = Field(default=None, alias="modules-include")
+    modules_exclude: Optional[list[str]] = Field(default=None, alias="modules-exclude")
 
     model_config = ConfigDict(
         extra="allow",

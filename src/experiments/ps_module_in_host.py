@@ -6,5 +6,6 @@ class ModuleInHost:
     def __init__(self, io: IO) -> None:
         self._io = io
 
-    def global_setup(self, application: Application) -> None:
+    def handle_activate(self, application: Application) -> bool:
         self._io.write_line("Module in host global setup executed")
+        return True

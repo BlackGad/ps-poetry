@@ -6,14 +6,14 @@ from cleo.io.io import IO
 from ps.plugin.sdk import DI, Project, Environment, ISolutionCheck
 
 
-class SolutionRuffCheck(ISolutionCheck):
-    name: ClassVar[str] = "ruff"
+class SolutionPylintCheck(ISolutionCheck):
+    name: ClassVar[str] = "pylint"
 
     def __init__(self, di: DI) -> None:
         self._di = di
 
     def can_check(self, projects: list[Project]) -> bool:
-        return shutil.which("ruff") is not None
+        return shutil.which("pylint") is not None
 
     def check(self, io: IO, projects: list[Project], fix: bool) -> Optional[Exception]:
         environment = self._di.resolve(Environment)
@@ -36,9 +36,7 @@ class SolutionRuffCheck(ISolutionCheck):
             io.write_line("No source paths found to lint.")
             return None
 
-        command = ["ruff", "check"]
-        if fix:
-            command.append("--fix")
+        command = ["pylint"]
         command.extend([str(path) for path in source_paths])
 
         io.write_line(f"Running command: {' '.join(command)}")
@@ -57,5 +55,5 @@ class SolutionRuffCheck(ISolutionCheck):
 
         process.wait()
         if process.returncode != 0:
-            return Exception(f"Ruff check failed with exit code {process.returncode}")
+            return Exception(f"Pylint check failed with exit code {process.returncode}")
         return None

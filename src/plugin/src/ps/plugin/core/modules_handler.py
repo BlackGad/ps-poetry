@@ -2,7 +2,6 @@ from typing import Iterable, List, Type
 import inspect
 from importlib import metadata
 
-from poetry.console.application import Application
 from cleo.io.io import IO
 
 from ps.plugin.sdk import (
@@ -12,8 +11,9 @@ from ps.plugin.sdk import (
     ListenerErrorProtocol,
     ListenerSignalProtocol,
     DI,
+    PluginSettings
 )
-from .logging import _log_debug, _log_verbose, _get_module_name
+from .logging import _log_debug, _log_verbose, _get_module_verbal_name, _get_module_name
 
 
 def _load_module_class_types() -> Iterable[tuple[str, Type]]:
@@ -53,16 +53,46 @@ class ModulesHandler:
         self._managed_protocols: dict[Type, List[object]] = {}
         self._di = di
 
-    def instantiate_modules(self, application: Application) -> None:
+    def instantiate_modules(self) -> None:
         io = self._di.resolve(IO)
         assert io is not None
-
+        plugin_settings = self._di.resolve(PluginSettings)
+        assert plugin_settings is not None
+        included_modules = set(plugin_settings.modules_include or [])
+        excluded_modules = set(plugin_settings.modules_exclude or [])
         module_entries = _load_module_class_types()
-        module_types_list = [(entry_spec, module_type) for entry_spec, module_type in module_entries]
-        if module_types_list:
-            _log_verbose(io, f"Discovered {len(module_types_list)} module type(s)")
-            for entry_spec, cls_name in module_types_list:
-                _log_debug(io, f"  - <comment>{entry_spec}</comment> -> {_get_module_name(cls_name, include_type=True)}")
+        all_module_types_list = [(entry_spec, module_type) for entry_spec, module_type in module_entries]
+
+        # Filter modules based on included/excluded lists
+        included_types_list: List[tuple[str, Type]] = []
+        excluded_types_list: List[tuple[str, Type]] = []
+
+        for entry_spec, module_type in all_module_types_list:
+            name = _get_module_name(module_type)
+            is_included = any(name.casefold().endswith(incl.casefold()) for incl in included_modules)
+            is_excluded = any(name.casefold().endswith(excl.casefold()) for excl in excluded_modules)
+
+            if is_excluded:
+                excluded_types_list.append((entry_spec, module_type))
+            elif is_included:
+                included_types_list.append((entry_spec, module_type))
+
+        module_types_list = included_types_list
+
+        if all_module_types_list:
+            _log_verbose(io, f"Discovered {len(all_module_types_list)} module type(s)")
+            for entry_spec, cls_name in all_module_types_list:
+                verbal_name = _get_module_verbal_name(cls_name, include_type=True)
+                name = _get_module_verbal_name(cls_name)
+
+                # Determine status
+                if (entry_spec, cls_name) in excluded_types_list:
+                    status = "[<fg=red>EXCLUDED</>]"
+                elif (entry_spec, cls_name) in included_types_list:
+                    status = "[<fg=green>INCLUDED</>]"
+                else:
+                    status = "[<fg=dark_gray>AVAILABLE</>]"
+                _log_debug(io, f"  - {status} <comment>{entry_spec}</comment> -> {verbal_name}")
         else:
             _log_debug(io, "No module types discovered")
 
@@ -82,7 +112,7 @@ class ModulesHandler:
             if not supported_protocols_by_module:
                 # Module class does not support any known protocol
                 continue
-            _log_debug(io, f"Module <comment>{_get_module_name(module_type)}</comment> supports {len(supported_protocols_by_module)} protocol(s):")
+            _log_debug(io, f"Module <comment>{_get_module_verbal_name(module_type)}</comment> supports {len(supported_protocols_by_module)} protocol(s):")
             for protocol in supported_protocols_by_module:
                 _log_debug(io, f"  - <fg=yellow>{protocol.__name__}</>")
             # Instantiate the module

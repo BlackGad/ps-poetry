@@ -13,7 +13,6 @@ from poetry.console.commands.check import CheckCommand
 from poetry.console.application import Application
 
 
-from ps.plugin.module.check.check_settings import CheckSettings
 from ps.plugin.sdk.models import Project, Environment
 from ps.plugin.sdk.protocols import (
     ActivateProtocol,
@@ -26,8 +25,11 @@ from ps.plugin.sdk.helpers import ensure_argument, ensure_option, filter_project
 
 from ps.plugin.sdk import IProjectCheck, ISolutionCheck
 
+from .check_settings import CheckSettings
 from .checks.project_poetry import ProjectPoetryCheck
 from .checks.solution_ruff import SolutionRuffCheck
+from .checks.solution_pylint import SolutionPylintCheck
+from .checks.solution_pytest import SolutionPyTestCheck
 
 
 def _filter_checkers[T: NameAwareProtocol](available_checkers: list[T], check_settings: CheckSettings, io: IO, checker_type: str) -> list[T]:
@@ -98,11 +100,11 @@ def _perform_solution_check(di: DI, projects: list[Project], solution_checkers: 
     assert io is not None
     io.write_line("<info>Performing solution-wide checks</info>")
     for checker in solution_checkers:
+        io.write_line(f"<fg=cyan>{checker.name.upper()}</>")
         if not checker.can_check(projects):
             if io.is_debug():
-                io.write_line(f"<comment>Skipping solution checker '{checker.name}' as it cannot check the provided projects.</comment>")
+                io.write_line("<fg=yellow>Skipping solution checker as it cannot check the provided projects in current environment.</>")
             continue
-        io.write_line(f" - <comment>{checker.name}</comment>")
         exception = checker.check(io, projects, fix)
         if exception is not None:
             io.write_line(f"<error>{exception}</error>")
@@ -115,6 +117,8 @@ _builtin_project_checks = [
 ]
 
 _builtin_solution_checks = [
+    SolutionPyTestCheck,
+    SolutionPylintCheck,
     SolutionRuffCheck,
 ]
 
@@ -162,6 +166,10 @@ class CheckModule(
 
         # Filter projects based on inputs
         inputs = _get_inputs(event.io.input)
+        # In case no inputs are provided, and the entry project is different from the host project, add the entry project path as input
+        if not inputs and environment.host_project != environment.entry_project:
+            inputs.append(str(environment.entry_project.path))
+
         filtered_projects = filter_projects(inputs, environment.projects)
         if not filtered_projects:
             event.io.write_line("<comment>No projects found to check.</comment>")
