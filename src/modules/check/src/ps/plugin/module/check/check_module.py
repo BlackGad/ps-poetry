@@ -1,7 +1,7 @@
 from cleo.events.console_command_event import ConsoleCommandEvent
 from cleo.events.console_terminate_event import ConsoleTerminateEvent
 from cleo.events.event_dispatcher import EventDispatcher
-from typing import ClassVar
+from typing import ClassVar, Type
 
 from cleo.io.io import IO
 from cleo.io.buffered_io import BufferedIO
@@ -20,10 +20,8 @@ from ps.plugin.sdk.protocols import (
     ListenerTerminateProtocol,
     NameAwareProtocol,
 )
-from ps.plugin.sdk.interfaces import DI
+from ps.plugin.sdk.interfaces import DI, IProjectCheck, ISolutionCheck
 from ps.plugin.sdk.helpers import ensure_argument, ensure_option, filter_projects
-
-from ps.plugin.sdk import IProjectCheck, ISolutionCheck
 
 from .check_settings import CheckSettings
 from .checks.project_poetry import ProjectPoetryCheck
@@ -112,11 +110,11 @@ def _perform_solution_check(di: DI, projects: list[Project], solution_checkers: 
     return 0
 
 
-_builtin_project_checks = [
+_builtin_project_checks: list[Type[IProjectCheck]] = [
     ProjectPoetryCheck,
 ]
 
-_builtin_solution_checks = [
+_builtin_solution_checks: list[Type[ISolutionCheck]] = [
     SolutionPyTestCheck,
     SolutionPylintCheck,
     SolutionRuffCheck,
@@ -132,10 +130,10 @@ class CheckModule(
     name: ClassVar[str] = "ps-check"
 
     def __init__(self, di: DI) -> None:
-        for check_cls in _builtin_project_checks:
-            di.register(IProjectCheck).implementation(check_cls)
-        for check_cls in _builtin_solution_checks:
-            di.register(ISolutionCheck).implementation(check_cls)
+        for project_check_cls in _builtin_project_checks:
+            di.register(IProjectCheck).implementation(project_check_cls)
+        for solution_check_cls in _builtin_solution_checks:
+            di.register(ISolutionCheck).implementation(solution_check_cls)
         self._di = di
         self._exit_code = 0
 

@@ -72,8 +72,12 @@
 				"module": "poetry",
 				"console": "integratedTerminal",
 				"justMyCode": false,
-				"cwd": "${workspaceFolder}",
-				"args": [ "${input:targetCommandLine}" ]
+				"cwd": "${workspaceFolder}/modules/check",
+				"args": [ 
+					"add",
+					"ruff",
+					"-vvv"
+				]
 			}
 
 		]

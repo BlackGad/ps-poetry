@@ -32,6 +32,7 @@ pytest-asyncio = "^1.3.0"
 ps-plugin-sdk               = { path = "sdk", develop = true }
 ps-plugin-core              = { path = "plugin", develop = true }
 ps-plugin-module-check      = { path = "modules/check", develop = true }
+ps-plugin-module-monorepo   = { path = "modules/monorepo", develop = true }
 
 [tool.poetry.requires-plugins]
 ps-plugin-core = {path = "plugin", develop = true }
@@ -41,7 +42,8 @@ ps-plugin-core = {path = "plugin", develop = true }
 # checks-exclude = ["poetry"]
 modules-include = [
     "ModuleInHost",
-    "ps-check"
+    "ps-check",
+    "ps-monorepo"
 ]
 
 [build-system]
