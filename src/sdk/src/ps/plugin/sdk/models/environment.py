@@ -1,5 +1,8 @@
 from pathlib import Path
 from typing import Iterable
+import tempfile
+import shutil
+import hashlib
 
 from .project import Project
 from ..helpers.parse_toml import parse_project
@@ -8,9 +11,11 @@ from ..helpers.parse_toml import parse_project
 class Environment:
     _host_project: Project
     _projects: dict[Path, Project]
+    _backups: dict[Path, Path]
 
     def __init__(self, entry_project_path: Path):
         self._projects = {}
+        self._backups = {}
         self._entry_project = self.add_project(entry_project_path, is_host=True)
 
     @property
@@ -48,3 +53,27 @@ class Environment:
                 self.add_project(host_project_path, is_host=True)
 
         return project
+
+    def backup_projects(self, projects: Iterable[Project]) -> None:
+        for project in projects:
+            pyproject_path = project.path
+            if pyproject_path in self._backups:
+                continue
+
+            temp_dir = Path(tempfile.gettempdir())
+            path_hash = hashlib.sha256(str(pyproject_path).encode()).hexdigest()[:16]
+            backup_path = temp_dir / f"pyproject_backup_{path_hash}.toml"
+            shutil.copy2(pyproject_path, backup_path)
+            self._backups[pyproject_path] = backup_path
+
+    def restore_projects(self, projects: Iterable[Project]) -> None:
+        for project in projects:
+            pyproject_path = project.path
+            if pyproject_path not in self._backups:
+                continue
+
+            backup_path = self._backups[pyproject_path]
+            if backup_path.exists():
+                shutil.copy2(backup_path, pyproject_path)
+                backup_path.unlink()
+            del self._backups[pyproject_path]
