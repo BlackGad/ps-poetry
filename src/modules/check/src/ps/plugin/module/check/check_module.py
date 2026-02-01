@@ -190,13 +190,14 @@ class CheckModule(
             event.io.write_line("<fg=magenta>Automatic fix enabled</>")
         event.io.write_line(f"<info>Checking <comment>{len(filtered_projects)}</comment> project(s)</info>")
         for project in filtered_projects:
-            self._exit_code = _perform_project_check(self._di, project, project_checkers, fix) if self._exit_code == 0 else self._exit_code
-        if self._exit_code != 0:
+            project_check_exit_code = _perform_project_check(self._di, project, project_checkers, fix)
+            if project_check_exit_code != 0:
+                self._exit_code = project_check_exit_code
+        if self._exit_code and self._exit_code != 0:
             event.io.write_line("<fg=yellow>Project checks completed with issues. Solution checks will be skipped.</>")
             return
         self._exit_code = _perform_solution_check(self._di, filtered_projects, solution_checkers, fix)
 
     def handle_terminate(self, event: ConsoleTerminateEvent, event_name: str, dispatcher: EventDispatcher) -> None:
-        if not self._exit_code:
-            return
-        event.set_exit_code(self._exit_code)
+        if self._exit_code:
+            event.set_exit_code(self._exit_code)
