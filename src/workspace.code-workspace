@@ -72,10 +72,9 @@
 				"module": "poetry",
 				"console": "integratedTerminal",
 				"justMyCode": false,
-				"cwd": "${workspaceFolder}/modules/check",
+				"cwd": "${workspaceFolder}",
 				"args": [ 
-					"add",
-					"ruff",
+					"sync",
 					"-vvv"
 				]
 			}

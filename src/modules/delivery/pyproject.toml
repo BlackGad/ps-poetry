@@ -1,26 +1,28 @@
 [project]
-name        = "ps-plugin-core"
+name        = "ps-plugin-module-delivery"
 description = ""
 requires-python = ">=3.10,<4.0"
 dynamic = ["version"]
 
-[project.entry-points."poetry.application.plugin"]
-entry = "ps.plugin.core.plugin:Plugin"
-
 [tool.poetry.dependencies]
-poetry = "^2.3.1"
+poetry = "*"
 toml = "^0.10.2"
 pydantic = "^2.12.5"
+ruff = "^0.14.10"
+minimal = "^0.1.0"
+
+[project.entry-points."ps.module"]
+module_entry = "ps.plugin.module.delivery"
 
 [tool.poetry.group.ps.dependencies]
-ps-plugin-sdk = { path = "../sdk", develop = true }
+ps-plugin-sdk = { path = "../../sdk", develop = true }
 
 [tool.poetry]
-packages = [ { include = "ps/plugin/core", from = "src" } ]
+packages = [ { include = "ps/plugin/module/delivery", from = "src" } ]
 version = "0.0.0"
 
 [tool.ps-plugin]
-host-project = ".."
+host-project = "../.."
 
 [build-system]
 requires    = ["poetry-core>=1.0.0"]

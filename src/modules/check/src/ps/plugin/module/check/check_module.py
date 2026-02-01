@@ -1,7 +1,7 @@
 from cleo.events.console_command_event import ConsoleCommandEvent
 from cleo.events.console_terminate_event import ConsoleTerminateEvent
 from cleo.events.event_dispatcher import EventDispatcher
-from typing import ClassVar, Type
+from typing import ClassVar, Optional, Type
 
 from cleo.io.io import IO
 from cleo.io.buffered_io import BufferedIO
@@ -135,7 +135,7 @@ class CheckModule(
         for solution_check_cls in _builtin_solution_checks:
             di.register(ISolutionCheck).implementation(solution_check_cls)
         self._di = di
-        self._exit_code = 0
+        self._exit_code: Optional[int] = None
 
     def handle_activate(self, application: Application) -> bool:
         # Extend the CheckCommand with an optional "inputs" argument
@@ -170,7 +170,7 @@ class CheckModule(
 
         filtered_projects = filter_projects(inputs, environment.projects)
         if not filtered_projects:
-            event.io.write_line("<comment>No projects found to check.</comment>")
+            event.io.write_line("<comment>No projects found to process.</comment>")
             return
 
         # Get the "fix" option
@@ -188,7 +188,7 @@ class CheckModule(
 
         if fix:
             event.io.write_line("<fg=magenta>Automatic fix enabled</>")
-        event.io.write_line(f"<info>Checking <comment>{len(filtered_projects)}</comment> project(s)")
+        event.io.write_line(f"<info>Checking <comment>{len(filtered_projects)}</comment> project(s)</info>")
         for project in filtered_projects:
             self._exit_code = _perform_project_check(self._di, project, project_checkers, fix) if self._exit_code == 0 else self._exit_code
         if self._exit_code != 0:
@@ -197,4 +197,6 @@ class CheckModule(
         self._exit_code = _perform_solution_check(self._di, filtered_projects, solution_checkers, fix)
 
     def handle_terminate(self, event: ConsoleTerminateEvent, event_name: str, dispatcher: EventDispatcher) -> None:
+        if not self._exit_code:
+            return
         event.set_exit_code(self._exit_code)

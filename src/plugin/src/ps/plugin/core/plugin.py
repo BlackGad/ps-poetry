@@ -3,6 +3,8 @@ import sys
 import cleo.events.console_events
 from cleo.events.event_dispatcher import EventDispatcher
 from cleo.events.event import Event
+from cleo.events.console_command_event import ConsoleCommandEvent
+
 from cleo.io.io import IO
 from cleo.io.inputs.argv_input import ArgvInput
 from cleo.io.outputs.stream_output import StreamOutput
@@ -128,6 +130,10 @@ class Plugin(ApplicationPlugin):
                 _log_verbose(io, f"<info>Module <comment>{_get_module_verbal_name(handler)}</comment> handling {event_name} event</info>")
                 handle_method = getattr(handler, handle_method_name)
                 handle_method(event, event_name, dispatcher)
+                if isinstance(event, ConsoleCommandEvent) and not event.command_should_run():
+                    _log_debug(io, f"Command execution handled by module <comment>{_get_module_verbal_name(handler)}</comment>; stopping further processing")
+                    break
+
         event_dispatcher.add_listener(event_constant, _listener)
 
     def _ensure_io(self, application: Application) -> IO:
