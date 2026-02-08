@@ -1,7 +1,7 @@
 import re
 from typing import Optional
 
-from ..models import ParsedVersion, VersionStandard
+from ..models import Version, VersionStandard
 from .base_parser import BaseParser
 
 
@@ -14,7 +14,7 @@ class CalVerParser(BaseParser):
         r"(?:[.\-+](?P<suffix>.+))?$"
     )
 
-    def parse(self, version_string: str) -> Optional[ParsedVersion]:
+    def parse(self, version_string: str) -> Optional[Version]:
         match = self.PATTERN.match(version_string)
         if not match:
             return None
@@ -25,12 +25,15 @@ class CalVerParser(BaseParser):
         if major < 20 or (major > 99 and major < 2020):
             return None
 
-        return ParsedVersion(
+        patch = groups.get("patch")
+        rev = groups.get("rev")
+
+        return Version(
             major=major,
             minor=int(groups.get("minor") or 0),
-            patch=int(groups.get("patch") or 0),
-            rev=int(groups.get("rev") or 0),
-            meta=groups.get("suffix") or "",
+            patch=int(patch) if patch is not None else None,
+            rev=int(rev) if rev is not None else None,
+            metadata=groups.get("suffix"),
             standard=VersionStandard.CALVER,
             raw=version_string,
         )

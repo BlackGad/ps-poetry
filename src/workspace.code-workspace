@@ -16,6 +16,9 @@
 		},
 		"python.formatting.provider": "autopep8",
 		"python.formatting.autopep8Path": "${workspaceFolder}/.venv/scripts/autopep8",
+		"chat.tools.terminal.autoApprove": {
+			"poetry": true
+		},
 	},
 	"extensions": {
     "recommendations": [

@@ -1,7 +1,7 @@
 import re
 from typing import Optional
 
-from ..models import ParsedVersion, VersionStandard
+from ..models import Version, VersionStandard
 from .base_parser import BaseParser
 
 
@@ -14,18 +14,22 @@ class LooseParser(BaseParser):
         r"(?:[.\-+](?P<suffix>.+))?$"
     )
 
-    def parse(self, version_string: str) -> Optional[ParsedVersion]:
+    def parse(self, version_string: str) -> Optional[Version]:
         match = self.PATTERN.match(version_string)
         if not match:
             return None
 
         groups = match.groupdict()
-        return ParsedVersion(
+        minor = groups.get("minor")
+        patch = groups.get("patch")
+        rev = groups.get("rev")
+
+        return Version(
             major=int(groups.get("major") or 0),
-            minor=int(groups.get("minor") or 0),
-            patch=int(groups.get("patch") or 0),
-            rev=int(groups.get("rev") or 0),
-            meta=groups.get("suffix") or "",
+            minor=int(minor) if minor is not None else None,
+            patch=int(patch) if patch is not None else None,
+            rev=int(rev) if rev is not None else None,
+            metadata=groups.get("suffix"),
             standard=VersionStandard.LOOSE,
             raw=version_string,
         )

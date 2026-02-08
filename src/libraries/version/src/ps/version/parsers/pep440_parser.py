@@ -1,7 +1,7 @@
 import re
 from typing import Optional
 
-from ..models import ParsedVersion, VersionStandard
+from ..models import PreRelease, Version, VersionStandard
 from .base_parser import BaseParser
 
 
@@ -18,22 +18,35 @@ class PEP440Parser(BaseParser):
         re.IGNORECASE,
     )
 
-    def parse(self, version_string: str) -> Optional[ParsedVersion]:
+    def parse(self, version_string: str) -> Optional[Version]:
         match = self.PATTERN.match(version_string)
         if not match:
             return None
 
         groups = match.groupdict()
-        return ParsedVersion(
+        minor = groups.get("minor")
+        patch = groups.get("patch")
+        rev = groups.get("rev")
+        pre_num = groups.get("pre_num")
+        pre_label = groups.get("pre_label")
+        post = groups.get("post")
+        dev = groups.get("dev")
+
+        pre = (
+            PreRelease(name=pre_label, number=int(pre_num))
+            if pre_label and pre_num is not None
+            else None
+        )
+
+        return Version(
             major=int(groups.get("major") or 0),
-            minor=int(groups.get("minor") or 0),
-            patch=int(groups.get("patch") or 0),
-            rev=int(groups.get("rev") or 0),
-            pre_label=groups.get("pre_label") or "",
-            pre_num=int(groups.get("pre_num") or 0),
-            post=int(groups.get("post") or 0),
-            dev=int(groups.get("dev") or 0),
-            meta=groups.get("meta") or "",
+            minor=int(minor) if minor is not None else None,
+            patch=int(patch) if patch is not None else None,
+            rev=int(rev) if rev is not None else None,
+            pre=pre,
+            post=int(post) if post is not None else None,
+            dev=int(dev) if dev is not None else None,
+            metadata=groups.get("meta"),
             standard=VersionStandard.PEP440,
             raw=version_string,
         )
