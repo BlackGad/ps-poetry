@@ -32,7 +32,7 @@ def test_parse_with_suffix():
     parser = LooseParser()
     result = parser.parse("1.2.3-custom")
     assert result is not None
-    assert result.metadata == "custom"
+    assert str(result.metadata) == "custom"
 
 
 def test_reject_invalid():

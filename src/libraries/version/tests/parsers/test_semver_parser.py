@@ -25,7 +25,7 @@ def test_parse_with_build():
     parser = SemVerParser()
     result = parser.parse("1.2.3+build.123")
     assert result is not None
-    assert result.metadata == "build.123"
+    assert str(result.metadata) == "build.123"
 
 
 def test_parse_full():
@@ -35,7 +35,7 @@ def test_parse_full():
     assert result.pre is not None
     assert result.pre.name == "rc"
     assert result.pre.number == 1
-    assert result.metadata == "build.123"
+    assert str(result.metadata) == "build.123"
 
 
 def test_reject_two_part_version():

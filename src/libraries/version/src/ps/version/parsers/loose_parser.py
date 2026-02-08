@@ -1,7 +1,7 @@
 import re
-from typing import Optional
+from typing import Optional, cast
 
-from ..models import Version, VersionStandard
+from ..models import Version, VersionMetadata, VersionStandard
 from .base_parser import BaseParser
 
 
@@ -29,7 +29,6 @@ class LooseParser(BaseParser):
             minor=int(minor) if minor is not None else None,
             patch=int(patch) if patch is not None else None,
             rev=int(rev) if rev is not None else None,
-            metadata=groups.get("suffix"),
+            metadata=VersionMetadata(cast(str, groups.get("suffix"))) if groups.get("suffix") else None,
             standard=VersionStandard.LOOSE,
-            raw=version_string,
         )

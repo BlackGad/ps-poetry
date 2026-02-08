@@ -1,7 +1,7 @@
 import re
-from typing import Optional
+from typing import Optional, cast
 
-from ..models import PreRelease, Version, VersionStandard
+from ..models import Version, VersionMetadata, VersionPreRelease, VersionStandard
 from .base_parser import BaseParser
 
 
@@ -33,7 +33,7 @@ class PEP440Parser(BaseParser):
         dev = groups.get("dev")
 
         pre = (
-            PreRelease(name=pre_label, number=int(pre_num))
+            VersionPreRelease(name=pre_label, number=int(pre_num))
             if pre_label and pre_num is not None
             else None
         )
@@ -46,7 +46,6 @@ class PEP440Parser(BaseParser):
             pre=pre,
             post=int(post) if post is not None else None,
             dev=int(dev) if dev is not None else None,
-            metadata=groups.get("meta"),
+            metadata=VersionMetadata(cast(str, groups.get("meta"))) if groups.get("meta") else None,
             standard=VersionStandard.PEP440,
-            raw=version_string,
         )

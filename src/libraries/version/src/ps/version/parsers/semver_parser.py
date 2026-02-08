@@ -1,7 +1,7 @@
 import re
-from typing import Optional
+from typing import Optional, cast
 
-from ..models import PreRelease, Version, VersionStandard
+from ..models import Version, VersionMetadata, VersionPreRelease, VersionStandard
 from .base_parser import BaseParser
 
 
@@ -20,25 +20,23 @@ class SemVerParser(BaseParser):
             return None
 
         groups = match.groupdict()
-        pre = groups.get("pre")
-        pre_name = None
-        pre_num = None
+        pre_str = groups.get("pre")
+        pre_release: Optional[VersionPreRelease] = None
 
-        if pre:
-            pre_parts = re.match(r"^([A-Za-z]+)\.?(\d+)?", pre)
+        if pre_str:
+            pre_parts = re.match(r"^([A-Za-z]+)\.?(\d+)?", pre_str)
             if pre_parts:
                 pre_name = pre_parts.group(1)
+                pre_num = None
                 if pre_parts.group(2) is not None:
                     pre_num = int(pre_parts.group(2))
-
-            pre = PreRelease(name=pre_name, number=pre_num) if pre_name else None
+                pre_release = VersionPreRelease(name=pre_name, number=pre_num)
 
         return Version(
             major=int(groups.get("major") or 0),
             minor=int(groups.get("minor") or 0),
             patch=int(groups.get("patch") or 0),
-            pre=pre,
-            metadata=groups.get("meta"),
+            pre=pre_release,
+            metadata=VersionMetadata(cast(str, groups.get("meta"))) if groups.get("meta") else None,
             standard=VersionStandard.SEMVER,
-            raw=version_string,
         )

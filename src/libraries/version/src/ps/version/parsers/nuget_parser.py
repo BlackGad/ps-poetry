@@ -1,7 +1,7 @@
 import re
 from typing import Optional
 
-from ..models import PreRelease, Version, VersionStandard
+from ..models import Version, VersionPreRelease, VersionStandard
 from .base_parser import BaseParser
 
 
@@ -32,7 +32,7 @@ class NuGetParser(BaseParser):
                     pre_num = int(pre_parts.group(2))
 
         rev = groups.get("rev")
-        pre = PreRelease(name=pre_name, number=pre_num) if pre_name else None
+        pre = VersionPreRelease(name=pre_name, number=pre_num) if pre_name else None
 
         return Version(
             major=int(groups.get("major") or 0),
@@ -41,5 +41,4 @@ class NuGetParser(BaseParser):
             rev=int(rev) if rev is not None else None,
             pre=pre,
             standard=VersionStandard.NUGET,
-            raw=version_string,
         )

@@ -67,7 +67,7 @@ def test_parse_with_metadata():
     parser = PEP440Parser()
     result = parser.parse("1.2.3+g1234567")
     assert result is not None
-    assert result.metadata == "g1234567"
+    assert str(result.metadata) == "g1234567"
 
 
 def test_parse_complex():
@@ -76,7 +76,7 @@ def test_parse_complex():
     assert result is not None
     assert result.major == 1
     assert result.post == 4
-    assert result.metadata == "g1234567.dirty"
+    assert str(result.metadata) == "g1234567.dirty"
 
 
 def test_reject_semver_format():
