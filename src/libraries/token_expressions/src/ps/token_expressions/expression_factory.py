@@ -61,59 +61,52 @@ class ExpressionFactory:
             return False
 
         try:
-            num = int(value)
-            return num > 0
+            return int(value) > 0
         except ValueError:
             pass
 
         try:
-            num = float(value)
-            return num > 0
+            return float(value) > 0
         except ValueError:
             pass
 
-        if (value.startswith("'") and value.endswith("'")) or \
-           (value.startswith('"') and value.endswith('"')):
+        if value[0] in ('"', "'") and value[-1] == value[0]:
             return len(value) > 2
 
         return True
 
     def _tokenize_expression(self, expr: str) -> list[str]:
         tokens = []
-        current = ""
-        i = 0
-        while i < len(expr):
-            char = expr[i]
+        chars = []
 
+        for char in expr:
             if char == '(':
-                if current.strip():
-                    tokens.append(str(self._to_bool(current)))
-                    current = ""
+                if chars:
+                    word = ''.join(chars).strip()
+                    if word:
+                        tokens.append(word if word in ('and', 'or', 'not') else str(self._to_bool(word)))
+                    chars.clear()
                 tokens.append('(')
             elif char == ')':
-                if current.strip():
-                    tokens.append(str(self._to_bool(current)))
-                    current = ""
+                if chars:
+                    word = ''.join(chars).strip()
+                    if word:
+                        tokens.append(word if word in ('and', 'or', 'not') else str(self._to_bool(word)))
+                    chars.clear()
                 tokens.append(')')
             elif char in (' ', '\t'):
-                if current.strip():
-                    word = current.strip()
-                    if word in ('and', 'or', 'not'):
-                        tokens.append(word)
-                    else:
-                        tokens.append(str(self._to_bool(word)))
-                    current = ""
+                if chars:
+                    word = ''.join(chars).strip()
+                    if word:
+                        tokens.append(word if word in ('and', 'or', 'not') else str(self._to_bool(word)))
+                    chars.clear()
             else:
-                current += char
+                chars.append(char)
 
-            i += 1
-
-        if current.strip():
-            word = current.strip()
-            if word in ('and', 'or', 'not'):
-                tokens.append(word)
-            else:
-                tokens.append(str(self._to_bool(word)))
+        if chars:
+            word = ''.join(chars).strip()
+            if word:
+                tokens.append(word if word in ('and', 'or', 'not') else str(self._to_bool(word)))
 
         return tokens
 

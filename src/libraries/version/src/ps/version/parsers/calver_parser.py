@@ -20,19 +20,20 @@ class CalVerParser(BaseParser):
             return None
 
         groups = match.groupdict()
-        major = int(groups.get("major") or 0)
+        major = int(groups["major"])
 
         if major < 20 or (major > 99 and major < 2020):
             return None
 
-        patch = groups.get("patch")
-        rev = groups.get("rev")
+        patch = groups["patch"]
+        rev = groups["rev"]
+        suffix = groups["suffix"]
 
         return Version(
             major=major,
-            minor=int(groups.get("minor") or 0),
-            patch=int(patch) if patch is not None else None,
-            rev=int(rev) if rev is not None else None,
-            metadata=VersionMetadata(cast(str, groups.get("suffix"))) if groups.get("suffix") else None,
+            minor=int(groups["minor"]),
+            patch=int(patch) if patch else None,
+            rev=int(rev) if rev else None,
+            metadata=VersionMetadata(cast(str, suffix)) if suffix else None,
             standard=VersionStandard.CALVER,
         )

@@ -1,5 +1,5 @@
 import re
-from typing import Optional
+from typing import Optional, cast
 
 from .. import Version, VersionPreRelease, VersionStandard
 from .base_parser import BaseParser
@@ -20,25 +20,24 @@ class NuGetParser(BaseParser):
             return None
 
         groups = match.groupdict()
-        pre = groups.get("pre")
-        pre_name = None
-        pre_num = None
+        pre_str = cast(Optional[str], groups["pre"])
+        pre_release: Optional[VersionPreRelease] = None
 
-        if pre:
-            pre_parts = re.match(r"^([A-Za-z]+)\.?(\d+)?", pre)
+        if pre_str:
+            pre_parts = re.match(r"^([A-Za-z]+)\.?(\d+)?", pre_str)
             if pre_parts:
-                pre_name = pre_parts.group(1)
-                if pre_parts.group(2) is not None:
-                    pre_num = int(pre_parts.group(2))
+                pre_num = pre_parts.group(2)
+                pre_release = VersionPreRelease(
+                    cast(str, pre_parts.group(1)),
+                    int(pre_num) if pre_num else None
+                )
 
-        rev = groups.get("rev")
-        pre = VersionPreRelease(name=pre_name, number=pre_num) if pre_name else None
-
+        rev = groups["rev"]
         return Version(
-            major=int(groups.get("major") or 0),
-            minor=int(groups.get("minor") or 0),
-            patch=int(groups.get("patch") or 0),
-            rev=int(rev) if rev is not None else None,
-            pre=pre,
+            major=int(groups["major"]),
+            minor=int(groups["minor"]),
+            patch=int(groups["patch"]),
+            rev=int(rev) if rev else None,
+            pre=pre_release,
             standard=VersionStandard.NUGET,
         )

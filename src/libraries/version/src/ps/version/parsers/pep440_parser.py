@@ -24,28 +24,23 @@ class PEP440Parser(BaseParser):
             return None
 
         groups = match.groupdict()
-        minor = groups.get("minor")
-        patch = groups.get("patch")
-        rev = groups.get("rev")
-        pre_num = groups.get("pre_num")
-        pre_label = groups.get("pre_label")
-        post = groups.get("post")
-        dev = groups.get("dev")
-
-        pre = (
-            VersionPreRelease(name=pre_label, number=int(pre_num))
-            if pre_label and pre_num is not None
-            else None
-        )
+        minor = groups["minor"]
+        patch = groups["patch"]
+        rev = groups["rev"]
+        pre_label = groups["pre_label"]
+        pre_num = groups["pre_num"]
+        post = groups["post"]
+        dev = groups["dev"]
+        meta = groups["meta"]
 
         return Version(
-            major=int(groups.get("major") or 0),
-            minor=int(minor) if minor is not None else None,
-            patch=int(patch) if patch is not None else None,
-            rev=int(rev) if rev is not None else None,
-            pre=pre,
-            post=int(post) if post is not None else None,
-            dev=int(dev) if dev is not None else None,
-            metadata=VersionMetadata(cast(str, groups.get("meta"))) if groups.get("meta") else None,
+            major=int(groups["major"]),
+            minor=int(minor) if minor else None,
+            patch=int(patch) if patch else None,
+            rev=int(rev) if rev else None,
+            pre=VersionPreRelease(pre_label, int(pre_num)) if pre_label and pre_num else None,
+            post=int(post) if post else None,
+            dev=int(dev) if dev else None,
+            metadata=VersionMetadata(cast(str, meta)) if meta else None,
             standard=VersionStandard.PEP440,
         )

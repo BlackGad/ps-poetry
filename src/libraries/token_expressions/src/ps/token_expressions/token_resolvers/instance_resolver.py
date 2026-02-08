@@ -16,6 +16,7 @@ class InstanceResolver:
         if args:
             current = self._instance
             resolved_all = True
+            args_len = len(args)
 
             for i, arg in enumerate(args):
                 next_value = getattr(current, arg, None)
@@ -24,21 +25,18 @@ class InstanceResolver:
                     break
 
                 if isinstance(next_value, (str, int, bool)):
-                    if i == len(args) - 1:
+                    if i == args_len - 1:
                         current = next_value
                     else:
                         resolved_all = False
                         break
-                elif self._picker:
-                    remaining_args = args[i + 1:]
-                    if remaining_args:
-                        next_resolver = self._picker(next_value)
-                        result = next_resolver(remaining_args)
-                        if result is None:
-                            resolved_all = False
-                        current = result
-                        break
-                    current = next_value
+                elif self._picker and i < args_len - 1:
+                    next_resolver = self._picker(next_value)
+                    result = next_resolver(args[i + 1:])
+                    if result is None:
+                        resolved_all = False
+                    current = result
+                    break
                 else:
                     current = next_value
 

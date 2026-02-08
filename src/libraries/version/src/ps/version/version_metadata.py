@@ -4,7 +4,7 @@ from typing import Optional
 
 
 @total_ordering
-@dataclass
+@dataclass(slots=True)
 class VersionMetadata:
     value: str
 

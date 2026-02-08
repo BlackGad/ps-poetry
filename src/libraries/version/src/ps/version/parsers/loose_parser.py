@@ -20,15 +20,16 @@ class LooseParser(BaseParser):
             return None
 
         groups = match.groupdict()
-        minor = groups.get("minor")
-        patch = groups.get("patch")
-        rev = groups.get("rev")
+        minor = groups["minor"]
+        patch = groups["patch"]
+        rev = groups["rev"]
+        suffix = groups["suffix"]
 
         return Version(
-            major=int(groups.get("major") or 0),
-            minor=int(minor) if minor is not None else None,
-            patch=int(patch) if patch is not None else None,
-            rev=int(rev) if rev is not None else None,
-            metadata=VersionMetadata(cast(str, groups.get("suffix"))) if groups.get("suffix") else None,
+            major=int(groups["major"]),
+            minor=int(minor) if minor else None,
+            patch=int(patch) if patch else None,
+            rev=int(rev) if rev else None,
+            metadata=VersionMetadata(cast(str, suffix)) if suffix else None,
             standard=VersionStandard.LOOSE,
         )

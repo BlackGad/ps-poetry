@@ -15,6 +15,8 @@ class DictResolver:
             return None
 
         current: Any = self._data
+        args_len = len(args)
+
         for i, arg in enumerate(args):
             next_value = current.get(arg) if isinstance(current, dict) else getattr(current, arg, None)
 
@@ -22,17 +24,15 @@ class DictResolver:
                 return None
 
             if isinstance(next_value, (str, int, bool)):
-                if i == len(args) - 1:
-                    return next_value
-                return None
-            if self._picker:
-                remaining_args = args[i + 1:]
-                if remaining_args:
-                    next_resolver = self._picker(next_value)
-                    return next_resolver(remaining_args)
-                if isinstance(next_value, (str, int, bool)):
-                    return next_value
-                return None
+                return next_value if i == args_len - 1 else None
+
+            if self._picker and i < args_len - 1:
+                next_resolver = self._picker(next_value)
+                return next_resolver(args[i + 1:])
+
+            if i == args_len - 1:
+                return next_value if isinstance(next_value, (str, int, bool)) else None
+
             current = next_value
 
         return None

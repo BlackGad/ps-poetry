@@ -20,23 +20,24 @@ class SemVerParser(BaseParser):
             return None
 
         groups = match.groupdict()
-        pre_str = groups.get("pre")
+        pre_str = cast(Optional[str], groups["pre"])
         pre_release: Optional[VersionPreRelease] = None
 
         if pre_str:
             pre_parts = re.match(r"^([A-Za-z]+)\.?(\d+)?", pre_str)
             if pre_parts:
-                pre_name = pre_parts.group(1)
-                pre_num = None
-                if pre_parts.group(2) is not None:
-                    pre_num = int(pre_parts.group(2))
-                pre_release = VersionPreRelease(name=pre_name, number=pre_num)
+                pre_num = pre_parts.group(2)
+                pre_release = VersionPreRelease(
+                    cast(str, pre_parts.group(1)),
+                    int(pre_num) if pre_num else None
+                )
 
+        meta = groups["meta"]
         return Version(
-            major=int(groups.get("major") or 0),
-            minor=int(groups.get("minor") or 0),
-            patch=int(groups.get("patch") or 0),
+            major=int(groups["major"]),
+            minor=int(groups["minor"]),
+            patch=int(groups["patch"]),
             pre=pre_release,
-            metadata=VersionMetadata(cast(str, groups.get("meta"))) if groups.get("meta") else None,
+            metadata=VersionMetadata(cast(str, meta)) if meta else None,
             standard=VersionStandard.SEMVER,
         )

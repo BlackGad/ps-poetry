@@ -22,7 +22,7 @@ def _get_parsers():
 
 
 @total_ordering
-@dataclass
+@dataclass(slots=True)
 class Version:
     major: int = 0
     minor: Optional[int] = None
@@ -61,51 +61,49 @@ class Version:
 
     def format(self, standard: VersionStandard) -> str:
         if standard == VersionStandard.PEP440:
-            result = self.core
+            parts = [self.core]
             if self.pre:
-                result += str(self.pre)
+                parts.append(str(self.pre))
             if self.post is not None:
-                result += f".post{self.post}"
+                parts.append(f".post{self.post}")
             if self.dev is not None:
-                result += f".dev{self.dev}"
+                parts.append(f".dev{self.dev}")
             if self.metadata:
-                result += f"+{self.metadata}"
-            return result
+                parts.append(f"+{self.metadata}")
+            return ''.join(parts)
 
         if standard == VersionStandard.SEMVER:
-            result = self.core
+            parts = [self.core]
             if self.pre:
-                result += f"-{self.pre.name}"
+                parts.append(f"-{self.pre.name}")
                 if self.pre.number is not None:
-                    result += f".{self.pre.number}"
+                    parts.append(f".{self.pre.number}")
             if self.metadata:
-                result += f"+{self.metadata}"
-            return result
+                parts.append(f"+{self.metadata}")
+            return ''.join(parts)
 
         if standard == VersionStandard.NUGET:
-            result = self.core
+            parts = [self.core]
             if self.pre:
-                result += f"-{self.pre.name}"
+                parts.append(f"-{self.pre.name}")
                 if self.pre.number is not None:
-                    result += f".{self.pre.number}"
-            return result
+                    parts.append(f".{self.pre.number}")
+            return ''.join(parts)
 
         if standard in (VersionStandard.CALVER, VersionStandard.LOOSE):
-            result = self.core
             if self.metadata:
-                result += f"-{self.metadata}"
-            return result
+                return f"{self.core}-{self.metadata}"
+            return self.core
 
         return self.format(VersionStandard.PEP440)
 
     def _compare_core(self, other: Version) -> int:
-        for attr in ("major", "minor", "patch", "rev"):
-            self_val = getattr(self, attr) or 0
-            other_val = getattr(other, attr) or 0
-            if self_val < other_val:
-                return -1
-            if self_val > other_val:
-                return 1
+        self_parts = (self.major, self.minor or 0, self.patch or 0, self.rev or 0)
+        other_parts = (other.major, other.minor or 0, other.patch or 0, other.rev or 0)
+        if self_parts < other_parts:
+            return -1
+        if self_parts > other_parts:
+            return 1
         return 0
 
     def _compare_pre(self, other: Version) -> int:
@@ -116,35 +114,23 @@ class Version:
         if other.pre is None:
             return -1
 
-        self_name = self.pre.name.casefold()
-        other_name = other.pre.name.casefold()
-        if self_name < other_name:
+        self_parts = (self.pre.name.casefold(), self.pre.number or 0)
+        other_parts = (other.pre.name.casefold(), other.pre.number or 0)
+        if self_parts < other_parts:
             return -1
-        if self_name > other_name:
-            return 1
-
-        self_num = self.pre.number or 0
-        other_num = other.pre.number or 0
-        if self_num < other_num:
-            return -1
-        if self_num > other_num:
+        if self_parts > other_parts:
             return 1
         return 0
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Version):
             return NotImplemented
-
-        if self._compare_core(other) != 0:
-            return False
-
-        if self._compare_pre(other) != 0:
-            return False
-
-        if (self.post or 0) != (other.post or 0):
-            return False
-
-        return (self.dev or 0) == (other.dev or 0)
+        return (
+            self._compare_core(other) == 0 and
+            self._compare_pre(other) == 0 and
+            (self.post or 0) == (other.post or 0) and
+            (self.dev or 0) == (other.dev or 0)
+        )
 
     def __hash__(self) -> int:
         return hash((
@@ -166,7 +152,8 @@ class Version:
         if core_cmp != 0:
             return core_cmp < 0
 
-        if (self.dev or 0) != (other.dev or 0):
+        dev_cmp = (self.dev or 0, other.dev or 0)
+        if dev_cmp[0] != dev_cmp[1]:
             if self.dev is None:
                 return False
             if other.dev is None:
@@ -177,12 +164,7 @@ class Version:
         if pre_cmp != 0:
             return pre_cmp < 0
 
-        self_post = self.post or 0
-        other_post = other.post or 0
-        if self_post != other_post:
-            return self_post < other_post
-
-        return False
+        return (self.post or 0) < (other.post or 0)
 
     def __str__(self) -> str:
         return self.format(self.standard)
