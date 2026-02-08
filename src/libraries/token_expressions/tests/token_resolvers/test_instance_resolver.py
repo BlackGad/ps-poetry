@@ -3,14 +3,6 @@ from typing import Optional
 from ps.token_expressions import ExpressionFactory
 
 
-class Picker:
-    def __init__(self, token_resolvers):
-        self._factory = ExpressionFactory(token_resolvers)
-
-    def materialize(self, value: str) -> str:
-        return self._factory.materialize(value)
-
-
 class SimpleObject:
     def __init__(self):
         self.value = "simple"
@@ -25,20 +17,20 @@ class NestedObject:
 
 def test_nested_property_access():
     instance = NestedObject()
-    picker = Picker([("config", instance)])
-    assert picker.materialize("{config:level1:level2:level3}") == "deep_value"
+    factory = ExpressionFactory([("config", instance)])
+    assert factory.materialize("{config:level1:level2:level3}") == "deep_value"
 
 
 def test_nested_property_partial_resolution():
     instance = NestedObject()
-    picker = Picker([("config", instance)])
-    assert picker.materialize("{config:level1:missing}") == "{config:level1:missing}"
+    factory = ExpressionFactory([("config", instance)])
+    assert factory.materialize("{config:level1:missing}") == "{config:level1:missing}"
 
 
 def test_nested_property_first_level_missing():
     instance = SimpleObject()
-    picker = Picker([("config", instance)])
-    assert picker.materialize("{config:missing:sub}") == "{config:missing:sub}"
+    factory = ExpressionFactory([("config", instance)])
+    assert factory.materialize("{config:missing:sub}") == "{config:missing:sub}"
 
 
 class GetAttrOverride:
@@ -52,15 +44,15 @@ class GetAttrOverride:
 
 def test_getattr_override_success():
     instance = GetAttrOverride()
-    picker = Picker([("config", instance)])
-    assert picker.materialize("{config:dynamic}") == "dynamic_value"
-    assert picker.materialize("{config:number}") == "42"
+    factory = ExpressionFactory([("config", instance)])
+    assert factory.materialize("{config:dynamic}") == "dynamic_value"
+    assert factory.materialize("{config:number}") == "42"
 
 
 def test_getattr_override_missing():
     instance = GetAttrOverride()
-    picker = Picker([("config", instance)])
-    assert picker.materialize("{config:missing}") == "{config:missing}"
+    factory = ExpressionFactory([("config", instance)])
+    assert factory.materialize("{config:missing}") == "{config:missing}"
 
 
 class GetAttrWithNested:
@@ -76,9 +68,9 @@ class GetAttrWithNested:
 
 def test_getattr_with_real_nested_property():
     instance = GetAttrWithNested()
-    picker = Picker([("config", instance)])
-    assert picker.materialize("{config:nested:value}") == "nested_value"
-    assert picker.materialize("{config:dynamic}") == "from_getattr"
+    factory = ExpressionFactory([("config", instance)])
+    assert factory.materialize("{config:nested:value}") == "nested_value"
+    assert factory.materialize("{config:dynamic}") == "from_getattr"
 
 
 class ConfirmWithNested:
@@ -94,14 +86,14 @@ class ConfirmWithNested:
 
 def test_confirm_with_nested_allowed():
     instance = ConfirmWithNested()
-    picker = Picker([("config", instance)])
-    assert picker.materialize("{config:allowed:sub}") == "allowed_value"
+    factory = ExpressionFactory([("config", instance)])
+    assert factory.materialize("{config:allowed:sub}") == "allowed_value"
 
 
 def test_confirm_with_nested_denied():
     instance = ConfirmWithNested()
-    picker = Picker([("config", instance)])
-    assert picker.materialize("{config:denied:sub}") == "{config:denied:sub}"
+    factory = ExpressionFactory([("config", instance)])
+    assert factory.materialize("{config:denied:sub}") == "{config:denied:sub}"
 
 
 class CallableWithGetAttr:
@@ -118,9 +110,9 @@ class CallableWithGetAttr:
 
 def test_getattr_returns_none_fallback_to_call():
     instance = CallableWithGetAttr()
-    picker = Picker([("config", instance)])
-    assert picker.materialize("{config:attr}") == "{config:attr}"
-    assert picker.materialize("{config:callable}") == "from_call"
+    factory = ExpressionFactory([("config", instance)])
+    assert factory.materialize("{config:attr}") == "{config:attr}"
+    assert factory.materialize("{config:callable}") == "from_call"
 
 
 class ChainedNested:
@@ -133,14 +125,14 @@ class ChainedNested:
 
 def test_deep_nested_chain():
     instance = ChainedNested()
-    picker = Picker([("config", instance)])
-    assert picker.materialize("{config:a:b:c:d}") == "final"
+    factory = ExpressionFactory([("config", instance)])
+    assert factory.materialize("{config:a:b:c:d}") == "final"
 
 
 def test_deep_nested_chain_break_middle():
     instance = ChainedNested()
-    picker = Picker([("config", instance)])
-    assert picker.materialize("{config:a:b:x:d}") == "{config:a:b:x:d}"
+    factory = ExpressionFactory([("config", instance)])
+    assert factory.materialize("{config:a:b:x:d}") == "{config:a:b:x:d}"
 
 
 class MixedTypeNested:
@@ -152,9 +144,9 @@ class MixedTypeNested:
 
 def test_nested_with_numeric_value():
     instance = MixedTypeNested()
-    picker = Picker([("config", instance)])
-    assert picker.materialize("{config:num}") == "42"
-    assert picker.materialize("{config:obj:num}") == "123"
+    factory = ExpressionFactory([("config", instance)])
+    assert factory.materialize("{config:num}") == "42"
+    assert factory.materialize("{config:obj:num}") == "123"
 
 
 class GetAttrReturnsObject:
@@ -170,8 +162,8 @@ class GetAttrReturnsObject:
 
 def test_getattr_returns_object_with_nested():
     instance = GetAttrReturnsObject()
-    picker = Picker([("config", instance)])
-    assert picker.materialize("{config:inner:value}") == "inner_value"
+    factory = ExpressionFactory([("config", instance)])
+    assert factory.materialize("{config:inner:value}") == "inner_value"
 
 
 class ConfirmWithGetAttr:
@@ -186,8 +178,8 @@ class ConfirmWithGetAttr:
 
 def test_confirm_with_getattr_allowed():
     instance = ConfirmWithGetAttr()
-    picker = Picker([("config", instance)])
-    assert picker.materialize("{config:dynamic}") == "dynamic_value"
+    factory = ExpressionFactory([("config", instance)])
+    assert factory.materialize("{config:dynamic}") == "dynamic_value"
 
 
 class ConfirmWithGetAttrDenied:
@@ -203,8 +195,8 @@ class ConfirmWithGetAttrDenied:
 
 def test_confirm_denied_fallback_to_call():
     instance = ConfirmWithGetAttrDenied()
-    picker = Picker([("config", instance)])
-    assert picker.materialize("{config:anything}") == "from_callable"
+    factory = ExpressionFactory([("config", instance)])
+    assert factory.materialize("{config:anything}") == "from_callable"
 
 
 class NestedNoneValue:
@@ -215,5 +207,5 @@ class NestedNoneValue:
 
 def test_nested_none_stops_resolution():
     instance = NestedNoneValue()
-    picker = Picker([("config", instance)])
-    assert picker.materialize("{config:obj:none_value:further}") == "{config:obj:none_value:further}"
+    factory = ExpressionFactory([("config", instance)])
+    assert factory.materialize("{config:obj:none_value:further}") == "{config:obj:none_value:further}"

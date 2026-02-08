@@ -105,12 +105,14 @@ def test_version_str_loose_with_metadata():
 
 def test_meta_single_part():
     version = Version(major=0, metadata=VersionMetadata("build"))
+    assert version.metadata
     assert version.metadata(0) == "build"
     assert version.metadata(1) is None
 
 
 def test_meta_multiple_parts():
     version = Version(major=0, metadata=VersionMetadata("g1234567.dirty"))
+    assert version.metadata
     assert version.metadata(0) == "g1234567"
     assert version.metadata(1) == "dirty"
 
@@ -122,6 +124,7 @@ def test_meta_empty():
 
 def test_meta_three_parts():
     version = Version(major=0, metadata=VersionMetadata("part1.part2.part3"))
+    assert version.metadata
     assert version.metadata(0) == "part1"
     assert version.metadata(1) == "part2"
     assert version.metadata(2) == "part3"
@@ -130,11 +133,13 @@ def test_meta_three_parts():
 
 def test_meta_no_index():
     version = Version(major=0, metadata=VersionMetadata("g1234567.dirty"))
+    assert version.metadata
     assert version.metadata() == "g1234567.dirty"
 
 
 def test_meta_negative_index():
     version = Version(major=0, metadata=VersionMetadata("build"))
+    assert version.metadata
     assert version.metadata(-1) is None
 
 
