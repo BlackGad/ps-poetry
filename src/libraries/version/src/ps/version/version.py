@@ -1,12 +1,24 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from functools import total_ordering
+from functools import lru_cache, total_ordering
 from typing import Optional
 
 from .version_metadata import VersionMetadata
 from .version_prerelease import VersionPreRelease
 from .version_standard import VersionStandard
+
+
+@lru_cache
+def _get_parsers():
+    from .parsers import CalVerParser, LooseParser, NuGetParser, PEP440Parser, SemVerParser  # noqa: PLC0415
+    return [
+        PEP440Parser(),
+        SemVerParser(),
+        NuGetParser(),
+        CalVerParser(),
+        LooseParser(),
+    ]
 
 
 @total_ordering
@@ -177,24 +189,10 @@ class Version:
 
     @staticmethod
     def parse(version_string: str) -> Version:
-        from ..parsers import CalVerParser, LooseParser, NuGetParser, PEP440Parser, SemVerParser
-
-        if not version_string:
-            return Version(major=0)
-
-        version_string = version_string.strip()
-
-        parsers = [
-            PEP440Parser(),
-            SemVerParser(),
-            NuGetParser(),
-            CalVerParser(),
-            LooseParser(),
-        ]
-
-        for parser in parsers:
-            result = parser.parse(version_string)
-            if result:
-                return result
+        if version_string:
+            for parser in _get_parsers():
+                result = parser.parse(version_string.strip())
+                if result:
+                    return result
 
         return Version(major=0, standard=VersionStandard.UNKNOWN)

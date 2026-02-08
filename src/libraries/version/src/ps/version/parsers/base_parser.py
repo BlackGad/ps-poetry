@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from ..models import Version
+from .. import Version
 
 
 class BaseParser(ABC):

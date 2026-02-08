@@ -1,7 +1,7 @@
 import re
 from typing import Optional, cast
 
-from ..models import Version, VersionMetadata, VersionPreRelease, VersionStandard
+from .. import Version, VersionMetadata, VersionPreRelease, VersionStandard
 from .base_parser import BaseParser
 
 

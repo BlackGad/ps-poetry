@@ -31,6 +31,7 @@ pytest-asyncio = "^1.3.0"
 
 [tool.poetry.group.ps.dependencies]
 ps-version                  = { path = "libraries/version", develop = true }
+ps-token-expressions        = { path = "libraries/token_expressions", develop = true }
 ps-plugin-sdk               = { path = "sdk", develop = true }
 ps-plugin-core              = { path = "plugin", develop = true }
 ps-plugin-module-check      = { path = "modules/check", develop = true }

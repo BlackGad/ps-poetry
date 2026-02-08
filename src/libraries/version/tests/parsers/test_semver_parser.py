@@ -1,4 +1,4 @@
-from ps.version.models import VersionStandard
+from ps.version import VersionStandard
 from ps.version.parsers import SemVerParser
 
 
