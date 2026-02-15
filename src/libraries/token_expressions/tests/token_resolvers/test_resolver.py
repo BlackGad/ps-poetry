@@ -14,3 +14,8 @@ def test_parse_no_tokens():
 def test_parse_with_whitespace():
     factory = ExpressionFactory([])
     assert factory.materialize("  text  ") == "  text  "
+
+
+def test_private_pick_resolver_for_none():
+    factory = ExpressionFactory([("none_value", None)])
+    assert factory.materialize("{none_value}") == ""

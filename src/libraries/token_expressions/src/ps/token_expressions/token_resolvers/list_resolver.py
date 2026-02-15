@@ -3,20 +3,33 @@ from typing import Any, Optional
 from .base_resolver import BaseResolver, PickerFunc, TokenValue
 
 
-class DictResolver(BaseResolver):
-    def __init__(self, data: dict[str, Any], picker: PickerFunc):
+class ListResolver(BaseResolver):
+    def __init__(self, data: list[Any], picker: PickerFunc):
         super().__init__(picker)
         self._data = data
 
     def __call__(self, args: list[str]) -> Optional[TokenValue]:
         if not args:
-            return None
+            if all(isinstance(item, (str, int, bool)) for item in self._data):
+                return self._data
+            return str(self._data)
 
         current: Any = self._data
         args_len = len(args)
 
         for i, arg in enumerate(args):
-            next_value = current.get(arg) if isinstance(current, dict) else getattr(current, arg, None)
+            if not isinstance(current, list):
+                return None
+
+            try:
+                index = int(arg)
+            except (ValueError, TypeError):
+                return None
+
+            if index < 0 or index >= len(current):
+                return None
+
+            next_value = current[index]
 
             if next_value is None:
                 return None

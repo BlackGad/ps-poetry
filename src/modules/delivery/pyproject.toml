@@ -15,11 +15,12 @@ minimal = "^0.1.0"
 module_entry = "ps.plugin.module.delivery"
 
 [tool.poetry.group.ps.dependencies]
-ps-plugin-sdk = { path = "../../sdk", develop = true }
+ps-version              = { path = "../../libraries/version", develop = true }
+ps-token-expressions    = { path = "../../libraries/token_expressions", develop = true }
+ps-plugin-sdk           = { path = "../../sdk", develop = true }
 
 [tool.poetry]
 packages = [ { include = "ps/plugin/module/delivery", from = "src" } ]
-version = "0.0.0"
 
 [tool.ps-plugin]
 host-project = "../.."

@@ -4,13 +4,8 @@ description = ""
 requires-python = ">=3.10,<3.14"
 dynamic = ["version"]
 
-[tool.poetry.dependencies]
-ps-token-expressions = { path = "../token_expressions", develop = true }
-
-
 [tool.poetry]
 packages = [ { include = "ps/version", from = "src" } ]
-version = "0.0.0"
 
 [tool.ps-plugin]
 host-project = "../.."

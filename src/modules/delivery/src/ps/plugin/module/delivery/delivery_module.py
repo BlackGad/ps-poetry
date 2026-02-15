@@ -11,7 +11,8 @@ from poetry.console.commands.build import BuildCommand
 from poetry.console.commands.publish import PublishCommand
 from poetry.console.application import Application
 
-
+from ps.plugin.module.delivery.version_resolver import _resolve_versions
+from ps.version.version import Version
 from ps.plugin.sdk.models import Environment
 from ps.plugin.sdk.protocols import (
     ActivateProtocol,
@@ -22,15 +23,17 @@ from ps.plugin.sdk.protocols import (
 from ps.plugin.sdk.interfaces import DI
 from ps.plugin.sdk.helpers import ensure_argument, ensure_option, filter_projects
 
-from .delivery_settings import DeliverySettings
+BUILD_VERSION_OPTION = "build-version"
+BUILD_VERSION_OPTION_SHORT = "b"
+INPUTS_ARGUMENT = "inputs"
 
 
 def _get_inputs(input: Input) -> list[str]:
-    return input.arguments.get("inputs", [])
+    return input.arguments.get(INPUTS_ARGUMENT, [])
 
 
 def _get_version_option(input: Input) -> Optional[str]:
-    return input.options.get("version", None)
+    return input.options.get(BUILD_VERSION_OPTION, None)
 
 
 class DeliveryModule(
@@ -48,27 +51,27 @@ class DeliveryModule(
     def handle_activate(self, application: Application) -> bool:
         # Extend the BuildCommand with an optional "inputs" argument
         ensure_argument(BuildCommand, Argument(
-            name="inputs",
+            name=INPUTS_ARGUMENT,
             description="Optional inputs pointers to build. It could be project names or paths. If not provided, all discovered projects will be built.",
             is_list=True,
             required=False)
         )
         ensure_option(BuildCommand, Option(
-            name="version",
+            name=BUILD_VERSION_OPTION,
             description="Specify the version to build the project with.",
-            shortcut="v",
+            shortcut=BUILD_VERSION_OPTION_SHORT,
             flag=False)
         )
         ensure_argument(PublishCommand, Argument(
-            name="inputs",
+            name=INPUTS_ARGUMENT,
             description="Optional inputs pointers to publish. It could be project names or paths. If not provided, all discovered projects will be published.",
             is_list=True,
             required=False)
         )
         ensure_option(PublishCommand, Option(
-            name="version",
+            name=BUILD_VERSION_OPTION,
             description="Specify the version to publish the project with.",
-            shortcut="v",
+            shortcut=BUILD_VERSION_OPTION_SHORT,
             flag=False)
         )
         return True
@@ -94,10 +97,10 @@ class DeliveryModule(
             event.io.write_line("<comment>No projects found to process.</comment>")
             return
 
-        # Resolve plugin settings
-        plugin_settings = environment.host_project.plugin_settings
-        delivery_settings = DeliverySettings.model_validate(plugin_settings.model_dump(), by_alias=True)
-        print(delivery_settings)
+        input_version = Version.parse(_get_version_option(event.io.input))
+        project_versions = _resolve_versions(event.io, input_version, environment.host_project, filtered_projects)
+        print(project_versions)
+
         # for project in filtered_projects:
         # project.defined_version
         # pass

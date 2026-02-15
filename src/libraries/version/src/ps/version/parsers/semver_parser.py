@@ -1,7 +1,7 @@
 import re
 from typing import Optional, cast
 
-from .. import Version, VersionMetadata, VersionPreRelease, VersionStandard
+from .. import Version, VersionMetadata, VersionPreRelease
 from .base_parser import BaseParser
 
 
@@ -39,5 +39,4 @@ class SemVerParser(BaseParser):
             patch=int(groups["patch"]),
             pre=pre_release,
             metadata=VersionMetadata(cast(str, meta)) if meta else None,
-            standard=VersionStandard.SEMVER,
         )

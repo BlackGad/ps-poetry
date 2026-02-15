@@ -7,4 +7,3 @@ class VersionStandard(Enum):
     NUGET = "nuget"
     CALVER = "calver"
     LOOSE = "loose"
-    UNKNOWN = "unknown"

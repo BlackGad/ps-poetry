@@ -9,7 +9,7 @@ def test_parse_simple_version():
     assert result.major == 1
     assert result.minor == 2
     assert result.patch == 3
-    assert result.standard == VersionStandard.SEMVER
+    assert VersionStandard.SEMVER in result.standards
 
 
 def test_parse_prerelease():

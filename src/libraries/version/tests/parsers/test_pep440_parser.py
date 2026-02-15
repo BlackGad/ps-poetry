@@ -9,7 +9,7 @@ def test_parse_simple_version():
     assert result.major == 1
     assert result.minor == 2
     assert result.patch == 3
-    assert result.standard == VersionStandard.PEP440
+    assert VersionStandard.PEP440 in result.standards
 
 
 def test_parse_four_part_version():

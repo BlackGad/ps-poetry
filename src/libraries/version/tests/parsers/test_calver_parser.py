@@ -9,7 +9,7 @@ def test_parse_full_year():
     assert result.major == 2024
     assert result.minor == 1
     assert result.patch == 0
-    assert result.standard == VersionStandard.CALVER
+    assert VersionStandard.CALVER in result.standards
 
 
 def test_parse_short_year():

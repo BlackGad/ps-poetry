@@ -10,7 +10,7 @@ def test_match_true_literal():
 
 def test_match_false_literal():
     factory = ExpressionFactory([])
-    assert factory.match("false") is True  # "false" is non-empty string
+    assert factory.match("false") is False
 
 
 def test_match_zero_is_false():

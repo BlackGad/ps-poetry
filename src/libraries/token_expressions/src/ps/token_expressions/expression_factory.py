@@ -1,7 +1,7 @@
 import re
 from typing import Any, Callable, Optional, Sequence, Tuple, Union
 
-from .token_resolvers import pick_resolver
+from .token_resolvers.resolver import _pick_resolver
 from .validation import (
     ExpressionSyntaxError,
     FallbackTokenError,
@@ -12,12 +12,30 @@ from .validation import (
 )
 
 
-TokenValue = Union[str, int, bool]
+TokenValue = Union[str, int, bool, list[Union[str, int, bool]]]
 TokenResolver = Callable[[list[str]], Optional[TokenValue]]
 TokenResolverEntry = Tuple[str, Union[TokenResolver, Any]]
 DefaultCallback = Callable[[str, list[str]], TokenValue]
 
 _TOKEN_PATTERN = re.compile(r"\{([^{}]+)\}")
+
+_KEYWORDS = {'and', 'or', 'not', 'in', 'True', 'False', '(', ')'}
+
+
+def _is_numeric_string(value: str) -> bool:
+    try:
+        float(value)
+        return True
+    except ValueError:
+        return False
+
+
+def _token_value_to_str(value: TokenValue, for_eval: bool = False) -> str:
+    if isinstance(value, list):
+        return "[" + ", ".join(repr(item) for item in value) + "]"
+    if isinstance(value, str) and for_eval and value not in _KEYWORDS and not _is_numeric_string(value):
+        return repr(value)
+    return str(value)
 
 
 def _parse_token(expression: str) -> Tuple[str, list[str], str, bool]:
@@ -52,7 +70,7 @@ def _check_balanced_parentheses(expr: str) -> Optional[ExpressionSyntaxError]:
 
 def _validate_token_sequence(expr: str, tokens: list[str]) -> ValidationResult:
     errors: list[TokenError] = []
-    operators, previous, expect_operand = {'and', 'or', 'not'}, None, True
+    operators, binary_operators, previous, expect_operand = {'and', 'or', 'not', 'in'}, {'and', 'or', 'in'}, None, True
 
     for i, current in enumerate(tokens):
         if current == '(':
@@ -76,7 +94,7 @@ def _validate_token_sequence(expr: str, tokens: list[str]) -> ValidationResult:
                     message=f"Unexpected 'not' at token position {i}, expected binary operator"
                 ))
             expect_operand = True
-        elif current in operators:
+        elif current in binary_operators:
             if expect_operand:
                 errors.append(ExpressionSyntaxError(
                     token=expr, position=0,
@@ -113,23 +131,81 @@ def _to_bool(value: str) -> bool:
             return len(value) > 2 if value[0] in ('"', "'") and value[-1] == value[0] else True
 
 
+def _process_quoted_string(expr: str, i: int) -> tuple[str, int]:
+    quote_char = expr[i]
+    string_chars = [quote_char]
+    i += 1
+    while i < len(expr):
+        char = expr[i]
+        string_chars.append(char)
+        if char == quote_char:
+            i += 1
+            break
+        i += 1
+    return ''.join(string_chars), i
+
+
+def _process_bracket_list(expr: str, i: int) -> tuple[str, int]:
+    bracket_depth = 1
+    list_chars = ['[']
+    i += 1
+    while i < len(expr) and bracket_depth > 0:
+        char = expr[i]
+        list_chars.append(char)
+        if char == '[':
+            bracket_depth += 1
+        elif char == ']':
+            bracket_depth -= 1
+        i += 1
+    return ''.join(list_chars), i
+
+
 def _tokenize_expression(expr: str) -> list[str]:
     tokens, chars = [], []
-    operators = ('and', 'or', 'not')
+    operators = ('and', 'or', 'not', 'in')
+    i = 0
 
     def flush_word() -> None:
         if chars and (word := ''.join(chars).strip()):
-            tokens.append(word if word in operators else str(_to_bool(word)))
+            if word in operators:
+                tokens.append(word)
+            elif word.lower() == 'true':
+                tokens.append('True')
+            elif word.lower() == 'false':
+                tokens.append('False')
+            else:
+                tokens.append(word)
             chars.clear()
 
-    for char in expr:
+    while i < len(expr):
+        char = expr[i]
+
+        # Handle quoted strings
+        if char in ('"', "'"):
+            flush_word()
+            string_token, i = _process_quoted_string(expr, i)
+            tokens.append(string_token)
+            continue
+
+        # Handle lists
+        if char == '[':
+            flush_word()
+            list_token, i = _process_bracket_list(expr, i)
+            tokens.append(list_token)
+            continue
+
+        # Handle parentheses
         if char in ('(', ')'):
             flush_word()
             tokens.append(char)
+        # Handle whitespace
         elif char in (' ', '\t'):
             flush_word()
+        # Accumulate characters
         else:
             chars.append(char)
+
+        i += 1
 
     flush_word()
     return tokens
@@ -151,7 +227,7 @@ class ExpressionFactory:
         default_callback: Optional[DefaultCallback] = None,
         max_recursion_depth: int = 10,
     ) -> None:
-        self._token_resolvers = [(key, pick_resolver(resolver)) for key, resolver in token_resolvers]
+        self._token_resolvers = [(key, _pick_resolver(resolver)) for key, resolver in token_resolvers]
         self._default_callback = default_callback
         self._max_recursion_depth = max_recursion_depth
 
@@ -161,7 +237,7 @@ class ExpressionFactory:
                 return resolved
         return None
 
-    def materialize(self, value: str) -> str:
+    def materialize(self, value: str, for_eval: bool = False) -> str:
         if not value:
             return value
 
@@ -176,7 +252,7 @@ class ExpressionFactory:
                     return fallback if has_fallback else match.group(0)
 
                 if (resolved := self._resolve_token(key, args)) is not None:
-                    resolved_str = str(resolved)
+                    resolved_str = _token_value_to_str(resolved, for_eval=for_eval)
                     has_changes |= resolved_str != match.group(0)
                     return resolved_str
 
@@ -184,7 +260,7 @@ class ExpressionFactory:
                     has_changes = True
                     return fallback
                 if self._default_callback:
-                    resolved_str = str(self._default_callback(key, args))
+                    resolved_str = _token_value_to_str(self._default_callback(key, args), for_eval=for_eval)
                     has_changes |= resolved_str != match.group(0)
                     return resolved_str
                 return match.group(0)
@@ -214,7 +290,7 @@ class ExpressionFactory:
 
                 resolved = self._resolve_token(key, args)
                 if resolved is not None:
-                    if _TOKEN_PATTERN.search(resolved_str := str(resolved)):
+                    if _TOKEN_PATTERN.search(resolved_str := _token_value_to_str(resolved, for_eval=False)):
                         validate(resolved_str, depth + 1)
                     continue
 
@@ -259,4 +335,4 @@ class ExpressionFactory:
         return _validate_token_sequence(materialized, tokens)
 
     def match(self, condition: str) -> bool:
-        return _evaluate_expression(self.materialize(condition))
+        return _evaluate_expression(self.materialize(condition, for_eval=True))

@@ -32,7 +32,6 @@ class Version:
     post: Optional[int] = None
     dev: Optional[int] = None
     metadata: Optional[VersionMetadata] = None
-    standard: VersionStandard = VersionStandard.UNKNOWN
 
     def __post_init__(self) -> None:
         if self.major < 0:
@@ -58,6 +57,49 @@ class Version:
         if self.rev is not None and self.rev > 0:
             parts.append(str(self.rev))
         return ".".join(parts)
+
+    @property
+    def standards(self) -> list[VersionStandard]:
+        compatible = []
+
+        # SEMVER: requires minor and patch, no rev/post/dev
+        if (
+            self.minor is not None
+            and self.patch is not None
+            and self.rev is None
+            and self.post is None
+            and self.dev is None
+        ):
+            compatible.append(VersionStandard.SEMVER)
+
+        # NUGET: requires minor and patch, no metadata/post/dev
+        if (
+            self.minor is not None
+            and self.patch is not None
+            and self.metadata is None
+            and self.post is None
+            and self.dev is None
+        ):
+            compatible.append(VersionStandard.NUGET)
+
+        # CALVER: requires minor, major >= 20, no pre/post/dev
+        if (
+            self.minor is not None
+            and self.major >= 20
+            and self.pre is None
+            and self.post is None
+            and self.dev is None
+        ):
+            compatible.append(VersionStandard.CALVER)
+
+        # LOOSE: no pre/post/dev
+        if self.pre is None and self.post is None and self.dev is None:
+            compatible.append(VersionStandard.LOOSE)
+
+        # PEP440 is always compatible
+        compatible.append(VersionStandard.PEP440)
+
+        return compatible
 
     def format(self, standard: VersionStandard) -> str:
         if standard == VersionStandard.PEP440:
@@ -167,14 +209,14 @@ class Version:
         return (self.post or 0) < (other.post or 0)
 
     def __str__(self) -> str:
-        return self.format(self.standard)
+        standards = self.standards
+        return self.format(standards[0] if standards else VersionStandard.PEP440)
 
     @staticmethod
-    def parse(version_string: str) -> Version:
+    def parse(version_string: Optional[str]) -> Optional[Version]:
         if version_string:
             for parser in _get_parsers():
                 result = parser.parse(version_string.strip())
                 if result:
                     return result
-
-        return Version(major=0, standard=VersionStandard.UNKNOWN)
+        return None

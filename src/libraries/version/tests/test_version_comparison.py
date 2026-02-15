@@ -1,4 +1,4 @@
-from ps.version import Version, VersionPreRelease, VersionStandard
+from ps.version import Version, VersionPreRelease
 
 
 def test_version_equality_simple():
@@ -63,29 +63,29 @@ def test_version_pre_number():
 
 
 def test_version_pep440_dev_less_than_pre():
-    v1 = Version(major=1, minor=0, patch=0, dev=1, standard=VersionStandard.PEP440)
-    v2 = Version(major=1, minor=0, patch=0, pre=VersionPreRelease(name="a", number=1), standard=VersionStandard.PEP440)
+    v1 = Version(major=1, minor=0, patch=0, dev=1)
+    v2 = Version(major=1, minor=0, patch=0, pre=VersionPreRelease(name="a", number=1))
     assert v1 < v2
     assert not v2 < v1
 
 
 def test_version_pep440_dev_less_than_normal():
-    v1 = Version(major=1, minor=0, patch=0, dev=1, standard=VersionStandard.PEP440)
-    v2 = Version(major=1, minor=0, patch=0, standard=VersionStandard.PEP440)
+    v1 = Version(major=1, minor=0, patch=0, dev=1)
+    v2 = Version(major=1, minor=0, patch=0)
     assert v1 < v2
     assert not v2 < v1
 
 
 def test_version_pep440_post_greater_than_normal():
-    v1 = Version(major=1, minor=0, patch=0, standard=VersionStandard.PEP440)
-    v2 = Version(major=1, minor=0, patch=0, post=1, standard=VersionStandard.PEP440)
+    v1 = Version(major=1, minor=0, patch=0)
+    v2 = Version(major=1, minor=0, patch=0, post=1)
     assert v1 < v2
     assert not v2 < v1
 
 
 def test_version_pep440_post_numbers():
-    v1 = Version(major=1, minor=0, patch=0, post=1, standard=VersionStandard.PEP440)
-    v2 = Version(major=1, minor=0, patch=0, post=2, standard=VersionStandard.PEP440)
+    v1 = Version(major=1, minor=0, patch=0, post=1)
+    v2 = Version(major=1, minor=0, patch=0, post=2)
     assert v1 < v2
     assert not v2 < v1
 
@@ -116,21 +116,21 @@ def test_version_less_equal():
 
 
 def test_version_pep440_full_order():
-    v_dev = Version(major=1, minor=0, patch=0, dev=1, standard=VersionStandard.PEP440)
-    v_alpha = Version(major=1, minor=0, patch=0, pre=VersionPreRelease(name="a", number=1), standard=VersionStandard.PEP440)
-    v_beta = Version(major=1, minor=0, patch=0, pre=VersionPreRelease(name="b", number=1), standard=VersionStandard.PEP440)
-    v_rc = Version(major=1, minor=0, patch=0, pre=VersionPreRelease(name="rc", number=1), standard=VersionStandard.PEP440)
-    v_normal = Version(major=1, minor=0, patch=0, standard=VersionStandard.PEP440)
-    v_post = Version(major=1, minor=0, patch=0, post=1, standard=VersionStandard.PEP440)
+    v_dev = Version(major=1, minor=0, patch=0, dev=1)
+    v_alpha = Version(major=1, minor=0, patch=0, pre=VersionPreRelease(name="a", number=1))
+    v_beta = Version(major=1, minor=0, patch=0, pre=VersionPreRelease(name="b", number=1))
+    v_rc = Version(major=1, minor=0, patch=0, pre=VersionPreRelease(name="rc", number=1))
+    v_normal = Version(major=1, minor=0, patch=0)
+    v_post = Version(major=1, minor=0, patch=0, post=1)
 
     assert v_dev < v_alpha < v_beta < v_rc < v_normal < v_post
 
 
 def test_version_semver_pre_order():
-    v_alpha1 = Version(major=1, minor=0, patch=0, pre=VersionPreRelease(name="alpha", number=1), standard=VersionStandard.SEMVER)
-    v_alpha2 = Version(major=1, minor=0, patch=0, pre=VersionPreRelease(name="alpha", number=2), standard=VersionStandard.SEMVER)
-    v_beta = Version(major=1, minor=0, patch=0, pre=VersionPreRelease(name="beta", number=1), standard=VersionStandard.SEMVER)
-    v_normal = Version(major=1, minor=0, patch=0, standard=VersionStandard.SEMVER)
+    v_alpha1 = Version(major=1, minor=0, patch=0, pre=VersionPreRelease(name="alpha", number=1))
+    v_alpha2 = Version(major=1, minor=0, patch=0, pre=VersionPreRelease(name="alpha", number=2))
+    v_beta = Version(major=1, minor=0, patch=0, pre=VersionPreRelease(name="beta", number=1))
+    v_normal = Version(major=1, minor=0, patch=0)
 
     assert v_alpha1 < v_alpha2 < v_beta < v_normal
 

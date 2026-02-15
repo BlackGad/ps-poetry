@@ -3,6 +3,42 @@ from typing import Optional
 from ps.token_expressions import ExpressionFactory
 
 
+class ObjectWithStr:
+    def __str__(self) -> str:
+        return "custom_string_value"
+
+
+def test_zero_args_returns_string_representation():
+    instance = ObjectWithStr()
+    factory = ExpressionFactory([("obj", instance)])
+    assert factory.materialize("{obj}") == "custom_string_value"
+
+
+class ObjectWithDefaultStr:
+    pass
+
+
+def test_zero_args_returns_default_string():
+    instance = ObjectWithDefaultStr()
+    factory = ExpressionFactory([("obj", instance)])
+    result = factory.materialize("{obj}")
+    assert "ObjectWithDefaultStr" in result
+
+
+class NumericObject:
+    def __init__(self, value: int):
+        self.value = value
+
+    def __str__(self) -> str:
+        return f"Number: {self.value}"
+
+
+def test_zero_args_with_numeric_str():
+    instance = NumericObject(42)
+    factory = ExpressionFactory([("obj", instance)])
+    assert factory.materialize("{obj}") == "Number: 42"
+
+
 class SimpleObject:
     def __init__(self):
         self.value = "simple"

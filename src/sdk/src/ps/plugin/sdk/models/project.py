@@ -10,10 +10,6 @@ class ProjectDependency(BaseModel):
     defined_name: Optional[str] = None
     defined_version: Optional[str] = None
 
-    # Resolution
-    resolved_name: Optional[str] = None
-    resolved_version: Optional[str] = None
-
     # Classification
     group: Optional[str] = None
     optional: Optional[bool] = None

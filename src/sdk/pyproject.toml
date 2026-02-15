@@ -11,7 +11,6 @@ pydantic = "^2.12.5"
 
 [tool.poetry]
 packages = [ { include = "ps/plugin/sdk", from = "src" } ]
-version = "0.0.0"
 
 [tool.ps-plugin]
 host-project = ".."

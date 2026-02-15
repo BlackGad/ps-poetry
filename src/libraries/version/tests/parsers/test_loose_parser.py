@@ -8,7 +8,7 @@ def test_parse_single_number():
     assert result is not None
     assert result.major == 1
     assert result.minor is None
-    assert result.standard == VersionStandard.LOOSE
+    assert VersionStandard.LOOSE in result.standards
 
 
 def test_parse_two_numbers():

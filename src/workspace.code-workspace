@@ -64,8 +64,8 @@
 				"justMyCode": false,
 				"envFile": "${workspaceFolder}/debug.env",
 				"env": {
-				"PYTHONPATH": "${workspaceFolder}/src",
-				"POETRY_DYNAMIC_VERSIONING_BYPASS": "0.0.421"
+					"PYTHONPATH": "${workspaceFolder}/src",
+					"BUILD_VERSION1": "0.0.421"
 				}
 			},
 			{

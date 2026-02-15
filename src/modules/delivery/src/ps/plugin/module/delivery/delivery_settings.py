@@ -3,4 +3,4 @@ from pydantic import BaseModel, Field
 
 
 class DeliverySettings(BaseModel):
-    version_pattern: Optional[str] = Field(default=None, alias="version-pattern")
+    version_patterns: Optional[list[str]] = Field(default_factory=list, alias="version-patterns")

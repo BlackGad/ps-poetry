@@ -1,11 +1,11 @@
-from typing import Callable, Optional, Union
+from typing import Callable, Optional
+
+from .base_resolver import BaseResolver, TokenValue
 
 
-TokenValue = Union[str, int, bool]
-
-
-class FuncResolver:
+class FuncResolver(BaseResolver):
     def __init__(self, func: Callable[[list[str]], Optional[TokenValue]]):
+        super().__init__(None)
         self._func = func
 
     def __call__(self, args: list[str]) -> Optional[TokenValue]:

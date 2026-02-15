@@ -1,56 +1,61 @@
 from ps.version import VersionMetadata
 
+import pytest
+
 
 def test_metadata_str():
     meta = VersionMetadata("g1234567.dirty")
     assert str(meta) == "g1234567.dirty"
 
 
-def test_metadata_call_with_index():
+def test_metadata_parts_with_index():
     meta = VersionMetadata("g1234567.dirty")
-    assert meta(0) == "g1234567"
-    assert meta(1) == "dirty"
+    assert meta.parts[0] == "g1234567"
+    assert meta.parts[1] == "dirty"
 
 
-def test_metadata_call_no_index():
+def test_metadata_str_conversion():
     meta = VersionMetadata("g1234567.dirty")
-    assert meta() == "g1234567.dirty"
+    assert str(meta) == "g1234567.dirty"
 
 
-def test_metadata_call_negative_index():
+def test_metadata_parts_list_access():
     meta = VersionMetadata("build")
-    assert meta(-1) is None
+    assert len(meta.parts) == 1
+    # Verify list behavior - out of range raises IndexError
+    with pytest.raises(IndexError):
+        _ = meta.parts[10]
 
 
 def test_metadata_single_part():
     meta = VersionMetadata("build")
-    assert meta(0) == "build"
-    assert meta(1) is None
+    assert meta.parts[0] == "build"
+    assert len(meta.parts) == 1
 
 
 def test_metadata_multiple_parts():
     meta = VersionMetadata("g1234567.dirty")
-    assert meta(0) == "g1234567"
-    assert meta(1) == "dirty"
+    assert meta.parts[0] == "g1234567"
+    assert meta.parts[1] == "dirty"
 
 
 def test_metadata_three_parts():
     meta = VersionMetadata("part1.part2.part3")
-    assert meta(0) == "part1"
-    assert meta(1) == "part2"
-    assert meta(2) == "part3"
-    assert meta(3) is None
+    assert meta.parts[0] == "part1"
+    assert meta.parts[1] == "part2"
+    assert meta.parts[2] == "part3"
+    assert len(meta.parts) == 3
 
 
 def test_metadata_many_parts():
     meta = VersionMetadata("a.b.c.d.e.f")
-    assert meta(0) == "a"
-    assert meta(1) == "b"
-    assert meta(2) == "c"
-    assert meta(3) == "d"
-    assert meta(4) == "e"
-    assert meta(5) == "f"
-    assert meta(6) is None
+    assert meta.parts[0] == "a"
+    assert meta.parts[1] == "b"
+    assert meta.parts[2] == "c"
+    assert meta.parts[3] == "d"
+    assert meta.parts[4] == "e"
+    assert meta.parts[5] == "f"
+    assert len(meta.parts) == 6
 
 
 def test_metadata_equality():

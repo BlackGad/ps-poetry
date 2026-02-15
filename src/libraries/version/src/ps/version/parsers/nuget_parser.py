@@ -1,7 +1,7 @@
 import re
 from typing import Optional, cast
 
-from .. import Version, VersionPreRelease, VersionStandard
+from .. import Version, VersionPreRelease
 from .base_parser import BaseParser
 
 
@@ -39,5 +39,4 @@ class NuGetParser(BaseParser):
             patch=int(groups["patch"]),
             rev=int(rev) if rev else None,
             pre=pre_release,
-            standard=VersionStandard.NUGET,
         )

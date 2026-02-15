@@ -19,7 +19,6 @@ ps-plugin-sdk = { path = "../../sdk", develop = true }
 
 [tool.poetry]
 packages = [ { include = "ps/plugin/module/check", from = "src" } ]
-version = "0.0.0"
 
 [tool.ps-plugin]
 host-project = "../.."

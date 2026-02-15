@@ -4,11 +4,6 @@ description = ""
 requires-python = ">=3.10,<3.14"
 dynamic = ["version"]
 
-[tool.poetry.dependencies]
-poetry = "^2.2.1"
-toml = "^0.10.2"
-pydantic = "^2.12.5"
-
 [project.entry-points."ps.module"]
 module_entry = "ps.plugin.module.monorepo"
 
@@ -17,7 +12,6 @@ ps-plugin-sdk = { path = "../../sdk", develop = true }
 
 [tool.poetry]
 packages = [ { include = "ps/plugin/module/monorepo", from = "src" } ]
-version = "0.0.0"
 
 [tool.ps-plugin]
 host-project = "../.."

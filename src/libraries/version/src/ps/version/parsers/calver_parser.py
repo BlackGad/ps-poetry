@@ -1,7 +1,7 @@
 import re
 from typing import Optional, cast
 
-from .. import Version, VersionMetadata, VersionStandard
+from .. import Version, VersionMetadata
 from .base_parser import BaseParser
 
 
@@ -35,5 +35,4 @@ class CalVerParser(BaseParser):
             patch=int(patch) if patch else None,
             rev=int(rev) if rev else None,
             metadata=VersionMetadata(cast(str, suffix)) if suffix else None,
-            standard=VersionStandard.CALVER,
         )

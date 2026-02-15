@@ -20,7 +20,8 @@ def test_default_values():
     assert version.post is None
     assert version.dev is None
     assert version.metadata is None
-    assert version.standard == VersionStandard.UNKNOWN
+    assert VersionStandard.LOOSE in version.standards
+    assert VersionStandard.PEP440 in version.standards
 
 
 def test_core_property_three_parts():
@@ -39,82 +40,82 @@ def test_core_property_zero_rev():
 
 
 def test_version_str_simple():
-    version = Version(major=1, minor=2, patch=3, standard=VersionStandard.PEP440)
-    assert str(version) == "1.2.3"
+    version = Version(major=1, minor=2, patch=3)
+    assert version.format(VersionStandard.PEP440) == "1.2.3"
 
 
 def test_version_str_pep440_with_prerelease():
-    version = Version(major=1, minor=2, patch=3, pre=VersionPreRelease(name="a", number=1), standard=VersionStandard.PEP440)
-    assert str(version) == "1.2.3a1"
+    version = Version(major=1, minor=2, patch=3, pre=VersionPreRelease(name="a", number=1))
+    assert version.format(VersionStandard.PEP440) == "1.2.3a1"
 
 
 def test_version_str_semver_with_prerelease():
-    version = Version(major=1, minor=2, patch=3, pre=VersionPreRelease(name="alpha", number=1), standard=VersionStandard.SEMVER)
-    assert str(version) == "1.2.3-alpha.1"
+    version = Version(major=1, minor=2, patch=3, pre=VersionPreRelease(name="alpha", number=1))
+    assert version.format(VersionStandard.SEMVER) == "1.2.3-alpha.1"
 
 
 def test_version_str_pep440_with_post():
-    version = Version(major=1, minor=2, patch=3, post=4, standard=VersionStandard.PEP440)
-    assert str(version) == "1.2.3.post4"
+    version = Version(major=1, minor=2, patch=3, post=4)
+    assert version.format(VersionStandard.PEP440) == "1.2.3.post4"
 
 
 def test_version_str_pep440_with_dev():
-    version = Version(major=1, minor=2, patch=3, dev=1, standard=VersionStandard.PEP440)
-    assert str(version) == "1.2.3.dev1"
+    version = Version(major=1, minor=2, patch=3, dev=1)
+    assert version.format(VersionStandard.PEP440) == "1.2.3.dev1"
 
 
 def test_version_str_pep440_with_metadata():
-    version = Version(major=1, minor=2, patch=3, metadata=VersionMetadata("g1234567"), standard=VersionStandard.PEP440)
-    assert str(version) == "1.2.3+g1234567"
+    version = Version(major=1, minor=2, patch=3, metadata=VersionMetadata("g1234567"))
+    assert version.format(VersionStandard.PEP440) == "1.2.3+g1234567"
 
 
 def test_version_str_pep440_complex():
-    version = Version(major=1, minor=2, patch=3, post=4, metadata=VersionMetadata("g1234567.dirty"), standard=VersionStandard.PEP440)
-    assert str(version) == "1.2.3.post4+g1234567.dirty"
+    version = Version(major=1, minor=2, patch=3, post=4, metadata=VersionMetadata("g1234567.dirty"))
+    assert version.format(VersionStandard.PEP440) == "1.2.3.post4+g1234567.dirty"
 
 
 def test_version_str_semver_with_metadata():
-    version = Version(major=1, minor=2, patch=3, metadata=VersionMetadata("build.123"), standard=VersionStandard.SEMVER)
-    assert str(version) == "1.2.3+build.123"
+    version = Version(major=1, minor=2, patch=3, metadata=VersionMetadata("build.123"))
+    assert version.format(VersionStandard.SEMVER) == "1.2.3+build.123"
 
 
 def test_version_str_semver_full():
-    version = Version(major=1, minor=2, patch=3, pre=VersionPreRelease(name="rc", number=1), metadata=VersionMetadata("build.123"), standard=VersionStandard.SEMVER)
-    assert str(version) == "1.2.3-rc.1+build.123"
+    version = Version(major=1, minor=2, patch=3, pre=VersionPreRelease(name="rc", number=1), metadata=VersionMetadata("build.123"))
+    assert version.format(VersionStandard.SEMVER) == "1.2.3-rc.1+build.123"
 
 
 def test_version_str_nuget_with_rev():
-    version = Version(major=1, minor=2, patch=3, rev=4, standard=VersionStandard.NUGET)
-    assert str(version) == "1.2.3.4"
+    version = Version(major=1, minor=2, patch=3, rev=4)
+    assert version.format(VersionStandard.NUGET) == "1.2.3.4"
 
 
 def test_version_str_nuget_with_prerelease():
-    version = Version(major=1, minor=2, patch=3, pre=VersionPreRelease(name="beta", number=1), standard=VersionStandard.NUGET)
-    assert str(version) == "1.2.3-beta.1"
+    version = Version(major=1, minor=2, patch=3, pre=VersionPreRelease(name="beta", number=1))
+    assert version.format(VersionStandard.NUGET) == "1.2.3-beta.1"
 
 
 def test_version_str_calver():
-    version = Version(major=2024, minor=1, patch=0, standard=VersionStandard.CALVER)
-    assert str(version) == "2024.1.0"
+    version = Version(major=2024, minor=1, patch=0)
+    assert version.format(VersionStandard.CALVER) == "2024.1.0"
 
 
 def test_version_str_loose_with_metadata():
-    version = Version(major=1, minor=2, patch=3, metadata=VersionMetadata("custom"), standard=VersionStandard.LOOSE)
-    assert str(version) == "1.2.3-custom"
+    version = Version(major=1, minor=2, patch=3, metadata=VersionMetadata("custom"))
+    assert version.format(VersionStandard.LOOSE) == "1.2.3-custom"
 
 
 def test_meta_single_part():
     version = Version(major=0, metadata=VersionMetadata("build"))
     assert version.metadata
-    assert version.metadata(0) == "build"
-    assert version.metadata(1) is None
+    assert version.metadata.parts[0] == "build"
+    assert len(version.metadata.parts) == 1
 
 
 def test_meta_multiple_parts():
     version = Version(major=0, metadata=VersionMetadata("g1234567.dirty"))
     assert version.metadata
-    assert version.metadata(0) == "g1234567"
-    assert version.metadata(1) == "dirty"
+    assert version.metadata.parts[0] == "g1234567"
+    assert version.metadata.parts[1] == "dirty"
 
 
 def test_meta_empty():
@@ -125,22 +126,22 @@ def test_meta_empty():
 def test_meta_three_parts():
     version = Version(major=0, metadata=VersionMetadata("part1.part2.part3"))
     assert version.metadata
-    assert version.metadata(0) == "part1"
-    assert version.metadata(1) == "part2"
-    assert version.metadata(2) == "part3"
-    assert version.metadata(3) is None
+    assert version.metadata.parts[0] == "part1"
+    assert version.metadata.parts[1] == "part2"
+    assert version.metadata.parts[2] == "part3"
+    assert len(version.metadata.parts) == 3
 
 
-def test_meta_no_index():
+def test_meta_str_conversion():
     version = Version(major=0, metadata=VersionMetadata("g1234567.dirty"))
     assert version.metadata
-    assert version.metadata() == "g1234567.dirty"
+    assert str(version.metadata) == "g1234567.dirty"
 
 
-def test_meta_negative_index():
+def test_meta_parts_property():
     version = Version(major=0, metadata=VersionMetadata("build"))
     assert version.metadata
-    assert version.metadata(-1) is None
+    assert len(version.metadata.parts) == 1
 
 
 def test_version_negative_major_raises_error():

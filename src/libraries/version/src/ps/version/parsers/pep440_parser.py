@@ -1,7 +1,7 @@
 import re
 from typing import Optional, cast
 
-from .. import Version, VersionMetadata, VersionPreRelease, VersionStandard
+from .. import Version, VersionMetadata, VersionPreRelease
 from .base_parser import BaseParser
 
 
@@ -42,5 +42,4 @@ class PEP440Parser(BaseParser):
             post=int(post) if post else None,
             dev=int(dev) if dev else None,
             metadata=VersionMetadata(cast(str, meta)) if meta else None,
-            standard=VersionStandard.PEP440,
         )
