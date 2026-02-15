@@ -1,4 +1,3 @@
-from calendar import c
 import os
 from typing import Optional
 
@@ -15,6 +14,7 @@ _default_version_patterns: list[str] = [
     "[{env:BUILD_VERSION}] {env:BUILD_VERSION}",
     "{spec}"
 ]
+_default_version: Version = Version()
 
 
 def _split_version_pattern(pattern: str) -> tuple[Optional[str], str]:
@@ -30,15 +30,21 @@ def _split_version_pattern(pattern: str) -> tuple[Optional[str], str]:
 def _resolve_versions(io: IO, input_version: Optional[Version], host_project: Project, filtered_projects: list[Project]) -> dict[str, Optional[Version]]:
     result: dict[str, Optional[Version]] = {}
     host_project_delivery_settings = DeliverySettings.model_validate(host_project.plugin_settings.model_dump())
-    host_project_version = Version.parse(host_project.defined_version) or Version()
+    host_project_version = Version.parse(host_project.defined_version) or _default_version
     for project in filtered_projects:
         project_delivery_settings = DeliverySettings.model_validate(project.plugin_settings.model_dump())
         project_version_patterns = project_delivery_settings.version_patterns or host_project_delivery_settings.version_patterns or _default_version_patterns
+
+        # Use host_project_version if project.defined_version is None or 0.0.0
+        project_spec_version = Version.parse(project.defined_version)
+        if project_spec_version is None or project_spec_version == _default_version:
+            project_spec_version = host_project_version
+
         factory = ExpressionFactory(
             token_resolvers=[
                 ("in", input_version),
                 ("env", lambda args: os.getenv(args[0]) if args else None),
-                ("spec", Version.parse(project.defined_version) or host_project_version)
+                ("spec", project_spec_version)
             ],
             default_callback=lambda _key, _args: ""  # Return empty string for any unresolved tokens to avoid leaving raw token expressions in the version string.
         )
@@ -72,7 +78,7 @@ def _resolve_versions(io: IO, input_version: Optional[Version], host_project: Pr
                         f"for project '{project.defined_name or project.path.name}'. "
                         f"Resolved value: '{raw_version}'</comment>"
                     )
-                    result[str(project.path)] = Version()
+                    result[str(project.path)] = _default_version
                 else:
                     result[str(project.path)] = parsed_version
             break  # Stop after the first matching pattern

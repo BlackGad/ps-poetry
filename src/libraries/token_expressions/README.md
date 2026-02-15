@@ -258,7 +258,7 @@ factory.materialize("{srv:0:name}")  # "prod"
 
 ---
 
-## Conditional Matching
+## Boolean Expressions
 
 Evaluate boolean expressions with token substitution using `and`, `or`, `not`, `in` operators and parentheses. Values follow Python truthiness rules (empty strings and `0` are falsy).
 
@@ -484,7 +484,7 @@ class ExpressionSyntaxError(TokenError):
     message: str
 ```
 
-### Resolver Types
+### Type Signatures
 
 Function signature: `(args: list[str]) -> Optional[str | int | bool | list[str | int | bool]]`
 

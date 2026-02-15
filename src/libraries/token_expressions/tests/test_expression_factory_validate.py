@@ -45,7 +45,7 @@ def test_validate_missing_resolver():
     error = result.errors[0]
     assert isinstance(error, MissingResolverError)
     assert error.key == "missing"
-    assert error.token == "{missing}"
+    assert error.token == "{missing}"  # noqa: S105
     assert error.position == 0
 
 
@@ -74,7 +74,7 @@ def test_validate_unresolved_token():
     assert isinstance(error, UnresolvedTokenError)
     assert error.key == "key"
     assert error.args == ["arg"]
-    assert error.token == "{key:arg}"
+    assert error.token == "{key:arg}"  # noqa: S105
 
 
 def test_validate_resolver_returning_none_treated_as_unresolved():
@@ -273,7 +273,7 @@ def test_validate_preserves_token_text():
 
     assert result.success is False
     error = result.errors[0]
-    assert error.token == "{key:arg1:arg2:arg3}"
+    assert error.token == "{key:arg1:arg2:arg3}"  # noqa: S105
 
 
 def test_validate_fallback_default_behavior():
@@ -291,7 +291,7 @@ def test_validate_fallback_as_failure():
     error = result.errors[0]
     assert isinstance(error, FallbackTokenError)
     assert error.key == "missing"
-    assert error.token == "{missing<fallback>}"
+    assert error.token == "{missing<fallback>}"  # noqa: S105
     assert error.fallback == "fallback"
     assert error.position == 0
 
@@ -352,7 +352,7 @@ def test_validate_fallback_dataclass_properties():
     result = factory.validate_materialize("{key:arg1:arg2<default>}", threat_fallback_as_failure=True)
     error = result.errors[0]
     assert isinstance(error, FallbackTokenError)
-    assert error.token == "{key:arg1:arg2<default>}"
+    assert error.token == "{key:arg1:arg2<default>}"  # noqa: S105
     assert error.position == 0
     assert error.key == "key"
     assert error.args == ["arg1", "arg2"]
@@ -403,4 +403,3 @@ def test_validate_complex_with_fallback_as_failure():
     assert isinstance(result.errors[2], FallbackTokenError)
     assert result.errors[2].key == "key"
     assert result.errors[2].fallback == "backup"
-
