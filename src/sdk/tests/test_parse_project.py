@@ -20,7 +20,7 @@ requests = "^2.32"
     assert project.version.value == "1.0.0"
     assert project.path == pyproject
     assert len(project.dependencies) == 1
-    assert project.dependencies[0].defined_name == "requests"
+    assert project.dependencies[0].name == "requests"
 
 
 def test_parse_project_with_poetry_format(tmp_path):
@@ -41,7 +41,7 @@ numpy = "^1.24"
     assert project.name.value == "poetry-project"
     assert project.version.value == "2.0.0"
     assert len(project.dependencies) == 1
-    assert project.dependencies[0].defined_name == "numpy"
+    assert project.dependencies[0].name == "numpy"
 
 
 def test_parse_project_preserves_document(tmp_path):

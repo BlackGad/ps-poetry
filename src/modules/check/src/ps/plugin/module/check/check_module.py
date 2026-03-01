@@ -66,7 +66,7 @@ def _get_fix_option(input: Input) -> bool:
 def _perform_project_check(di: DI, project: Project, project_checkers: list[IProjectCheck], fix: bool) -> int:
     io = di.resolve(IO)
     assert io is not None
-    io.write_line(f" - <comment>{project.defined_name or "unknown"}</comment>")
+    io.write_line(f" - <comment>{project.name.value or "unknown"}</comment>")
     if not project_checkers:
         return 0
 

@@ -1,5 +1,3 @@
-from turtle import st
-
 from cleo.events.console_command_event import ConsoleCommandEvent
 from cleo.events.console_terminate_event import ConsoleTerminateEvent
 from cleo.events.event_dispatcher import EventDispatcher
@@ -110,25 +108,16 @@ class DeliveryModule(
             if current_project_version != resolved_project_version:
                 event.io.write_line(f"Version update: <fg=yellow>{current_project_version}</> -> <fg=yellow>{resolved_project_version}</> [<comment>{project.path}</>]")
                 project.version.set(str(resolved_project_version))
-            with open(project.path, "w") as f:
-                f.write(project.document.as_string())
+            project.save()
 
         self._exit_code = 0
-        # for project in filtered_projects:
-        # project.defined_version
-        # pass
-
-        # Get the "force version" option
-        # version = _get_version_option(event.io.input) or _resolve_version(delivery_settings.version_pattern)
-
-        # self._exit_code = _perform_solution_check(self._di, filtered_projects, solution_checkers, fix)
 
     def handle_terminate(self, event: ConsoleTerminateEvent, event_name: str, dispatcher: EventDispatcher) -> None:
         if self._exit_code is None:
             return
+        event.set_exit_code(self._exit_code)
+
         environment = self._di.resolve(Environment)
         assert environment is not None
 
         environment.restore_projects(environment.projects)
-
-        event.set_exit_code(self._exit_code)

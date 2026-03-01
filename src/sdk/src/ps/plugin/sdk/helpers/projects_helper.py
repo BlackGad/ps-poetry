@@ -23,7 +23,7 @@ def filter_projects(inputs: list[str], projects: Iterable[Project]) -> list[Proj
         sorted_projects = sorted(unique_projects.values(), key=lambda item: len(str(item.path)), reverse=True)
         for ref in inputs:
             for project in sorted_projects:
-                if _matches_reference(ref, project.path, project.defined_name):
+                if _matches_reference(ref, project.path, project.name.value):
                     selected_projects[project.path] = project
                     break
 

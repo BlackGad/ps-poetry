@@ -82,11 +82,4 @@ def _resolve_versions(io: IO, input_version: Optional[Version], host_project: Pr
                 else:
                     result[str(project.path)] = parsed_version
             break  # Stop after the first matching pattern
-
-    # Resolve plugin settings
-    # plugin_settings = environment.host_project.plugin_settings
-    # delivery_settings = DeliverySettings.model_validate(plugin_settings.model_dump(), by_alias=True)
-    # version_patterns = delivery_settings.version_patterns or _default_version_patterns
-    # resolved_version: Version = _resolve_version(version_patterns, filtered_projects)
-
     return result

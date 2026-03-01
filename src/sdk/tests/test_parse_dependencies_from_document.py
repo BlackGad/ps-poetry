@@ -1,5 +1,6 @@
 from pathlib import Path
 from tomlkit import parse
+from packaging.specifiers import SpecifierSet
 
 from ps.plugin.sdk.helpers.toml import parse_dependencies_from_document
 
@@ -14,8 +15,8 @@ requests = "^2.32"
     deps = parse_dependencies_from_document(document)
 
     assert len(deps) == 1
-    assert deps[0].defined_name == "requests"
-    assert deps[0].defined_version == "^2.32"
+    assert deps[0].name == "requests"
+    assert deps[0].version == "^2.32"
     assert deps[0].group is None
 
 
@@ -31,7 +32,7 @@ pandas = "^2.0"
     deps = parse_dependencies_from_document(document)
 
     assert len(deps) == 3
-    names = [d.defined_name for d in deps]
+    names = [d.name for d in deps]
     assert "requests" in names
     assert "numpy" in names
     assert "pandas" in names
@@ -47,8 +48,8 @@ mypackage = { version = "^1.0", optional = true }
     deps = parse_dependencies_from_document(document)
 
     assert len(deps) == 1
-    assert deps[0].defined_name == "mypackage"
-    assert deps[0].defined_version == "^1.0"
+    assert deps[0].name == "mypackage"
+    assert deps[0].version == "^1.0"
     assert deps[0].optional is True
 
 
@@ -63,7 +64,7 @@ mylocal = { path = "../mylocal", develop = true }
     deps = parse_dependencies_from_document(document, project_path)
 
     assert len(deps) == 1
-    assert deps[0].defined_name == "mylocal"
+    assert deps[0].name == "mylocal"
     assert deps[0].path == (project_path.parent / "../mylocal").resolve()
     assert deps[0].develop is True
 
@@ -78,7 +79,7 @@ mygit = { git = "https://github.com/user/repo.git", branch = "main" }
     deps = parse_dependencies_from_document(document)
 
     assert len(deps) == 1
-    assert deps[0].defined_name == "mygit"
+    assert deps[0].name == "mygit"
     assert deps[0].git == "https://github.com/user/repo.git"
     assert deps[0].branch == "main"
 
@@ -121,7 +122,7 @@ myurl = { url = "https://example.com/package.whl" }
     deps = parse_dependencies_from_document(document)
 
     assert len(deps) == 1
-    assert deps[0].defined_name == "myurl"
+    assert deps[0].name == "myurl"
     assert deps[0].url == "https://example.com/package.whl"
 
 
@@ -135,7 +136,7 @@ requests = { version = "^2.32", extras = ["security", "socks"] }
     deps = parse_dependencies_from_document(document)
 
     assert len(deps) == 1
-    assert deps[0].defined_name == "requests"
+    assert deps[0].name == "requests"
     assert deps[0].extras == ["security", "socks"]
 
 
@@ -149,7 +150,7 @@ pywin32 = { version = "^306", markers = "sys_platform == 'win32'" }
     deps = parse_dependencies_from_document(document)
 
     assert len(deps) == 1
-    assert deps[0].defined_name == "pywin32"
+    assert deps[0].name == "pywin32"
     assert deps[0].markers == "sys_platform == 'win32'"
 
 
@@ -163,7 +164,7 @@ typing-extensions = { version = "^4.0", python = "^3.8" }
     deps = parse_dependencies_from_document(document)
 
     assert len(deps) == 1
-    assert deps[0].defined_name == "typing-extensions"
+    assert deps[0].name == "typing-extensions"
     assert deps[0].python == "^3.8"
 
 
@@ -177,7 +178,7 @@ mypkg = { version = "^1.0", source = "private-repo" }
     deps = parse_dependencies_from_document(document)
 
     assert len(deps) == 1
-    assert deps[0].defined_name == "mypkg"
+    assert deps[0].name == "mypkg"
     assert deps[0].source == "private-repo"
 
 
@@ -201,9 +202,9 @@ ruff = "^0.8"
 
     assert len(main_deps) == 1
     assert len(dev_deps) == 2
-    assert main_deps[0].defined_name == "requests"
-    assert any(d.defined_name == "pytest" for d in dev_deps)
-    assert any(d.defined_name == "ruff" for d in dev_deps)
+    assert main_deps[0].name == "requests"
+    assert any(d.name == "pytest" for d in dev_deps)
+    assert any(d.name == "ruff" for d in dev_deps)
 
 
 def test_multiple_groups():
@@ -249,8 +250,8 @@ mypath = { path = "../mypath" }
     deps = parse_dependencies_from_document(document, project_path)
 
     assert len(deps) == 1
-    assert deps[0].defined_name == "mypath"
-    assert deps[0].defined_version is None
+    assert deps[0].name == "mypath"
+    assert deps[0].version is None
     assert deps[0].path == (project_path.parent / "../mypath").resolve()
 
 
@@ -267,7 +268,7 @@ mylocal = { path = "%s" }
     deps = parse_dependencies_from_document(document, project_path)
 
     assert len(deps) == 1
-    assert deps[0].defined_name == "mylocal"
+    assert deps[0].name == "mylocal"
     assert deps[0].path == abs_path
 
 
@@ -281,5 +282,74 @@ mylocal = { path = "../mylocal" }
     deps = parse_dependencies_from_document(document)
 
     assert len(deps) == 1
-    assert deps[0].defined_name == "mylocal"
+    assert deps[0].name == "mylocal"
     assert deps[0].path == Path("../mylocal")
+
+
+def test_update_path_dependency_to_version():
+    """Test updating a path dependency (no version) to a version string."""
+    content = """
+[tool.poetry.dependencies]
+python = "^3.10"
+mylocal = { path = "../mylocal" }
+"""
+    document = parse(content)
+    deps = parse_dependencies_from_document(document)
+
+    assert len(deps) == 1
+    assert deps[0].name == "mylocal"
+    assert deps[0].version is None
+    assert deps[0].path is not None
+
+    # Update to version string
+    deps[0].update_version("^1.0.0")
+    assert deps[0].version == "^1.0.0"
+    assert document["tool"]["poetry"]["dependencies"]["mylocal"]["version"] == "^1.0.0"  # type: ignore[index]
+
+
+def test_update_path_dependency_with_develop_to_version():
+    """Test updating a path dependency with develop=true to a version string."""
+    content = """
+[tool.poetry.dependencies]
+python = "^3.10"
+ps-version = { path = "../../libraries/version", develop = true }
+"""
+    document = parse(content)
+    deps = parse_dependencies_from_document(document)
+
+    assert len(deps) == 1
+    assert deps[0].name == "ps-version"
+    assert deps[0].version is None
+    assert deps[0].path is not None
+    assert deps[0].develop is True
+
+    # Update to version string - should preserve other keys
+    deps[0].update_version("^1.0.0")
+    assert deps[0].version == "^1.0.0"
+
+    # Verify document updated correctly
+    dep_dict = document["tool"]["poetry"]["dependencies"]["ps-version"]  # type: ignore[index]
+    assert dep_dict["version"] == "^1.0.0"  # type: ignore[index]
+    assert dep_dict["path"] == "../../libraries/version"  # type: ignore[index]
+    assert dep_dict["develop"] is True  # type: ignore[index]
+
+
+def test_update_path_dependency_to_specifier_set():
+    """Test updating a path dependency using SpecifierSet."""
+    content = """
+[tool.poetry.dependencies]
+python = "^3.10"
+mylocal = { path = "../mylocal", develop = true }
+"""
+    document = parse(content)
+    deps = parse_dependencies_from_document(document)
+
+    assert len(deps) == 1
+    assert deps[0].version is None
+
+    # Update using SpecifierSet
+    deps[0].update_version(SpecifierSet(">=1.0.0,<2.0.0"))
+    # SpecifierSet normalizes the order
+    assert deps[0].version in (">=1.0.0,<2.0.0", "<2.0.0,>=1.0.0")
+    dep_version = document["tool"]["poetry"]["dependencies"]["mylocal"]["version"]  # type: ignore[index]
+    assert dep_version in (">=1.0.0,<2.0.0", "<2.0.0,>=1.0.0")
