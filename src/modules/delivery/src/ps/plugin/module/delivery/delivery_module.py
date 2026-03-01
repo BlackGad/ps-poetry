@@ -99,7 +99,20 @@ class DeliveryModule(
 
         input_version = Version.parse(_get_version_option(event.io.input))
         project_versions = _resolve_versions(event.io, input_version, environment.host_project, filtered_projects)
-        print(project_versions)
+        environment.backup_projects(filtered_projects)
+        for project in filtered_projects:
+            current_project_version = Version.parse(project.version.value) if project.version.value else None
+            current_project_name = project.name.value if project.name.value else "unknown"
+            if not current_project_name:
+                continue
+            resolved_project_version = project_versions.get(current_project_name)
+            if not resolved_project_version:
+                continue
+            if current_project_version != resolved_project_version:
+                event.io.write_line(f"<info>Updating project '{current_project_name}' version from {current_project_version} to {resolved_project_version}</info>")
+                project.version.set(str(resolved_project_version))
+            with open(project.path, "w") as f:
+                f.write(project.document.as_string())
 
         # for project in filtered_projects:
         # project.defined_version

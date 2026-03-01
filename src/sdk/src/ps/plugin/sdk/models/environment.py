@@ -5,7 +5,7 @@ import shutil
 import hashlib
 
 from .project import Project
-from ..helpers.parse_toml import parse_project
+from ..helpers.toml import parse_project
 
 
 class Environment:

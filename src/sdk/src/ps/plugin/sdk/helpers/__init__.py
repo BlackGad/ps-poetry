@@ -1,6 +1,6 @@
 from .cleo_inputs_helpers import ensure_argument, ensure_option, CommandOptionsProtocol
 from .projects_helper import filter_projects
-from .parse_toml import (
+from .toml import (
     parse_name_from_document,
     parse_plugin_settings_from_document,
     parse_dependencies_from_document,

@@ -4,9 +4,12 @@ from pydantic import BaseModel, ConfigDict, Field
 from tomlkit import TOMLDocument
 
 from .settings import PluginSettings
+from .toml_value import TomlValue
 
 
 class ProjectDependency(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     defined_name: Optional[str] = None
     defined_version: Optional[str] = None
 
@@ -33,8 +36,8 @@ class ProjectDependency(BaseModel):
 class Project(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    defined_name: Optional[str] = None
-    defined_version: Optional[str] = None
+    name: TomlValue
+    version: TomlValue
     path: Path
     document: TOMLDocument = Field(exclude=True)
     dependencies: list[ProjectDependency]

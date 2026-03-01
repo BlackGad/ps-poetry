@@ -1,4 +1,4 @@
-from ps.plugin.sdk.helpers.parse_toml import parse_project
+from ps.plugin.sdk.helpers.toml import parse_project
 
 
 def test_parse_project_with_pep621_format(tmp_path):
@@ -16,8 +16,8 @@ requests = "^2.32"
 
     project = parse_project(pyproject)
     assert project is not None
-    assert project.defined_name == "test-project"
-    assert project.defined_version == "1.0.0"
+    assert project.name.value == "test-project"
+    assert project.version.value == "1.0.0"
     assert project.path == pyproject
     assert len(project.dependencies) == 1
     assert project.dependencies[0].defined_name == "requests"
@@ -38,8 +38,8 @@ numpy = "^1.24"
 
     project = parse_project(pyproject)
     assert project is not None
-    assert project.defined_name == "poetry-project"
-    assert project.defined_version == "2.0.0"
+    assert project.name.value == "poetry-project"
+    assert project.version.value == "2.0.0"
     assert len(project.dependencies) == 1
     assert project.dependencies[0].defined_name == "numpy"
 

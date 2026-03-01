@@ -2,41 +2,15 @@ from pathlib import Path
 from typing import Any, Optional
 from tomlkit import TOMLDocument, parse
 
-from ..models import Project, ProjectDependency, PluginSettings
+from ..models import Project, ProjectDependency, PluginSettings, TomlValue
 
 
-def get_data(data: dict, path: str, default: Optional[Any] = None) -> Any:
-    keys = path.split(".")
-    current = data
-
-    for i, key in enumerate(keys):
-        if not isinstance(current, dict):
-            return default
-
-        if key not in current:
-            return default
-
-        current = current[key]
-
-        # If this is the last key, return whatever value we found
-        if i == len(keys) - 1:
-            return current
-
-    return default
+def parse_name_from_document(document: TOMLDocument) -> TomlValue:
+    return TomlValue.locate(document, ["project.name", "tool.poetry.name"])
 
 
-def parse_name_from_document(document: TOMLDocument) -> Optional[str]:
-    name = get_data(document, "project.name", None)
-    if not name:
-        name = get_data(document, "tool.poetry.name", None)
-    return name if name else None
-
-
-def parse_version_from_document(document: TOMLDocument) -> Optional[str]:
-    version = get_data(document, "project.version", None)
-    if not version:
-        version = get_data(document, "tool.poetry.version", None)
-    return version if version else None
+def parse_version_from_document(document: TOMLDocument) -> TomlValue:
+    return TomlValue.locate(document, ["project.version", "tool.poetry.version"])
 
 
 def parse_dependency(name: str, value: Any, group: Optional[str], project_path: Optional[Path] = None) -> Optional[ProjectDependency]:
@@ -77,7 +51,7 @@ def parse_dependency(name: str, value: Any, group: Optional[str], project_path: 
 def parse_dependencies_from_document(document: TOMLDocument, project_path: Optional[Path] = None) -> list[ProjectDependency]:
     dependencies = []
 
-    main_deps = get_data(document, "tool.poetry.dependencies", {})
+    main_deps = TomlValue.locate(document, ["tool.poetry.dependencies"]).value or {}
     for name, value in main_deps.items():
         if name == "python":
             continue
@@ -85,7 +59,7 @@ def parse_dependencies_from_document(document: TOMLDocument, project_path: Optio
         if dep:
             dependencies.append(dep)
 
-    groups = get_data(document, "tool.poetry.group", {})
+    groups = TomlValue.locate(document, ["tool.poetry.group"]).value or {}
     for group_name, group_data in groups.items():
         for name, value in group_data.get("dependencies", {}).items():
             dep = parse_dependency(name, value, group=group_name, project_path=project_path)
@@ -97,7 +71,7 @@ def parse_dependencies_from_document(document: TOMLDocument, project_path: Optio
 
 def parse_plugin_settings_from_document(document: TOMLDocument) -> PluginSettings:
     project_toml = document
-    settings_section = get_data(project_toml, f"tool.{PluginSettings.NAME}", None)
+    settings_section = TomlValue.locate(project_toml, [f"tool.{PluginSettings.NAME}"]).value
     if settings_section is None:
         return PluginSettings(enabled=False)
     result = PluginSettings.model_validate(settings_section, by_alias=True)
@@ -117,8 +91,8 @@ def parse_project(project_path: Path) -> Optional[Project]:
     with project_path.open('r', encoding='utf-8') as f:
         data = parse(f.read())
     return Project(
-        defined_name=parse_name_from_document(data),
-        defined_version=parse_version_from_document(data),
+        name=parse_name_from_document(data),
+        version=parse_version_from_document(data),
         path=project_path,
         document=data,
         dependencies=parse_dependencies_from_document(data, project_path),

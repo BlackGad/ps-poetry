@@ -1,7 +1,7 @@
 from pathlib import Path
 from tomlkit import parse
 
-from ps.plugin.sdk.helpers.parse_toml import parse_dependencies_from_document
+from ps.plugin.sdk.helpers.toml import parse_dependencies_from_document
 
 
 def test_simple_string_dependency():
