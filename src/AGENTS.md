@@ -45,7 +45,7 @@ The core plugin (`plugin/src/ps/plugin/core/`) contains:
 
 ## Code Development Standards
 
-* **Docstrings for public APIs only** — Include concise docstrings exclusively for public classes and methods (omit parameter details or examples)
+* **Docstrings only when requested** — Generate docstrings only when the user explicitly asks for them
 * Adhere to established code patterns and conventions
 * Ensure consistency with existing code
 
@@ -57,4 +57,4 @@ The core plugin (`plugin/src/ps/plugin/core/`) contains:
 4. **Environment Respect**
 5. **Lint-Clean State** — Always validated per AGENTS_LINTING.md
 6. **Test Integrity** — Always validated per AGENTS_TESTS.md
-7. **Docstring Policy** — Compact docstrings for public classes and methods only
+7. **Docstring Policy** — Add docstrings only when explicitly requested by the user

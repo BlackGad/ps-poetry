@@ -6,6 +6,7 @@ from typing import Optional
 
 from .version_metadata import VersionMetadata
 from .version_prerelease import VersionPreRelease
+from .version_constraint import VersionConstraint
 from .version_standard import VersionStandard
 
 
@@ -211,6 +212,30 @@ class Version:
     def __str__(self) -> str:
         standards = self.standards
         return self.format(standards[0] if standards else VersionStandard.PEP440)
+
+    def get_constraint(self, constraint: VersionConstraint) -> str:
+        major = self.major
+        minor = self.minor or 0
+        patch = self.patch or 0
+        full_version = str(self)
+
+        if constraint == VersionConstraint.EXACT:
+            return f"=={full_version}"
+        if constraint == VersionConstraint.MINIMUM_ONLY:
+            return f">={full_version}"
+        if constraint == VersionConstraint.RANGE_NEXT_MAJOR:
+            return f">={full_version},<{major + 1}.0.0"
+        if constraint == VersionConstraint.RANGE_NEXT_MINOR:
+            return f">={full_version},<{major}.{minor + 1}.0"
+        if constraint == VersionConstraint.RANGE_NEXT_PATCH:
+            return f">={full_version},<{major}.{minor}.{patch + 1}"
+        if major > 0:
+            upper = f"{major + 1}.0.0"
+        elif minor > 0:
+            upper = f"0.{minor + 1}.0"
+        else:
+            upper = f"0.0.{patch + 1}"
+        return f">={full_version},<{upper}"
 
     @staticmethod
     def parse(version_string: Optional[str]) -> Optional[Version]:

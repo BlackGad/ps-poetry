@@ -304,7 +304,7 @@ mylocal = { path = "../mylocal" }
     # Update to version string
     deps[0].update_version("^1.0.0")
     assert deps[0].version == "^1.0.0"
-    assert document["tool"]["poetry"]["dependencies"]["mylocal"]["version"] == "^1.0.0"  # type: ignore[index]
+    assert document["tool"]["poetry"]["dependencies"]["mylocal"] == "^1.0.0"  # type: ignore[index]
 
 
 def test_update_path_dependency_with_develop_to_version():
@@ -323,15 +323,12 @@ ps-version = { path = "../../libraries/version", develop = true }
     assert deps[0].path is not None
     assert deps[0].develop is True
 
-    # Update to version string - should preserve other keys
+    # Update to version string - source dependency is replaced with plain constraint
     deps[0].update_version("^1.0.0")
     assert deps[0].version == "^1.0.0"
 
     # Verify document updated correctly
-    dep_dict = document["tool"]["poetry"]["dependencies"]["ps-version"]  # type: ignore[index]
-    assert dep_dict["version"] == "^1.0.0"  # type: ignore[index]
-    assert dep_dict["path"] == "../../libraries/version"  # type: ignore[index]
-    assert dep_dict["develop"] is True  # type: ignore[index]
+    assert document["tool"]["poetry"]["dependencies"]["ps-version"] == "^1.0.0"  # type: ignore[index]
 
 
 def test_update_path_dependency_to_specifier_set():
@@ -351,5 +348,97 @@ mylocal = { path = "../mylocal", develop = true }
     deps[0].update_version(SpecifierSet(">=1.0.0,<2.0.0"))
     # SpecifierSet normalizes the order
     assert deps[0].version in (">=1.0.0,<2.0.0", "<2.0.0,>=1.0.0")
-    dep_version = document["tool"]["poetry"]["dependencies"]["mylocal"]["version"]  # type: ignore[index]
+    dep_version = document["tool"]["poetry"]["dependencies"]["mylocal"]  # type: ignore[index]
     assert dep_version in (">=1.0.0,<2.0.0", "<2.0.0,>=1.0.0")
+
+
+def test_update_git_dependency_to_version_replaces_with_string():
+    content = """
+[tool.poetry.dependencies]
+python = "^3.10"
+mygit = { git = "https://github.com/user/repo.git", rev = "abc123" }
+"""
+    document = parse(content)
+    deps = parse_dependencies_from_document(document)
+
+    assert len(deps) == 1
+    assert deps[0].name == "mygit"
+    assert deps[0].version is None
+
+    deps[0].update_version("^1.2.3")
+
+    assert deps[0].version == "^1.2.3"
+    assert document["tool"]["poetry"]["dependencies"]["mygit"] == "^1.2.3"  # type: ignore[index]
+
+
+def test_update_url_dependency_to_specifier_set_replaces_with_string():
+    content = """
+[tool.poetry.dependencies]
+python = "^3.10"
+myurl = { url = "https://example.com/package.whl" }
+"""
+    document = parse(content)
+    deps = parse_dependencies_from_document(document)
+
+    assert len(deps) == 1
+    assert deps[0].name == "myurl"
+    assert deps[0].version is None
+
+    deps[0].update_version(SpecifierSet(">=2.0.0,<3.0.0"))
+
+    assert deps[0].version in (">=2.0.0,<3.0.0", "<3.0.0,>=2.0.0")
+    dep_value = document["tool"]["poetry"]["dependencies"]["myurl"]  # type: ignore[index]
+    assert dep_value in (">=2.0.0,<3.0.0", "<3.0.0,>=2.0.0")
+
+
+def test_update_regular_dict_dependency_keeps_dict_and_updates_version_key():
+    content = """
+[tool.poetry.dependencies]
+python = "^3.10"
+mypackage = { version = "^1.0", optional = true }
+"""
+    document = parse(content)
+    deps = parse_dependencies_from_document(document)
+
+    assert len(deps) == 1
+    assert deps[0].name == "mypackage"
+    assert deps[0].optional is True
+
+    deps[0].update_version("^2.0")
+
+    dep_dict = document["tool"]["poetry"]["dependencies"]["mypackage"]  # type: ignore[index]
+    assert dep_dict["version"] == "^2.0"  # type: ignore[index]
+    assert dep_dict["optional"] is True  # type: ignore[index]
+
+
+def test_version_constraint_converts_caret_syntax():
+    content = """
+[tool.poetry.dependencies]
+python = "^3.10"
+package1 = "^1.2.3"
+package2 = "^0.2.3"
+package3 = "^0.0.3"
+"""
+    document = parse(content)
+    deps = parse_dependencies_from_document(document)
+
+    # ^1.2.3 should become >=1.2.3,<2.0.0
+    package1 = next(d for d in deps if d.name == "package1")
+    assert package1.version == "^1.2.3"
+    constraint1 = package1.version_constraint
+    assert constraint1 is not None
+    assert str(constraint1) in (">=1.2.3,<2.0.0", "<2.0.0,>=1.2.3")
+
+    # ^0.2.3 should become >=0.2.3,<0.3.0
+    package2 = next(d for d in deps if d.name == "package2")
+    assert package2.version == "^0.2.3"
+    constraint2 = package2.version_constraint
+    assert constraint2 is not None
+    assert str(constraint2) in (">=0.2.3,<0.3.0", "<0.3.0,>=0.2.3")
+
+    # ^0.0.3 should become >=0.0.3,<0.0.4
+    package3 = next(d for d in deps if d.name == "package3")
+    assert package3.version == "^0.0.3"
+    constraint3 = package3.version_constraint
+    assert constraint3 is not None
+    assert str(constraint3) in (">=0.0.3,<0.0.4", "<0.0.4,>=0.0.3")

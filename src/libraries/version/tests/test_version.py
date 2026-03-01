@@ -1,4 +1,4 @@
-from ps.version import Version, VersionMetadata, VersionPreRelease, VersionStandard
+from ps.version import Version, VersionConstraint, VersionMetadata, VersionPreRelease, VersionStandard
 
 import pytest
 
@@ -172,3 +172,43 @@ def test_version_negative_post_raises_error():
 def test_version_negative_dev_raises_error():
     with pytest.raises(ValueError, match="dev must be non-negative"):
         Version(major=1, dev=-1)
+
+
+def test_version_get_constraint_exact():
+    version = Version(major=1, minor=2, patch=3)
+    assert version.get_constraint(VersionConstraint.EXACT) == "==1.2.3"
+
+
+def test_version_get_constraint_minimum_only():
+    version = Version(major=1, minor=2, patch=3)
+    assert version.get_constraint(VersionConstraint.MINIMUM_ONLY) == ">=1.2.3"
+
+
+def test_version_get_constraint_range_next_major():
+    version = Version(major=1, minor=2, patch=3)
+    assert version.get_constraint(VersionConstraint.RANGE_NEXT_MAJOR) == ">=1.2.3,<2.0.0"
+
+
+def test_version_get_constraint_range_next_minor():
+    version = Version(major=1, minor=2, patch=3)
+    assert version.get_constraint(VersionConstraint.RANGE_NEXT_MINOR) == ">=1.2.3,<1.3.0"
+
+
+def test_version_get_constraint_range_next_patch():
+    version = Version(major=1, minor=2, patch=3)
+    assert version.get_constraint(VersionConstraint.RANGE_NEXT_PATCH) == ">=1.2.3,<1.2.4"
+
+
+def test_version_get_constraint_compatible_major_non_zero():
+    version = Version(major=1, minor=2, patch=3)
+    assert version.get_constraint(VersionConstraint.COMPATIBLE) == ">=1.2.3,<2.0.0"
+
+
+def test_version_get_constraint_compatible_major_zero_minor_non_zero():
+    version = Version(major=0, minor=2, patch=3)
+    assert version.get_constraint(VersionConstraint.COMPATIBLE) == ">=0.2.3,<0.3.0"
+
+
+def test_version_get_constraint_compatible_major_zero_minor_zero():
+    version = Version(major=0, minor=0, patch=3)
+    assert version.get_constraint(VersionConstraint.COMPATIBLE) == ">=0.0.3,<0.0.4"

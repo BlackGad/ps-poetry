@@ -4,13 +4,6 @@ description = ""
 requires-python = ">=3.10,<3.14"
 version = "0.0.0"
 
-[tool.poetry.dependencies]
-poetry = "*"
-toml = "^0.10.2"
-pydantic = "^2.12.5"
-ruff = "^0.14.10"
-minimal = "^0.1.0"
-
 [project.entry-points."ps.module"]
 module_entry = "ps.plugin.module.delivery"
 

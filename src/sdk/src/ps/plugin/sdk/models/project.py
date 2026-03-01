@@ -5,6 +5,8 @@ from tomlkit import TOMLDocument
 from packaging.requirements import Requirement
 from packaging.specifiers import SpecifierSet
 
+from ps.version import Version, VersionConstraint
+
 from .settings import PluginSettings
 from .toml_value import TomlValue
 
@@ -61,9 +63,24 @@ class ProjectDependency(BaseModel):
         if not version_str:
             return None
         try:
+            # Handle Poetry wildcard (any version)
+            if version_str == "*":
+                return SpecifierSet("")
+            # Convert Poetry caret syntax to PEP 440
+            if version_str.startswith("^"):
+                version_str = self._convert_caret_to_pep440(version_str[1:])
             return SpecifierSet(version_str)
         except (ValueError, TypeError):
             return None
+
+    def _convert_caret_to_pep440(self, version_str: str) -> str:
+        try:
+            version = Version.parse(version_str)
+            assert version is not None, "Invalid version for caret syntax"
+            return version.get_constraint(VersionConstraint.COMPATIBLE)
+        except Exception:
+            # Fallback to original if parsing fails
+            return f"^{version_str}"
 
     def update_version(self, version_constraint: str | SpecifierSet) -> None:
         if not self.location.exists:
@@ -78,9 +95,15 @@ class ProjectDependency(BaseModel):
             # PEP 621/508 format: reconstruct the requirement string
             self._update_pep508_version(constraint_str)
         elif isinstance(current_value, dict):
-            # Poetry dict format: update version key
-            current_value["version"] = constraint_str
-            self.location.set(current_value)
+            # Poetry dict format
+            # Switch path/VCS/url dependencies to plain constraint
+            # to avoid invalid mixed-table definitions.
+            is_source_dependency = any(key in current_value for key in ("path", "git", "url"))
+            if is_source_dependency:
+                self.location.set(constraint_str)
+            else:
+                current_value["version"] = constraint_str
+                self.location.set(current_value)
         else:
             # Poetry simple string format: replace entire value
             self.location.set(constraint_str)
