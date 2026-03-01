@@ -1,3 +1,5 @@
+from turtle import st
+
 from cleo.events.console_command_event import ConsoleCommandEvent
 from cleo.events.console_terminate_event import ConsoleTerminateEvent
 from cleo.events.event_dispatcher import EventDispatcher
@@ -102,18 +104,16 @@ class DeliveryModule(
         environment.backup_projects(filtered_projects)
         for project in filtered_projects:
             current_project_version = Version.parse(project.version.value) if project.version.value else None
-            current_project_name = project.name.value if project.name.value else "unknown"
-            if not current_project_name:
-                continue
-            resolved_project_version = project_versions.get(current_project_name)
+            resolved_project_version = project_versions.get(str(project.path))
             if not resolved_project_version:
                 continue
             if current_project_version != resolved_project_version:
-                event.io.write_line(f"<info>Updating project '{current_project_name}' version from {current_project_version} to {resolved_project_version}</info>")
+                event.io.write_line(f"Version update: <fg=yellow>{current_project_version}</> -> <fg=yellow>{resolved_project_version}</> [<comment>{project.path}</>]")
                 project.version.set(str(resolved_project_version))
             with open(project.path, "w") as f:
                 f.write(project.document.as_string())
 
+        self._exit_code = 0
         # for project in filtered_projects:
         # project.defined_version
         # pass
@@ -124,7 +124,7 @@ class DeliveryModule(
         # self._exit_code = _perform_solution_check(self._di, filtered_projects, solution_checkers, fix)
 
     def handle_terminate(self, event: ConsoleTerminateEvent, event_name: str, dispatcher: EventDispatcher) -> None:
-        if not self._exit_code:
+        if self._exit_code is None:
             return
         environment = self._di.resolve(Environment)
         assert environment is not None

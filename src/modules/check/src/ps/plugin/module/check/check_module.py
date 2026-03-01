@@ -199,5 +199,5 @@ class CheckModule(
         self._exit_code = _perform_solution_check(self._di, filtered_projects, solution_checkers, fix)
 
     def handle_terminate(self, event: ConsoleTerminateEvent, event_name: str, dispatcher: EventDispatcher) -> None:
-        if self._exit_code:
+        if self._exit_code is not None:
             event.set_exit_code(self._exit_code)

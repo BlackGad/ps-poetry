@@ -36,6 +36,7 @@ class MonorepoModule(
     def __init__(self, di: DI) -> None:
         self._di = di
         self._handlers: list[CommandHandlerProtocol] = []
+        self._exit_code: int | None = None
 
     def handle_command(self, event: ConsoleCommandEvent, event_name: str, dispatcher: EventDispatcher) -> None:
         environment = self._di.resolve(Environment)
@@ -48,6 +49,11 @@ class MonorepoModule(
             self._handlers.append(handler)
             handler.handle_command(event)
 
+        self._exit_code = 0
+
     def handle_terminate(self, event: ConsoleTerminateEvent, event_name: str, dispatcher: EventDispatcher) -> None:
+        if self._exit_code is None:
+            return
+
         for handler in reversed(self._handlers):
             handler.handle_terminate(event)
