@@ -126,4 +126,9 @@ class DeliveryModule(
     def handle_terminate(self, event: ConsoleTerminateEvent, event_name: str, dispatcher: EventDispatcher) -> None:
         if not self._exit_code:
             return
+        environment = self._di.resolve(Environment)
+        assert environment is not None
+
+        environment.restore_projects(environment.projects)
+
         event.set_exit_code(self._exit_code)

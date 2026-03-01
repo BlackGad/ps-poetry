@@ -30,13 +30,13 @@ def _split_version_pattern(pattern: str) -> tuple[Optional[str], str]:
 def _resolve_versions(io: IO, input_version: Optional[Version], host_project: Project, filtered_projects: list[Project]) -> dict[str, Optional[Version]]:
     result: dict[str, Optional[Version]] = {}
     host_project_delivery_settings = DeliverySettings.model_validate(host_project.plugin_settings.model_dump())
-    host_project_version = Version.parse(host_project.defined_version) or _default_version
+    host_project_version = Version.parse(host_project.version.value) or _default_version
     for project in filtered_projects:
         project_delivery_settings = DeliverySettings.model_validate(project.plugin_settings.model_dump())
         project_version_patterns = project_delivery_settings.version_patterns or host_project_delivery_settings.version_patterns or _default_version_patterns
 
-        # Use host_project_version if project.defined_version is None or 0.0.0
-        project_spec_version = Version.parse(project.defined_version)
+        # Use host_project_version if project.version.value is None or 0.0.0
+        project_spec_version = Version.parse(project.version.value)
         if project_spec_version is None or project_spec_version == _default_version:
             project_spec_version = host_project_version
 
@@ -54,18 +54,18 @@ def _resolve_versions(io: IO, input_version: Optional[Version], host_project: Pr
                 condition_validation_result = factory.validate_match(condition_pattern)
                 if not condition_validation_result.success:
                     if io.is_verbose():
-                        io.write_line(f"<comment>Condition '{condition_pattern}' did not match for project '{project.defined_name or project.path.name}'.</comment>")
+                        io.write_line(f"<comment>Condition '{condition_pattern}' did not match for project '{project.name.value or project.path.name}'.</comment>")
                     if io.is_debug():
                         for error in condition_validation_result.errors:
                             io.write_line(f"  - {error}")
                     continue
                 if not factory.match(condition_pattern):
                     if io.is_verbose():
-                        io.write_line(f"<comment>Condition '{condition_pattern}' evaluated to false for project '{project.defined_name or project.path.name}'.</comment>")
+                        io.write_line(f"<comment>Condition '{condition_pattern}' evaluated to false for project '{project.name.value or project.path.name}'.</comment>")
                     continue
             version_validation_result = factory.validate_materialize(version_pattern)
             if not version_validation_result.success:
-                io.write_line(f"<comment>Version pattern '{version_pattern}' is invalid for project '{project.defined_name or project.path.name}'.</comment>")
+                io.write_line(f"<comment>Version pattern '{version_pattern}' is invalid for project '{project.name.value or project.path.name}'.</comment>")
                 if io.is_debug():
                     for error in version_validation_result.errors:
                         io.write_line(f"  - {error}")
@@ -75,7 +75,7 @@ def _resolve_versions(io: IO, input_version: Optional[Version], host_project: Pr
                 if parsed_version is None:
                     io.write_line(
                         f"<comment>Version pattern '{version_pattern}' did not resolve to a valid version "
-                        f"for project '{project.defined_name or project.path.name}'. "
+                        f"for project '{project.name.value or project.path.name}'. "
                         f"Resolved value: '{raw_version}'</comment>"
                     )
                     result[str(project.path)] = _default_version
