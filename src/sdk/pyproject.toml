@@ -3,10 +3,10 @@ name        = "ps-plugin-sdk"
 description = ""
 requires-python = ">=3.10,<3.14"
 version = "0.0.0"
-
-[tool.poetry.dependencies]
-poetry = "*"
-pydantic = "*"
+dependencies = [
+    "poetry",
+    "pydantic",
+]
 
 [tool.poetry]
 packages = [ { include = "ps/plugin/sdk", from = "src" } ]

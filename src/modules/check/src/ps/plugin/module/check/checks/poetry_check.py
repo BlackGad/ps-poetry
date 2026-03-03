@@ -14,6 +14,8 @@ class PoetryCheck(ICheck):
     def check(self, io: IO, projects: list[Project], fix: bool) -> Optional[Exception]:
         errors: list[Exception] = []
         for project in projects:
+            project_name = project.name.value or project.path.name
+            io.write_line(f"<fg=blue>{project_name}</> [<fg=dark_gray>{project.path}</>]")
             try:
                 poetry_project = Factory().create_poetry(cwd=project.path, io=io)
                 check_command = CheckCommand()
