@@ -52,13 +52,13 @@ def _filter_checkers[T: NameAwareProtocol](available_checkers: list[T], check_se
     # Print selected checkers
     io.write_line("<fg=magenta>Selected checkers:</> ")
     for idx, checker in enumerate(specified_checkers, start=1):
-        io.write_line(f"  {idx}. <fg=cyan>{checker.name}</>: <fg=light_green>used</>")
+        io.write_line(f"  {idx}. <fg=cyan>{checker.name}</>")
 
     # Print available but not selected checkers only in verbose mode
     if io.is_verbose() and available_not_specified:
-        io.write_line("<fg=magenta>Available but not selected:</> ")
+        io.write_line("\n<fg=magenta>Available but not selected:</> ")
         for checker in available_not_specified:
-            io.write_line(f"  - <fg=cyan>{checker.name}</>: <fg=dark_gray>available</>")
+            io.write_line(f"  - <fg=dark_gray>{checker.name}</>")
 
     return specified_checkers
 
@@ -171,10 +171,10 @@ class CheckModule(
             return
 
         if fix:
-            event.io.write_line("<fg=magenta>Automatic fix enabled</>")
+            event.io.write_line("<fg=green>Automatic fix enabled</>")
         if continue_on_error:
             event.io.write_line("<fg=magenta>Continue on error enabled</>")
-        event.io.write_line(f"<info>Checking <comment>{len(filtered_projects)}</comment> project(s)</info>")
+        event.io.write_line(f"\n<fg=magenta>Checking <comment>{len(filtered_projects)}</comment> project(s)</>")
         self._exit_code = _perform_checks(self._di, filtered_projects, checkers, fix, continue_on_error)
 
     def handle_terminate(self, event: ConsoleTerminateEvent, event_name: str, dispatcher: EventDispatcher) -> None:

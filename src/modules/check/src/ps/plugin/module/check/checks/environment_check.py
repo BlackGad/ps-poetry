@@ -10,11 +10,13 @@ class EnvironmentCheck(ICheck):
     def check(self, io: IO, projects: list[Project], fix: bool) -> Optional[Exception]:
         errors = self._check_conflicting_sources(projects)
 
-        if errors:
-            for error in errors:
-                io.write_line(f"<error>{error}</error>")
-            return Exception(f"Environment check failed with {len(errors)} error(s)")
-        return None
+        if not errors:
+            io.write_line("<info>Environment check passed with no errors</info>")
+            return None
+
+        for error in errors:
+            io.write_line(f"<error>{error}</error>")
+        return Exception(f"Environment check failed with {len(errors)} error(s)")
 
     def _check_conflicting_sources(self, projects: list[Project]) -> list[str]:
         # Group occurrences by source name → {field_value: [project_names]}
@@ -40,5 +42,4 @@ class EnvironmentCheck(ICheck):
                         for val, projs in groups.items()
                     )
                     errors.append(f"Source '{names[key]}' has conflicting {field}:\n{lines}")
-
         return errors
