@@ -44,6 +44,7 @@ ps-plugin-sdk  = {path = "sdk", develop = true } # Needed to load SDK types in p
 [tool.ps-plugin]
 checks-include = [
     "poetry", 
+    "environment",
     "ruff", 
     "pytest"
 ]
@@ -67,3 +68,10 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.pylance]
 typeCheckingMode = "standard"
+
+
+[[tool.poetry.source]]
+name = "local"
+url = "http://localhost:8420"
+priority = "supplemental"
+

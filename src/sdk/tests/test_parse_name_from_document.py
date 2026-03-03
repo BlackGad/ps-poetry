@@ -1,6 +1,6 @@
 from tomlkit import parse
 
-from ps.plugin.sdk.helpers.toml import parse_name_from_document
+from ps.plugin.sdk import parse_name_from_document
 
 
 def test_get_name_from_pep621_format():

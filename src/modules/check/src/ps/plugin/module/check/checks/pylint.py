@@ -3,17 +3,17 @@ import shutil
 from typing import ClassVar, Optional
 from cleo.io.io import IO
 
-from ps.plugin.sdk import DI, Project, Environment, ISolutionCheck
+from ps.plugin.sdk import DI, Project, Environment, ICheck
 
 
-class SolutionPyTestCheck(ISolutionCheck):
-    name: ClassVar[str] = "pytest"
+class PylintCheck(ICheck):
+    name: ClassVar[str] = "pylint"
 
     def __init__(self, di: DI) -> None:
         self._di = di
 
     def can_check(self, projects: list[Project]) -> bool:
-        return shutil.which("pytest") is not None
+        return shutil.which("pylint") is not None
 
     def check(self, io: IO, projects: list[Project], fix: bool) -> Optional[Exception]:
         environment = self._di.resolve(Environment)
@@ -33,10 +33,10 @@ class SolutionPyTestCheck(ISolutionCheck):
                 source_paths.append(path)
 
         if not source_paths:
-            io.write_line("No source paths found to test.")
+            io.write_line("No source paths found to lint.")
             return None
 
-        command = ["pytest"]
+        command = ["pylint"]
         command.extend([str(path) for path in source_paths])
 
         io.write_line(f"Running command: {' '.join(command)}")
@@ -55,5 +55,5 @@ class SolutionPyTestCheck(ISolutionCheck):
 
         process.wait()
         if process.returncode != 0:
-            return Exception(f"PyTest check failed with exit code {process.returncode}")
+            return Exception(f"Pylint check failed with exit code {process.returncode}")
         return None

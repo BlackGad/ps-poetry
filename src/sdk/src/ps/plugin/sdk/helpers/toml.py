@@ -3,7 +3,9 @@ from typing import Any, Optional
 from tomlkit import TOMLDocument, parse
 from packaging.requirements import Requirement
 
-from ..models import Project, ProjectDependency, PluginSettings, TomlValue
+from ..models.project import Project, ProjectDependency, ProjectFeedSource, SourcePriority
+from ..models.settings import PluginSettings
+from ..models.toml_value import TomlValue
 
 
 def parse_name_from_document(document: TOMLDocument) -> TomlValue:
@@ -96,6 +98,25 @@ def parse_dependencies_from_document(document: TOMLDocument, project_path: Optio
     return dependencies
 
 
+def parse_sources_from_document(document: TOMLDocument) -> list[ProjectFeedSource]:
+    sources_value = TomlValue.locate(document, ["tool.poetry.source"]).value
+    if not sources_value or not isinstance(sources_value, list):
+        return []
+
+    result = []
+    for entry in sources_value:
+        if not isinstance(entry, dict) or "name" not in entry:
+            continue
+        priority_raw = entry.get("priority")
+        priority = SourcePriority(priority_raw) if priority_raw in SourcePriority._value2member_map_ else None
+        result.append(ProjectFeedSource(
+            name=entry["name"],
+            url=entry.get("url"),
+            priority=priority,
+        ))
+    return result
+
+
 def parse_plugin_settings_from_document(document: TOMLDocument) -> PluginSettings:
     project_toml = document
     settings_section = TomlValue.locate(project_toml, [f"tool.{PluginSettings.NAME}"]).value
@@ -123,5 +144,6 @@ def parse_project(project_path: Path) -> Optional[Project]:
         path=project_path,
         document=data,
         dependencies=parse_dependencies_from_document(data, project_path),
+        sources=parse_sources_from_document(data),
         plugin_settings=parse_plugin_settings_from_document(data),
     )

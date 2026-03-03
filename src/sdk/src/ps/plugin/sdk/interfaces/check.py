@@ -4,10 +4,10 @@ from typing import ClassVar, Optional
 from cleo.io.io import IO
 
 from ..models.project import Project
-from ..protocols import NameAwareProtocol
+from ..protocols.name_aware_protocol import NameAwareProtocol
 
 
-class ISolutionCheck(NameAwareProtocol, ABC):
+class ICheck(NameAwareProtocol, ABC):
     name: ClassVar[str]
 
     def can_check(self, projects: list[Project]) -> bool:

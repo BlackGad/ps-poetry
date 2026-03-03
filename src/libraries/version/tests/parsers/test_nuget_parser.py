@@ -1,5 +1,5 @@
 from ps.version import VersionStandard
-from ps.version.parsers import NuGetParser
+from ps.version import NuGetParser
 
 
 def test_parse_three_part_version():

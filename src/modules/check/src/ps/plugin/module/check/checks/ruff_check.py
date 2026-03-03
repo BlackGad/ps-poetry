@@ -3,10 +3,10 @@ import shutil
 from typing import ClassVar, Optional
 from cleo.io.io import IO
 
-from ps.plugin.sdk import DI, Project, Environment, ISolutionCheck
+from ps.plugin.sdk import DI, Project, Environment, ICheck
 
 
-class SolutionRuffCheck(ISolutionCheck):
+class RuffCheck(ICheck):
     name: ClassVar[str] = "ruff"
 
     def __init__(self, di: DI) -> None:

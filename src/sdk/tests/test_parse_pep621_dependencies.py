@@ -1,7 +1,10 @@
 from tomlkit import parse
 from packaging.specifiers import SpecifierSet
 
-from ps.plugin.sdk.helpers.toml import parse_dependencies_from_document, parse_project
+from ps.plugin.sdk import (
+    parse_dependencies_from_document,
+    parse_project,
+)
 
 
 def test_parse_pep621_simple_dependencies():
@@ -237,4 +240,3 @@ numpy = "^1.24"
     poetry_dep = next((d for d in deps if d.name == "numpy"), None)
     assert poetry_dep is not None
     assert poetry_dep.version == "^1.24"
-

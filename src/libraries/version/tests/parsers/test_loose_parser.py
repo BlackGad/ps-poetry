@@ -1,5 +1,5 @@
 from ps.version import VersionStandard
-from ps.version.parsers import LooseParser
+from ps.version import LooseParser
 
 
 def test_parse_single_number():

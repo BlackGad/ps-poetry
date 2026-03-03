@@ -4,7 +4,6 @@ from cleo.events.event_dispatcher import EventDispatcher
 from typing import ClassVar, Optional, Type
 
 from cleo.io.io import IO
-from cleo.io.buffered_io import BufferedIO
 from cleo.io.inputs.input import Input
 from cleo.io.inputs.argument import Argument
 from cleo.io.inputs.option import Option
@@ -13,29 +12,37 @@ from poetry.console.commands.check import CheckCommand
 from poetry.console.application import Application
 
 
-from ps.plugin.sdk.models import Project, Environment
-from ps.plugin.sdk.protocols import (
+from ps.plugin.sdk import (
+    Project,
+    Environment,
     ActivateProtocol,
     ListenerCommandProtocol,
     ListenerTerminateProtocol,
     NameAwareProtocol,
+    DI,
+    ICheck,
+    ensure_argument,
+    ensure_option,
+    filter_projects,
 )
-from ps.plugin.sdk.interfaces import DI, IProjectCheck, ISolutionCheck
-from ps.plugin.sdk.helpers import ensure_argument, ensure_option, filter_projects
 
 from .check_settings import CheckSettings
-from .checks.project_poetry import ProjectPoetryCheck
-from .checks.solution_ruff import SolutionRuffCheck
-from .checks.solution_pylint import SolutionPylintCheck
-from .checks.solution_pytest import SolutionPyTestCheck
+from .checks.poetry_check import PoetryCheck
+from .checks.environment_check import EnvironmentCheck
+from .checks.ruff_check import RuffCheck
+from .checks.pylint_check import PylintCheck
+from .checks.pytest_check import PytestCheck
 
 
 def _filter_checkers[T: NameAwareProtocol](available_checkers: list[T], check_settings: CheckSettings, io: IO, checker_type: str) -> list[T]:
-    include_checkers = (
-        [checker for checker in available_checkers if checker.name in check_settings.checks_include]
-        if check_settings.checks_include is not None
-        else available_checkers
-    )
+    if check_settings.checks_include is not None:
+        checks_include = check_settings.checks_include
+        include_checkers = sorted(
+            [checker for checker in available_checkers if checker.name in checks_include],
+            key=lambda c: checks_include.index(c.name)
+        )
+    else:
+        include_checkers = list(available_checkers)
     exclude_checkers = (
         [checker for checker in available_checkers if checker.name in check_settings.checks_exclude]
         if check_settings.checks_exclude is not None
@@ -63,61 +70,37 @@ def _get_fix_option(input: Input) -> bool:
     return input.options.get("fix", False)
 
 
-def _perform_project_check(di: DI, project: Project, project_checkers: list[IProjectCheck], fix: bool) -> int:
-    io = di.resolve(IO)
-    assert io is not None
-    io.write_line(f" - <comment>{project.name.value or "unknown"}</comment>")
-    if not project_checkers:
-        return 0
-
-    for checker in project_checkers:
-        if not checker.can_check(project):
-            if io.is_debug():
-                io.write_line(f"  <comment>Skipping project checker '{checker.name}' as it cannot check the project.</comment>")
-            continue
-        buffered_io = BufferedIO(decorated=io.is_decorated())
-        exception = checker.check(buffered_io, project, fix)
-        if exception is not None:
-            io.write_line(f"  <fg=cyan>{checker.name} check issues:</>")
-            output = buffered_io.fetch_output()
-            if output:
-                indented_output = "\n".join([f"    {line}" for line in output.splitlines()])
-                io.write_line(indented_output)
-            error_output = buffered_io.fetch_error()
-            if error_output:
-                indented_output = "\n".join([f"    {line}" for line in error_output.splitlines()])
-                io.write_line(indented_output)
-            return 1
-    return 0
+def _get_continue_on_error_option(input: Input) -> bool:
+    return input.options.get("continue-on-error", False)
 
 
-def _perform_solution_check(di: DI, projects: list[Project], solution_checkers: list[ISolutionCheck], fix: bool) -> int:
-    if not solution_checkers:
+def _perform_checks(di: DI, projects: list[Project], checkers: list[ICheck], fix: bool, continue_on_error: bool) -> int:
+    if not checkers:
         return 0
     io = di.resolve(IO)
     assert io is not None
-    io.write_line("<info>Performing solution-wide checks</info>")
-    for checker in solution_checkers:
+    result = 0
+    for checker in checkers:
         io.write_line(f"<fg=cyan>{checker.name.upper()}</>")
         if not checker.can_check(projects):
             if io.is_debug():
-                io.write_line("<fg=yellow>Skipping solution checker as it cannot check the provided projects in current environment.</>")
+                io.write_line("<fg=yellow>Skipping checker as it cannot check the provided projects in current environment.</>")
             continue
         exception = checker.check(io, projects, fix)
         if exception is not None:
             io.write_line(f"<error>{exception}</error>")
-            return 1
-    return 0
+            result = 1
+            if not continue_on_error:
+                return result
+    return result
 
 
-_builtin_project_checks: list[Type[IProjectCheck]] = [
-    ProjectPoetryCheck,
-]
-
-_builtin_solution_checks: list[Type[ISolutionCheck]] = [
-    SolutionPyTestCheck,
-    SolutionPylintCheck,
-    SolutionRuffCheck,
+_builtin_checks: list[Type[ICheck]] = [
+    PoetryCheck,
+    EnvironmentCheck,
+    PytestCheck,
+    PylintCheck,
+    RuffCheck,
 ]
 
 
@@ -130,15 +113,12 @@ class CheckModule(
     name: ClassVar[str] = "ps-check"
 
     def __init__(self, di: DI) -> None:
-        for project_check_cls in _builtin_project_checks:
-            di.register(IProjectCheck).implementation(project_check_cls)
-        for solution_check_cls in _builtin_solution_checks:
-            di.register(ISolutionCheck).implementation(solution_check_cls)
+        for check_cls in _builtin_checks:
+            di.register(ICheck).implementation(check_cls)
         self._di = di
         self._exit_code: Optional[int] = None
 
     def handle_activate(self, application: Application) -> bool:
-        # Extend the CheckCommand with an optional "inputs" argument
         ensure_argument(CheckCommand, Argument(
             name="inputs",
             description="Optional inputs pointers to check. It could be project names or paths. If not provided, all discovered projects will be checked.",
@@ -151,20 +131,23 @@ class CheckModule(
             shortcut="f",
             flag=True)
         )
+        ensure_option(CheckCommand, Option(
+            name="continue-on-error",
+            description="Continue checking even after a check failure.",
+            shortcut="c",
+            flag=True)
+        )
         return True
 
     def handle_command(self, event: ConsoleCommandEvent, event_name: str, dispatcher: EventDispatcher) -> None:
         if not isinstance(event.command, CheckCommand):
             return
-        # Disable the original command execution
         event.disable_command()
 
         environment = self._di.resolve(Environment)
         assert environment is not None
 
-        # Filter projects based on inputs
         inputs = _get_inputs(event.io.input)
-        # In case no inputs are provided, and the entry project is different from the host project, add the entry project path as input
         if not inputs and environment.host_project != environment.entry_project:
             inputs.append(str(environment.entry_project.path))
 
@@ -173,30 +156,21 @@ class CheckModule(
             event.io.write_line("<comment>No projects found to process.</comment>")
             return
 
-        # Get the "fix" option
         fix = _get_fix_option(event.io.input)
+        continue_on_error = _get_continue_on_error_option(event.io.input)
 
-        # Resolve plugin settings
         plugin_settings = environment.host_project.plugin_settings
         check_settings = CheckSettings.model_validate(plugin_settings.model_dump(), by_alias=True)
 
-        # Resolve available project checkers
-        available_project_checkers = self._di.resolve_many(IProjectCheck)
-        project_checkers = _filter_checkers(available_project_checkers, check_settings, event.io, "Project")
-        available_solution_checkers = self._di.resolve_many(ISolutionCheck)
-        solution_checkers = _filter_checkers(available_solution_checkers, check_settings, event.io, "Solution")
+        available_checkers = self._di.resolve_many(ICheck)
+        checkers = _filter_checkers(available_checkers, check_settings, event.io, "Checks")
 
         if fix:
             event.io.write_line("<fg=magenta>Automatic fix enabled</>")
+        if continue_on_error:
+            event.io.write_line("<fg=magenta>Continue on error enabled</>")
         event.io.write_line(f"<info>Checking <comment>{len(filtered_projects)}</comment> project(s)</info>")
-        for project in filtered_projects:
-            project_check_exit_code = _perform_project_check(self._di, project, project_checkers, fix)
-            if project_check_exit_code != 0:
-                self._exit_code = project_check_exit_code
-        if self._exit_code and self._exit_code != 0:
-            event.io.write_line("<fg=yellow>Project checks completed with issues. Solution checks will be skipped.</>")
-            return
-        self._exit_code = _perform_solution_check(self._di, filtered_projects, solution_checkers, fix)
+        self._exit_code = _perform_checks(self._di, filtered_projects, checkers, fix, continue_on_error)
 
     def handle_terminate(self, event: ConsoleTerminateEvent, event_name: str, dispatcher: EventDispatcher) -> None:
         if self._exit_code is not None:

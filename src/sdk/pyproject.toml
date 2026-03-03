@@ -5,9 +5,8 @@ requires-python = ">=3.10,<3.14"
 version = "0.0.0"
 
 [tool.poetry.dependencies]
-poetry = "^2.2.1"
-toml = "^0.10.2"
-pydantic = "^2.12.5"
+poetry = "*"
+pydantic = "*"
 
 [tool.poetry]
 packages = [ { include = "ps/plugin/sdk", from = "src" } ]

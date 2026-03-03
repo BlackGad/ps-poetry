@@ -1,3 +1,4 @@
+from enum import StrEnum
 from pathlib import Path
 from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field
@@ -9,6 +10,20 @@ from ps.version import Version, VersionConstraint
 
 from .settings import PluginSettings
 from .toml_value import TomlValue
+
+
+class SourcePriority(StrEnum):
+    DEFAULT = "default"
+    PRIMARY = "primary"
+    SECONDARY = "secondary"
+    SUPPLEMENTAL = "supplemental"
+    EXPLICIT = "explicit"
+
+
+class ProjectFeedSource(BaseModel):
+    name: str
+    url: Optional[str] = None
+    priority: Optional[SourcePriority] = None
 
 
 class ProjectDependency(BaseModel):
@@ -138,6 +153,7 @@ class Project(BaseModel):
     path: Path
     document: TOMLDocument = Field(exclude=True)
     dependencies: list[ProjectDependency]
+    sources: list[ProjectFeedSource]
     plugin_settings: PluginSettings
 
     def save(self) -> None:

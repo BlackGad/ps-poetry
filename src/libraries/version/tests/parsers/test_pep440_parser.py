@@ -1,5 +1,5 @@
 from ps.version import VersionStandard
-from ps.version.parsers import PEP440Parser
+from ps.version import PEP440Parser
 
 
 def test_parse_simple_version():

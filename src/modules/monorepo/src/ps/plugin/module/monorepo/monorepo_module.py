@@ -5,14 +5,13 @@ from cleo.events.console_terminate_event import ConsoleTerminateEvent
 from cleo.events.event_dispatcher import EventDispatcher
 
 
-from ps.plugin.sdk.protocols import (
+from ps.plugin.sdk import (
     ListenerCommandProtocol,
     ListenerTerminateProtocol,
     NameAwareProtocol,
+    DI,
+    Environment,
 )
-
-from ps.plugin.sdk.interfaces import DI
-from ps.plugin.sdk.models import Environment
 
 from .command_handler_protocol import CommandHandlerProtocol
 from .command_handler_env import EnvCommandHandler

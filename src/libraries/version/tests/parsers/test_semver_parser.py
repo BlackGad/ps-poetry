@@ -1,5 +1,5 @@
 from ps.version import VersionStandard
-from ps.version.parsers import SemVerParser
+from ps.version import SemVerParser
 
 
 def test_parse_simple_version():

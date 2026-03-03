@@ -2,8 +2,12 @@ import inspect
 import threading
 from typing import Any, Callable, List, Optional, ParamSpec, Type, TypeVar, Union, cast, get_args, get_origin, get_type_hints
 
-from ps.plugin.sdk import DI, Binding
-from ps.plugin.sdk.interfaces.di import Lifetime, Priority
+from ps.plugin.sdk import (
+    DI,
+    Binding,
+    Lifetime,
+    Priority,
+)
 
 T = TypeVar("T")
 P = ParamSpec("P")

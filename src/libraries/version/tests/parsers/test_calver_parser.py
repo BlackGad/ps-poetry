@@ -1,5 +1,5 @@
 from ps.version import VersionStandard
-from ps.version.parsers import CalVerParser
+from ps.version import CalVerParser
 
 
 def test_parse_full_year():

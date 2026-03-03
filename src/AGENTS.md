@@ -46,6 +46,19 @@ The core plugin (`plugin/src/ps/plugin/core/`) contains:
 ## Code Development Standards
 
 * **Docstrings only when requested** — Generate docstrings only when the user explicitly asks for them
+* **Relative imports within packages** — Always use relative imports (`.` prefix) for modules inside the same package; never use absolute imports for intra-package references
+* **`__init__.py` policy** — Only the root `__init__.py` of a package should contain exports; all other (nested) `__init__.py` files must remain empty
+* **`__all__` policy** — Never re-export in `__all__` types, classes, or symbols that originate from a different package; only export symbols defined within the current package
+* **Module-scope imports** — Always import symbols from the package root (e.g., `from ps.plugin.sdk import Project`), never from individual module files (e.g., `from ps.plugin.sdk.models.project import Project`)
+* **Grouped imports** — When importing multiple symbols from the same package, use the multi-line parenthesised form:
+
+  ```python
+  from package import (
+      SymbolA,
+      SymbolB,
+  )
+  ```
+  
 * Adhere to established code patterns and conventions
 * Ensure consistency with existing code
 
