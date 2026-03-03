@@ -1,3 +1,4 @@
+# ruff: noqa: PLC0415
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -12,11 +13,11 @@ from .version_standard import VersionStandard
 
 @lru_cache
 def _get_parsers():
-    from .parsers.calver_parser import CalVerParser  # noqa: PLC0415
-    from .parsers.loose_parser import LooseParser  # noqa: PLC0415
-    from .parsers.nuget_parser import NuGetParser  # noqa: PLC0415
-    from .parsers.pep440_parser import PEP440Parser  # noqa: PLC0415
-    from .parsers.semver_parser import SemVerParser  # noqa: PLC0415
+    from .parsers.calver_parser import CalVerParser
+    from .parsers.loose_parser import LooseParser
+    from .parsers.nuget_parser import NuGetParser
+    from .parsers.pep440_parser import PEP440Parser
+    from .parsers.semver_parser import SemVerParser
     return [
         PEP440Parser(),
         SemVerParser(),

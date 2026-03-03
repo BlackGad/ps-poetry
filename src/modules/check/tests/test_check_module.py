@@ -60,66 +60,50 @@ def make_project(tmp_path: Path, name: str = "proj") -> Project:
     return project
 
 
-def make_settings(include: Optional[list[str]] = None, exclude: Optional[list[str]] = None) -> CheckSettings:
-    return CheckSettings(**{"checks-include": include, "checks-exclude": exclude})
+def make_settings(checks: Optional[list[str]] = None) -> CheckSettings:
+    return CheckSettings(checks=checks)
 
 
 # ---------------------------------------------------------------------------
 # _filter_checkers
 # ---------------------------------------------------------------------------
 
-def test_filter_checkers_no_include_returns_all():
+def test_filter_checkers_no_checks_specified_returns_empty():
     checker_a = _make_checker("a")
     checker_b = _make_checker("b")
     checkers = [checker_a(), checker_b()]
-    result = _filter_checkers(checkers, make_settings(), make_io(), "Checks")
-    assert [c.name for c in result] == ["a", "b"]
+    result = _filter_checkers(checkers, make_settings(), make_io())
+    assert [c.name for c in result] == []
 
 
-def test_filter_checkers_include_filters_out_unlisted():
+def test_filter_checkers_filters_by_explicit_list():
     checker_a = _make_checker("a")
     checker_b = _make_checker("b")
     checker_c = _make_checker("c")
     checkers = [checker_a(), checker_b(), checker_c()]
-    result = _filter_checkers(checkers, make_settings(include=["a", "c"]), make_io(), "Checks")
+    result = _filter_checkers(checkers, make_settings(checks=["a", "c"]), make_io())
     assert [c.name for c in result] == ["a", "c"]
 
 
-def test_filter_checkers_include_respects_order():
+def test_filter_checkers_respects_order():
     checker_a = _make_checker("a")
     checker_b = _make_checker("b")
     checker_c = _make_checker("c")
-    # available order: a, b, c — include order: c, a
+    # available order: a, b, c — settings order: c, a
     checkers = [checker_a(), checker_b(), checker_c()]
-    result = _filter_checkers(checkers, make_settings(include=["c", "a"]), make_io(), "Checks")
+    result = _filter_checkers(checkers, make_settings(checks=["c", "a"]), make_io())
     assert [c.name for c in result] == ["c", "a"]
 
 
-def test_filter_checkers_exclude_removes_checker():
-    checker_a = _make_checker("a")
-    checker_b = _make_checker("b")
-    checkers = [checker_a(), checker_b()]
-    result = _filter_checkers(checkers, make_settings(exclude=["b"]), make_io(), "Checks")
-    assert [c.name for c in result] == ["a"]
-
-
-def test_filter_checkers_exclude_overrides_include():
-    checker_a = _make_checker("a")
-    checker_b = _make_checker("b")
-    checkers = [checker_a(), checker_b()]
-    result = _filter_checkers(checkers, make_settings(include=["a", "b"], exclude=["b"]), make_io(), "Checks")
-    assert [c.name for c in result] == ["a"]
-
-
 def test_filter_checkers_empty_available_returns_empty():
-    result = _filter_checkers([], make_settings(), make_io(), "Checks")
+    result = _filter_checkers([], make_settings(checks=["a"]), make_io())
     assert result == []
 
 
-def test_filter_checkers_include_unknown_name_returns_empty():
+def test_filter_checkers_unknown_name_returns_empty():
     checker_a = _make_checker("a")
     checkers = [checker_a()]
-    result = _filter_checkers(checkers, make_settings(include=["unknown"]), make_io(), "Checks")
+    result = _filter_checkers(checkers, make_settings(checks=["unknown"]), make_io())
     assert result == []
 
 

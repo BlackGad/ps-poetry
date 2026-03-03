@@ -34,32 +34,33 @@ from .checks.pylint_check import PylintCheck
 from .checks.pytest_check import PytestCheck
 
 
-def _filter_checkers[T: NameAwareProtocol](available_checkers: list[T], check_settings: CheckSettings, io: IO, checker_type: str) -> list[T]:
-    if check_settings.checks_include is not None:
-        checks_include = check_settings.checks_include
-        include_checkers = sorted(
-            [checker for checker in available_checkers if checker.name in checks_include],
-            key=lambda c: checks_include.index(c.name)
-        )
-    else:
-        include_checkers = list(available_checkers)
-    exclude_checkers = (
-        [checker for checker in available_checkers if checker.name in check_settings.checks_exclude]
-        if check_settings.checks_exclude is not None
-        else []
+def _filter_checkers[T: NameAwareProtocol](available_checkers: list[T], check_settings: CheckSettings, io: IO) -> list[T]:
+    # Explicitly specified checks in settings
+    specified_checks = check_settings.checks if check_settings.checks is not None else []
+
+    # Get specified checkers in order
+    specified_checkers = sorted(
+        [checker for checker in available_checkers if checker.name in specified_checks],
+        key=lambda c: specified_checks.index(c.name)
     )
-    io.write_line(f"<fg=magenta>{checker_type} checkers:</>")
-    if not available_checkers:
-        io.write_line(f"  <comment>No {checker_type.lower()} checkers available.</comment>")
-        return []
-    for checker in available_checkers:
-        status = "<fg=dark_gray>not included</>"
-        if checker in include_checkers:
-            status = "<fg=light_green>included</>"
-        if checker in exclude_checkers:
-            status = "<fg=light_red>excluded</>"
-        io.write_line(f"  - <fg=cyan>{checker.name}</>: {status}")
-    return [checker for checker in include_checkers if checker not in exclude_checkers]
+
+    # Get available but not specified checkers
+    available_not_specified = [
+        checker for checker in available_checkers if checker.name not in specified_checks
+    ]
+
+    # Print selected checkers
+    io.write_line("<fg=magenta>Selected checkers:</> ")
+    for idx, checker in enumerate(specified_checkers, start=1):
+        io.write_line(f"  {idx}. <fg=cyan>{checker.name}</>: <fg=light_green>used</>")
+
+    # Print available but not selected checkers only in verbose mode
+    if io.is_verbose() and available_not_specified:
+        io.write_line("<fg=magenta>Available but not selected:</> ")
+        for checker in available_not_specified:
+            io.write_line(f"  - <fg=cyan>{checker.name}</>: <fg=dark_gray>available</>")
+
+    return specified_checkers
 
 
 def _get_inputs(input: Input) -> list[str]:
@@ -163,7 +164,11 @@ class CheckModule(
         check_settings = CheckSettings.model_validate(plugin_settings.model_dump(), by_alias=True)
 
         available_checkers = self._di.resolve_many(ICheck)
-        checkers = _filter_checkers(available_checkers, check_settings, event.io, "Checks")
+        checkers = _filter_checkers(available_checkers, check_settings, event.io)
+
+        if not checkers:
+            event.io.write_line("<comment>No checkers selected to run.</comment>")
+            return
 
         if fix:
             event.io.write_line("<fg=magenta>Automatic fix enabled</>")
