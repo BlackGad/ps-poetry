@@ -1,7 +1,8 @@
-import graphlib
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
+from cleo.io.buffered_io import BufferedIO
 from cleo.io.io import IO
 from poetry.factory import Factory
 from poetry.publishing.publisher import Publisher
@@ -9,44 +10,94 @@ from poetry.publishing.publisher import Publisher
 from ps.plugin.sdk import Project
 
 from .handle_metadata import ResolvedEnvironmentMetadata
+from .handle_parallelization import run_topological
 
 
-def _build_topological_order(
-    project_metadata: ResolvedEnvironmentMetadata,
-) -> list[Path]:
-    graph: dict[Path, set[Path]] = {
-        key: {dep.parent for dep in meta.project_dependencies}
-        for key, meta in project_metadata.projects.items()
-    }
-    return list(graphlib.TopologicalSorter(graph).static_order())
+@dataclass
+class _PublishItem:
+    project: Project
+    repository: Optional[str]
+    username: Optional[str]
+    password: Optional[str]
+    cert: Optional[Path]
+    client_cert: Optional[Path]
+    dist_dir: Optional[Path]
+    dry_run: bool
+    skip_existing: bool
 
 
 def _log_publish_plan(
     io: IO,
-    sorted_filtered: list[Project],
-    project_metadata: ResolvedEnvironmentMetadata,
-    path_to_project: dict[Path, Project],
+    items: list[_PublishItem],
+    get_deps: Callable[["_PublishItem"], list["_PublishItem"]],
 ) -> None:
-    show_paths = io.is_verbose()
-    resolved_path_to_project = {p.path.resolve(): p for p in path_to_project.values()}
+    all_dep_ids = {id(dep) for item in items for dep in get_deps(item)}
+    roots = [item for item in items if id(item) not in all_dep_ids]
 
-    io.write_line("<fg=magenta>Publish dependency tree:</>")
-    for i, project in enumerate(sorted_filtered, 1):
-        name = project.name.value or project.path.name
-        is_last_project = i == len(sorted_filtered)
-        project_prefix = "└── " if is_last_project else "├── "
-        path_suffix = f" [<fg=dark_gray>{project.path}</>]" if show_paths else ""
-        io.write_line(f"  {project_prefix}<fg=blue>{name}</>{path_suffix}")
-        if io.is_debug():
-            meta = project_metadata.projects.get(project.path)
-            if meta:
-                child_indent = "    " if is_last_project else "│   "
-                deps = meta.project_dependencies
-                for j, dep_toml in enumerate(deps):
-                    dep = resolved_path_to_project.get(dep_toml)
-                    dep_name = (dep.name.value or dep.path.name) if dep else dep_toml.parent.name
-                    dep_prefix = "└── " if j == len(deps) - 1 else "├── "
-                    io.write_line(f"  {child_indent}{dep_prefix}<fg=dark_gray>{dep_name}</>")
+    # --- Dependency tree ---
+    printed: set[int] = set()
+
+    def _print_item(item: _PublishItem, prefix: str, child_prefix: str) -> None:
+        name = item.project.name.value or item.project.path.name
+        io.write_line(f"{prefix}<fg=blue>{name}</>")
+        if id(item) not in printed:
+            printed.add(id(item))
+            deps = get_deps(item)
+            for i, dep in enumerate(deps):
+                is_last = i == len(deps) - 1
+                _print_item(
+                    dep,
+                    child_prefix + ("└── " if is_last else "├── "),
+                    child_prefix + ("    " if is_last else "│   "),
+                )
+
+    io.write_line("<fg=magenta>Dependency tree:</>")
+    for i, root in enumerate(roots):
+        is_last = i == len(roots) - 1
+        _print_item(
+            root,
+            "  " + ("└── " if is_last else "├── "),
+            "  " + ("    " if is_last else "│   "),
+        )
+
+    # --- Publish order (waves) ---
+    remaining = set(id(item) for item in items)
+    done: set[int] = set()
+    waves: list[list[_PublishItem]] = []
+    while remaining:
+        wave = [item for item in items if id(item) in remaining and all(id(dep) in done for dep in get_deps(item))]
+        waves.append(wave)
+        for item in wave:
+            remaining.discard(id(item))
+            done.add(id(item))
+
+    io.write_line("<fg=magenta>Publish order:</>")
+    for wave_idx, wave in enumerate(waves, 1):
+        is_last_wave = wave_idx == len(waves)
+        wave_prefix = "└── " if is_last_wave else "├── "
+        wave_child_prefix = "    " if is_last_wave else "│   "
+        io.write_line(f"  {wave_prefix}<fg=magenta>Wave {wave_idx}</>")
+        for j, item in enumerate(wave):
+            name = item.project.name.value or item.project.path.name
+            is_last_item = j == len(wave) - 1
+            item_prefix = "└── " if is_last_item else "├── "
+            io.write_line(f"  {wave_child_prefix}{item_prefix}<fg=blue>{name}</>")
+
+
+def _publish_one(buffered_io: BufferedIO, item: _PublishItem) -> int:
+    project_name = item.project.name.value or item.project.path.name
+    buffered_io.write_line(f"<fg=magenta>Publishing:</> <fg=blue>{project_name}</> [<fg=dark_gray>{item.project.path}</>]")
+    poetry_project = Factory().create_poetry(cwd=item.project.path, io=buffered_io)
+    Publisher(poetry_project, buffered_io, dist_dir=item.dist_dir).publish(
+        repository_name=item.repository,
+        username=item.username,
+        password=item.password,
+        cert=item.cert,
+        client_cert=item.client_cert,
+        dry_run=item.dry_run,
+        skip_existing=item.skip_existing,
+    )
+    return 0
 
 
 def publish_projects(
@@ -62,25 +113,19 @@ def publish_projects(
     dry_run: bool = False,
     skip_existing: bool = False,
 ) -> int:
-    path_to_project = {p.path: p for p in filtered_projects}
-    full_order = _build_topological_order(project_metadata)
-    sorted_filtered = [path_to_project[k] for k in full_order if k in path_to_project]
+    items = [
+        _PublishItem(p, repository, username, password, cert, client_cert, dist_dir, dry_run, skip_existing)
+        for p in filtered_projects
+    ]
+    path_to_item = {item.project.path.parent.resolve(): item for item in items}
+    filtered_paths = set(path_to_item.keys())
 
-    _log_publish_plan(io, sorted_filtered, project_metadata, path_to_project)
+    def get_deps(item: _PublishItem) -> list[_PublishItem]:
+        meta = project_metadata.projects.get(item.project.path)
+        if not meta:
+            return []
+        dep_paths = {dep.parent.resolve() for dep in meta.project_dependencies} & filtered_paths
+        return [path_to_item[p] for p in dep_paths]
 
-    for project in sorted_filtered:
-        io.write_line(f"<fg=magenta>Publishing:</> <fg=blue>{project.name.value or project.path.name}</> [<fg=dark_gray>{project.path}</>]")
-
-        poetry_project = Factory().create_poetry(cwd=project.path, io=io)
-        publisher = Publisher(poetry_project, io, dist_dir=dist_dir)
-        publisher.publish(
-            repository_name=repository,
-            username=username,
-            password=password,
-            cert=cert,
-            client_cert=client_cert,
-            dry_run=dry_run,
-            skip_existing=skip_existing,
-        )
-
-    return 0
+    _log_publish_plan(io, items, get_deps)
+    return run_topological(io, items, _publish_one, get_deps)

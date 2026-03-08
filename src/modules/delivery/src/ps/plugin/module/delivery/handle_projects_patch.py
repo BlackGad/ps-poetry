@@ -1,11 +1,15 @@
+from csv import Error
+
+from cleo.io.buffered_io import BufferedIO
 from cleo.io.io import IO
 
 from ps.version import Version
 from ps.plugin.sdk import Project
 from .handle_metadata import ResolvedEnvironmentMetadata
+from .handle_parallelization import run_parallel
 
 
-def patch_project_version(
+def _patch_project_version(
         io: IO,
         project: Project,
         projects_metadata: ResolvedEnvironmentMetadata) -> bool:
@@ -21,7 +25,7 @@ def patch_project_version(
     return updated
 
 
-def patch_project_dependencies(
+def _patch_project_dependencies(
         io: IO,
         project: Project,
         projects_metadata: ResolvedEnvironmentMetadata) -> bool:
@@ -54,7 +58,7 @@ def patch_project_dependencies(
     return updated
 
 
-def patch_third_party_dependencies(
+def _patch_third_party_dependencies(
         io: IO,
         project: Project,
         projects_metadata: ResolvedEnvironmentMetadata) -> bool:
@@ -76,16 +80,25 @@ def patch_third_party_dependencies(
     return updated
 
 
-def patch_project(
-        io: IO,
-        project: Project,
-        projects_metadata: ResolvedEnvironmentMetadata) -> None:
+def _patch_one(
+        io: BufferedIO,
+        item: tuple[Project, ResolvedEnvironmentMetadata]) -> int:
+    project, projects_metadata = item
     project_name = project.name.value or project.path.name
     io.write_line(f"<fg=magenta>Patching project:</> <fg=blue>{project_name}</> [<fg=dark_gray>{project.path}</>]")
 
-    version_updated = patch_project_version(io, project, projects_metadata)
-    project_deps_updated = patch_project_dependencies(io, project, projects_metadata)
-    third_party_deps_updated = patch_third_party_dependencies(io, project, projects_metadata)
+    version_updated = _patch_project_version(io, project, projects_metadata)
+    project_deps_updated = _patch_project_dependencies(io, project, projects_metadata)
+    third_party_deps_updated = _patch_third_party_dependencies(io, project, projects_metadata)
 
     if not (version_updated or project_deps_updated or third_party_deps_updated):
         io.write_line("  - Project is up to date.")
+    project.save()
+    return 0
+
+
+def patch_projects(
+        io: IO,
+        projects: list[Project],
+        projects_metadata: ResolvedEnvironmentMetadata) -> int:
+    return run_parallel(io, [(p, projects_metadata) for p in projects], _patch_one)

@@ -26,7 +26,7 @@ from ps.plugin.sdk import (
 )
 
 from .handle_metadata import resolve_environment_metadata
-from .handle_projects_patch import patch_project
+from .handle_projects_patch import patch_projects
 from .handle_build import build_projects
 from .handle_publish import publish_projects
 
@@ -115,9 +115,10 @@ class DeliveryModule(
             environment.backup_projects(filtered_projects)
 
             # Patch all projects
-            for project in filtered_projects:
-                patch_project(event.io, project, projects_metadata)
-                project.save()
+            patch_exit_code = patch_projects(event.io, filtered_projects, projects_metadata)
+            if patch_exit_code != 0:
+                self._exit_code = patch_exit_code
+                return
 
             # Execute build or publish command
             is_publish = isinstance(event.command, PublishCommand)

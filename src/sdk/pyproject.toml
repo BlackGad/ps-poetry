@@ -8,6 +8,9 @@ dependencies = [
     "pydantic",
 ]
 
+[tool.poetry.group.ps.dependencies]
+ps-version = { path = "../libraries/version", develop = true }
+
 [tool.poetry]
 packages = [ { include = "ps/plugin/sdk", from = "src" } ]
 
