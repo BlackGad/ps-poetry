@@ -140,7 +140,19 @@ class DeliveryModule(
                     skip_existing=bool(opts.get("skip-existing")),
                 )
             else:
-                self._exit_code = build_projects(event.io, filtered_projects)
+                opts = event.io.input.options
+                self._exit_code = build_projects(
+                    event.io,
+                    filtered_projects,
+                    formats=BuildCommand._prepare_formats(opts.get("format")),
+                    clean=bool(opts.get("clean")),
+                    output=opts.get("output") or "dist",
+                    config_settings=BuildCommand._prepare_config_settings(
+                        local_version=opts.get("local-version"),
+                        config_settings=opts.get("config-settings"),
+                        io=event.io,
+                    ),
+                )
         finally:
             environment.restore_projects(environment.projects)
 
