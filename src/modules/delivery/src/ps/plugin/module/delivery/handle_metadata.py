@@ -35,6 +35,7 @@ class ResolvedProjectMetadata:
     version: Version = field(default_factory=Version)
     dependencies: list[ResolvedDependencyVersion] = field(default_factory=list)
     project_dependencies: list[Path] = field(default_factory=list)
+    deliver: bool = True
 
 
 @dataclass
@@ -186,6 +187,8 @@ def resolve_environment_metadata(
         if dep.name and dep.version_constraint
     }
 
+    projects = list(projects)
+
     for project in projects:
         project_display_name = project.name.value or project.path.name
         project_delivery_settings = DeliverySettings.model_validate(project.plugin_settings.model_dump())
@@ -213,6 +216,7 @@ def resolve_environment_metadata(
 
         metadata = ResolvedProjectMetadata()
         metadata.pinning = pinning_rule
+        metadata.deliver = project_delivery_settings.deliver
         version = _resolve_project_version(io, factory, version_patterns, pinning_rule)
         if version is not None:
             metadata.version = version

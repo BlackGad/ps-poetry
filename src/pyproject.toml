@@ -55,12 +55,13 @@ modules-include = [
     "ps-delivery",
     "ps-monorepo"
 ]
-package-manager = "central"
 version-patterns = [
     "[{in}] {in}",
     "[{env:BUILD_VERSION}] {env:BUILD_VERSION}",
     "{spec}"
 ]
+version-pinning = "compatible"
+deliver = false
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

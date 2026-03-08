@@ -3,6 +3,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from typing import Callable, TypeVar
 
+from cleo.formatters.formatter import Formatter
 from cleo.io.buffered_io import BufferedIO
 from cleo.io.io import IO
 
@@ -33,7 +34,7 @@ def _run_buffered(io: IO, item: T, fn: Callable[[BufferedIO, T], int]) -> tuple[
     try:
         exit_code = fn(buffered_io, item)
     except Exception as e:
-        buffered_io.write_error_line(f"<error>{e!s}</error>")
+        buffered_io.write_error_line(f"\n<error>{Formatter.escape(str(e))}</error>")
         exit_code = 1
     finally:
         _thread_io.io = None
@@ -48,6 +49,7 @@ def _flush(io: IO, out: str, err: str) -> None:
 
 
 def _normalize(text: str) -> str:
+    text = text.replace("\\n", "\n").replace("\r\n", "\n").replace("\r", "\n").strip()
     lines = [line for line in text.splitlines() if line.strip()]
     if not lines:
         return ""

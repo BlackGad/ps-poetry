@@ -25,7 +25,7 @@ from ps.plugin.sdk import (
     filter_projects,
 )
 
-from .handle_metadata import resolve_environment_metadata
+from .handle_metadata import resolve_environment_metadata, ResolvedProjectMetadata
 from .handle_projects_patch import patch_projects
 from .handle_build import build_projects
 from .handle_publish import publish_projects
@@ -100,17 +100,27 @@ class DeliveryModule(
         if not inputs and environment.host_project != environment.entry_project:
             inputs.append(str(environment.entry_project.path))
 
-        filtered_projects = filter_projects(inputs, environment.projects)
-        if not filtered_projects:
-            event.io.write_line("<comment>No projects found to process.</comment>")
-            return
-
         input_version = Version.parse(_get_version_option(event.io.input))
         projects_metadata = resolve_environment_metadata(
             event.io,
             input_version,
             environment.host_project,
             environment.projects)
+
+        filtered_projects = filter_projects(inputs, environment.projects)
+        excluded = {id(p) for p in filtered_projects if not (projects_metadata.projects.get(p.path) or ResolvedProjectMetadata()).deliver}
+        event.io.write_line("<fg=magenta>Delivery scope:</>")
+        for p in filtered_projects:
+            name = p.name.value or p.path.name
+            if id(p) in excluded:
+                event.io.write_line(f"  - <fg=dark_gray>{name} (not marked for delivery)</>")
+            else:
+                event.io.write_line(f"  - <fg=blue>{name}</>")
+        filtered_projects = [p for p in filtered_projects if id(p) not in excluded]
+        if not filtered_projects:
+            event.io.write_line("<comment>No projects found to process.</comment>")
+            return
+
         try:
             environment.backup_projects(filtered_projects)
 

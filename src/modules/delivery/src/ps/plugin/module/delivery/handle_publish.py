@@ -61,7 +61,7 @@ def _log_publish_plan(
         )
 
     # --- Publish order (waves) ---
-    remaining = set(id(item) for item in items)
+    remaining = {id(item) for item in items}
     done: set[int] = set()
     waves: list[list[_PublishItem]] = []
     while remaining:
