@@ -26,9 +26,9 @@ def _get_module_name(obj: Union[Type, object]) -> str:
 
 def _log_verbose(io: IO, message: str) -> None:
     if io.is_verbose():
-        io.write_line(f"<fg=magenta>PS:</> {message}")
+        io.write_line(message)
 
 
 def _log_debug(io: IO, message: str) -> None:
     if io.is_debug():
-        io.write_line(f"<fg=dark_gray>PS:</> {message}")
+        io.write_line(message)

@@ -13,7 +13,7 @@ from ps.plugin.sdk import (
     DI,
     PluginSettings
 )
-from .logging import _log_debug, _log_verbose, _get_module_verbal_name, _get_module_name
+from .logging import _log_debug, _get_module_verbal_name, _get_module_name
 
 
 def _load_module_class_types() -> Iterable[tuple[str, Type]]:
@@ -58,43 +58,43 @@ class ModulesHandler:
         assert io is not None
         plugin_settings = self._di.resolve(PluginSettings)
         assert plugin_settings is not None
-        included_modules = set(plugin_settings.modules_include or [])
-        excluded_modules = set(plugin_settings.modules_exclude or [])
+        specified_modules = plugin_settings.modules
         module_entries = _load_module_class_types()
         all_module_types_list = [(entry_spec, module_type) for entry_spec, module_type in module_entries]
+        name_to_entry: dict[str, tuple[str, Type]] = {
+            _get_module_name(module_type): (entry_spec, module_type)
+            for entry_spec, module_type in all_module_types_list
+        }
 
-        # Filter modules based on included/excluded lists
-        included_types_list: List[tuple[str, Type]] = []
-        excluded_types_list: List[tuple[str, Type]] = []
-
-        for entry_spec, module_type in all_module_types_list:
-            name = _get_module_name(module_type)
-            is_included = any(name.casefold().endswith(incl.casefold()) for incl in included_modules)
-            is_excluded = any(name.casefold().endswith(excl.casefold()) for excl in excluded_modules)
-
-            if is_excluded:
-                excluded_types_list.append((entry_spec, module_type))
-            elif is_included:
-                included_types_list.append((entry_spec, module_type))
-
-        module_types_list = included_types_list
-
-        if all_module_types_list:
-            _log_verbose(io, f"Discovered {len(all_module_types_list)} module type(s)")
-            for entry_spec, cls_name in all_module_types_list:
-                verbal_name = _get_module_verbal_name(cls_name, include_type=True)
-                name = _get_module_verbal_name(cls_name)
-
-                # Determine status
-                if (entry_spec, cls_name) in excluded_types_list:
-                    status = "[<fg=red>EXCLUDED</>]"
-                elif (entry_spec, cls_name) in included_types_list:
-                    status = "[<fg=green>INCLUDED</>]"
-                else:
-                    status = "[<fg=dark_gray>AVAILABLE</>]"
-                _log_debug(io, f"  - {status} <comment>{entry_spec}</comment> -> {verbal_name}")
+        if specified_modules is not None:
+            # Ordered selection: keep only specified, in user-defined order
+            module_types_list = [
+                name_to_entry[name]
+                for name in specified_modules
+                if name in name_to_entry
+            ]
+            selected_names = {name for name in specified_modules if name in name_to_entry}
         else:
-            _log_debug(io, "No module types discovered")
+            module_types_list = all_module_types_list
+            selected_names = set(name_to_entry.keys())
+
+        available_not_selected = [
+            (entry_spec, module_type)
+            for entry_spec, module_type in all_module_types_list
+            if _get_module_name(module_type) not in selected_names
+        ]
+
+        if io.is_verbose():
+            io.write_line("<fg=magenta>Selected modules:</>")
+            for idx, (entry_spec, module_type) in enumerate(module_types_list, start=1):
+                suffix = f" <fg=dark_gray>[{entry_spec}]</>" if io.is_debug() else ""
+                io.write_line(f"  {idx}. <fg=cyan>{_get_module_name(module_type)}</>{suffix}")
+
+        if io.is_debug() and available_not_selected:
+            io.write_line("\n<fg=magenta>Available but not selected:</>")
+            for entry_spec, module_type in available_not_selected:
+                suffix = f" <fg=dark_gray>[{entry_spec}]</>" if io.is_debug() else ""
+                io.write_line(f"  - <fg=dark_gray>{_get_module_name(module_type)}</>{suffix}")
 
         protocols: List[Type] = [
             ActivateProtocol,
@@ -104,7 +104,7 @@ class ModulesHandler:
             ListenerSignalProtocol,
         ]
 
-        unique_module_types = {module_type for _, module_type in module_types_list}
+        unique_module_types = list(dict.fromkeys(module_type for _, module_type in module_types_list))
 
         for module_type in unique_module_types:
             # Get supported protocols for this module

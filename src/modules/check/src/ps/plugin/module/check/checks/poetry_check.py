@@ -16,7 +16,8 @@ class PoetryCheck(ICheck):
         has_errors = False
         for project in projects:
             project_name = project.name.value or project.path.name
-            io.write_line(f"Checking <fg=blue>{project_name}</> [<fg=dark_gray>{project.path}</>]")
+            path_suffix = f" [<fg=dark_gray>{project.path}</>]" if io.is_verbose() else ""
+            io.write_line(f"Checking <fg=blue>{project_name}</>{path_suffix}")
             try:
                 poetry_project = Factory().create_poetry(cwd=project.path, io=io)
                 check_command = CheckCommand()

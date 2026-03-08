@@ -49,7 +49,7 @@ checks = [
     "pytest"
 ]
 # checks-exclude = ["poetry"]
-modules-include = [
+modules = [
     "ModuleInHost",
     "ps-check",
     "ps-delivery",

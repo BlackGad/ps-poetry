@@ -1,5 +1,3 @@
-from csv import Error
-
 from cleo.io.buffered_io import BufferedIO
 from cleo.io.io import IO
 

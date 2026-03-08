@@ -11,7 +11,7 @@ class EnvironmentCheck(ICheck):
         errors = self._check_conflicting_sources(projects)
 
         if not errors:
-            io.write_line("<info>Environment check passed with no errors</info>")
+            io.write_line("Environment check passed with no errors")
             return None
 
         for error in errors:

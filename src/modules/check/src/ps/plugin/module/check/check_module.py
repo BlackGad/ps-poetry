@@ -49,13 +49,14 @@ def _filter_checkers[T: NameAwareProtocol](available_checkers: list[T], check_se
         checker for checker in available_checkers if checker.name not in specified_checks
     ]
 
-    # Print selected checkers
-    io.write_line("<fg=magenta>Selected checkers:</> ")
-    for idx, checker in enumerate(specified_checkers, start=1):
-        io.write_line(f"  {idx}. <fg=cyan>{checker.name}</>")
+    # Print selected checkers only in verbose mode
+    if io.is_verbose():
+        io.write_line("<fg=magenta>Selected checkers:</> ")
+        for idx, checker in enumerate(specified_checkers, start=1):
+            io.write_line(f"  {idx}. <fg=cyan>{checker.name}</>")
 
-    # Print available but not selected checkers only in verbose mode
-    if io.is_verbose() and available_not_specified:
+    # Print available but not selected checkers only in debug mode
+    if io.is_debug() and available_not_specified:
         io.write_line("\n<fg=magenta>Available but not selected:</> ")
         for checker in available_not_specified:
             io.write_line(f"  - <fg=dark_gray>{checker.name}</>")
