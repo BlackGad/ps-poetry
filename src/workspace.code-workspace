@@ -24,7 +24,8 @@
 	},
 	"extensions": {
     "recommendations": [
-      "autopep8.autopep8",
+	  "davidanson.vscode-markdownlint",
+      "ms-python.autopep8",
       "charliermarsh.ruff",
       "tamasfe.even-better-toml",
       "ms-python.vscode-pylance",
