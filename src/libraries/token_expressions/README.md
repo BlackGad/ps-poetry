@@ -32,30 +32,27 @@ poetry add ps-token-expressions
 ## Quick Start
 
 ```python
+import os
+
 from ps.token_expressions import ExpressionFactory
 
-# Define token resolvers
-resolvers = [
+factory = ExpressionFactory([
     ("config", {"version": "1.2.3", "build": 456}),
     ("env", lambda args: os.getenv(args[0]) if args else None),
     ("tags", ["production", "release", "stable"]),
-]
+])
 
-# Create factory
-factory = ExpressionFactory(resolvers)
-
-# Materialize tokens
 result = factory.materialize("{config:version}")
 # Output: "1.2.3"
 
-# Match conditions
 if factory.match("{config:build} and {env:CI}"):
     print("Running in CI with build number")
 
-# Test membership
 if factory.match("'production' in {tags}"):
     print("Production release detected")
 ```
+
+[View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-token-expressions/basic_usage_example.py)
 
 ## Core Concepts
 
@@ -202,8 +199,6 @@ factory.materialize("{app:debug}")     # "True"
 
 Objects can be callable, have nested attributes, or contain dicts/lists.
 
----
-
 ## Fallback Values
 
 Provide default values when tokens can't be resolved using `<fallback>` syntax:
@@ -231,8 +226,6 @@ factory.materialize("{app:missing<0.0.0>}")   # "0.0.0" (fallback)
 factory.materialize("{app:missing}")          # "{app:missing}" (no fallback)
 ```
 
----
-
 ## Nested Access
 
 Navigate through nested data structures using colon-separated paths:
@@ -255,8 +248,6 @@ servers = [{"name": "prod", "url": "prod.com"}, {"name": "dev"}]
 factory = ExpressionFactory([("srv", servers)])
 factory.materialize("{srv:0:name}")  # "prod"
 ```
-
----
 
 ## Boolean Expressions
 
@@ -375,39 +366,9 @@ factory.materialize("{unknown}")               # "{unknown}"
 
 ## Complete Example
 
-```python
-import os
-from ps.token_expressions import ExpressionFactory
+A complete working example combining instance resolvers, function resolvers, token materialization, fallback values, membership testing, and boolean conditions.
 
-class AppConfig:
-    def __init__(self):
-        self.name = "MyApp"
-        self.version = "1.0.0"
-        self.tags = ["production", "stable"]
-
-def env_resolver(args: list[str]) -> str | None:
-    return os.getenv(args[0]) if args else None
-
-factory = ExpressionFactory([
-    ("app", AppConfig()),
-    ("env", env_resolver),
-])
-
-# Build connection string
-conn_str = factory.materialize("App: {app:name} v{app:version}")
-
-# Check environment flag
-if factory.match("{env:DEBUG<0>}"):
-    print("Debug mode enabled")
-
-# Check if running in production
-if factory.match("'production' in {app:tags}"):
-    print("Running in production mode")
-
-# Check multiple conditions
-if factory.match("'stable' in {app:tags} and not {env:DEBUG<0>}"):
-    print("Stable production build")
-```
+[View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-token-expressions/basic_usage_example.py)
 
 ## Error Handling
 

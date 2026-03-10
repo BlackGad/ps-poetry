@@ -1,4 +1,6 @@
-1. plugin activates if there are in pyproject.toml file section `[tool.ps-plugin]` exist
-2. monorepo functionality is built in so `host-project = ".."` will set main project link
-3. internally main plugin settings will be picked up from host project after resolve
-4. You dont need monorepo module if you will operate only with host project
+# Plugin Behavior Notes
+
+* The plugin activates only when a `[tool.ps-plugin]` section is present in `pyproject.toml`
+* Monorepo support is built in: setting `host-project = ".."` in `[tool.ps-plugin]` links the component to its host project
+* Plugin settings are resolved from the host project after the monorepo link is established
+* The monorepo module is not required when operating only with the host project directly

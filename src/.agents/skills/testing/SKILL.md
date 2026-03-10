@@ -65,3 +65,17 @@ poetry run pytest --cov
 * When updating existing tests, preserve passing tests that correctly validate the intended behavior
 * Only rewrite tests if they are failing due to outdated assumptions or incorrect assertions
 * After making changes to imports or code structure, re-read the source files to verify all references are still valid
+
+## Completion Checklist
+
+Before marking work complete, verify ALL of these:
+
+* [ ] All new or modified test files are inside a component's `tests/` directory
+* [ ] No `__init__.py` test files were created
+* [ ] No source files were modified
+* [ ] All imports verified against actual source file paths
+* [ ] No docstrings added to test files
+* [ ] All new tests pass: `poetry run pytest <path/to/test_file.py>`
+* [ ] No previously passing tests were broken: `poetry run pytest`
+* [ ] Ruff reports zero errors on modified files
+* [ ] Pylance reports zero errors on modified files

@@ -85,8 +85,29 @@ poetry run ruff check --fix <path>
 * Ruff reports errors marked as fixable (safe automatic corrections)
 * After auto-fix, ALWAYS verify the changes and run tests to ensure correctness
 
+## Pylance Error Resolution
+
+Pylance type errors must be resolved by fixing the code, not by adding `# type: ignore` suppressions. Common patterns:
+
+* **Optional attribute access** — when a field is `Optional[T]`, guard with `if field is not None:` before accessing its attributes
+* **Unresolved imports** — verify the import path matches the actual package structure in `src/`
+* **Type mismatches** — align the value type with what the function or assignment expects; do not cast unless necessary
+
+Pylance suppressions (`# type: ignore`) are **prohibited** in all source files. They are only acceptable in core plugin/SDK source files where Poetry's own internals lack stubs, and only when there is no other way to resolve the error.
+
 ## Post-lint Verification
 
 * After fixing lint errors in test files, verify that the test logic has not changed (same assertions, same test coverage)
 * Run all modified tests to confirm they pass
 * If tests fail after linting fixes, the linting change was too aggressive — revert and apply a more conservative fix
+
+## Completion Checklist
+
+Before marking work complete, verify ALL of these:
+
+* [ ] `poetry run ruff check .` reports zero errors
+* [ ] Pylance reports zero errors on all modified files
+* [ ] No `# type: ignore` suppressions added to core source files
+* [ ] No ruff suppressions added outside of test or experiment files
+* [ ] All auto-fixes reviewed and confirmed correct
+* [ ] All modified tests still pass after linting changes

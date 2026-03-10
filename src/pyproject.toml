@@ -39,22 +39,23 @@ ps-plugin-module-monorepo   = { path = "modules/monorepo", develop = true }
 
 [tool.poetry.requires-plugins]
 ps-plugin-core = {path = "plugin", develop = true }
-ps-plugin-sdk  = {path = "sdk", develop = true } # Needed to load SDK types in plugin project
+ps-plugin-sdk  = {path = "sdk", develop = true }
 
 [tool.ps-plugin]
-checks = [
-    "poetry", 
-    "environment",
-    "ruff", 
-    "pytest"
-]
-# checks-exclude = ["poetry"]
 modules = [
     "ModuleInHost",
     "ps-check",
     "ps-delivery",
     "ps-monorepo"
 ]
+# ps-check settings
+checks = [
+    "poetry", 
+    "environment",
+    "ruff", 
+    "pytest"
+]
+# ps-delivery settings
 version-patterns = [
     "[{in}] {in}",
     "[{env:BUILD_VERSION}] {env:BUILD_VERSION}",

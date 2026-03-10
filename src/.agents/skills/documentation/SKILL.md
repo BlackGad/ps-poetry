@@ -28,6 +28,7 @@ Before marking work complete, verify ALL of these:
 * [ ] Each example includes GitHub link: `https://github.com/BlackGad/ps-poetry/blob/main/src/examples/<package_name>/<file>.py`
 * [ ] All example files are self-contained (no imports from other example files)
 * [ ] All example files pass ruff linting (zero errors)
+* [ ] All example files have zero Pylance errors
 * [ ] Markdown linting checked via VS Code Problems panel (zero errors)
 * [ ] No private methods/types (prefixed with `_`) documented
 * [ ] No prohibited sections (Requirements, Testing methodology, etc.)

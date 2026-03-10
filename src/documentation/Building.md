@@ -37,18 +37,23 @@ During this step:
 * The plugin becomes available for the entire repository
 * Monorepo mode is activated, enabling plugin functionality across all projects
 
-## Automated Build
+## Automated Setup
 
-For convenience, use the VS Code task "Setup Environment" which executes both steps automatically:
+For convenience, use the `setup.ps1` script in the workspace root, which executes both steps automatically:
 
-1. Builds the plugin core in the `plugin/` folder
-2. Synchronizes the workspace environment
+```powershell
+.\setup.ps1
+```
 
-This task is available in the workspace configuration and can be run via the Command Palette (Tasks: Run Task → Setup Environment).
+This script:
+
+1. Cleans the workspace (removes `.venv`, cache folders, and `__pycache__` directories)
+2. Builds the plugin core in the `plugin/` folder
+3. Synchronizes the workspace environment via `poetry sync`
 
 ## Build Requirements
 
-* Poetry 2.2.1 or higher
+* Poetry 2.3.1 or higher
 * Python 3.10 or higher
 * Active workspace virtual environment
 
