@@ -1,7 +1,8 @@
 from typing import ClassVar, Optional
 from cleo.io.io import IO
 
-from ps.plugin.sdk import Project, ICheck
+from ps.plugin.sdk.project import Project
+from ps.plugin.sdk.check import ICheck
 
 
 class EnvironmentCheck(ICheck):

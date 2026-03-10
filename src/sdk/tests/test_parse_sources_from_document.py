@@ -1,6 +1,6 @@
 from tomlkit import parse
 
-from ps.plugin.sdk import (
+from ps.plugin.sdk.project import (
     SourcePriority,
     parse_sources_from_document,
 )

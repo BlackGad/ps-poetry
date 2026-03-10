@@ -2,7 +2,7 @@ from cleo.io.buffered_io import BufferedIO
 from cleo.io.io import IO
 
 from ps.version import Version
-from ps.plugin.sdk import Project
+from ps.plugin.sdk.project import Project
 from .handle_metadata import ResolvedEnvironmentMetadata
 from .handle_parallelization import run_parallel
 

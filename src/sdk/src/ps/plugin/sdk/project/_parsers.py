@@ -3,9 +3,9 @@ from typing import Any, Optional
 from tomlkit import TOMLDocument, parse
 from packaging.requirements import Requirement
 
-from ..models.project import Project, ProjectDependency, ProjectFeedSource, SourcePriority
-from ..models.settings import PluginSettings
-from ..models.toml_value import TomlValue
+from ._models import Project, ProjectDependency, ProjectFeedSource, SourcePriority
+from ._toml_value import TomlValue
+from ..settings._parsers import parse_plugin_settings_from_document
 
 
 def parse_name_from_document(document: TOMLDocument) -> TomlValue:
@@ -114,17 +114,6 @@ def parse_sources_from_document(document: TOMLDocument) -> list[ProjectFeedSourc
             url=entry.get("url"),
             priority=priority,
         ))
-    return result
-
-
-def parse_plugin_settings_from_document(document: TOMLDocument) -> PluginSettings:
-    project_toml = document
-    settings_section = TomlValue.locate(project_toml, [f"tool.{PluginSettings.NAME}"]).value
-    if settings_section is None:
-        return PluginSettings(enabled=False)
-    result = PluginSettings.model_validate(settings_section, by_alias=True)
-    if result.enabled is None:
-        result.enabled = True
     return result
 
 

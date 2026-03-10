@@ -13,7 +13,7 @@ from poetry.console.commands.lock import LockCommand
 from poetry.console.commands.update import UpdateCommand
 from poetry.installation.installer import Installer
 
-from ps.plugin.sdk import Environment
+from ps.plugin.sdk.project import Environment
 
 from .command_handler_protocol import CommandHandlerProtocol
 

@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Iterable, Optional
-from ..models.project import Project
+
+from ._models import Project
 
 
 def filter_projects(inputs: list[str], projects: Iterable[Project]) -> list[Project]:

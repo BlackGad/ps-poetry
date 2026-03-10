@@ -11,7 +11,7 @@ from poetry.console.commands.build import (
 from poetry.factory import Factory
 from poetry.utils.env import EnvManager
 
-from ps.plugin.sdk import Project
+from ps.plugin.sdk.project import Project
 
 from .handle_parallelization import ThreadLocalIOHandler, run_parallel
 

@@ -8,7 +8,7 @@ from packaging.specifiers import SpecifierSet
 
 from ps.version import Version, VersionConstraint
 from ps.token_expressions import ExpressionFactory
-from ps.plugin.sdk import (
+from ps.plugin.sdk.project import (
     Project,
     ProjectDependency,
 )

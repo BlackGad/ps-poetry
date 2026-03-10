@@ -17,7 +17,7 @@ from poetry.console.commands.self.self_command import SelfCommand
 from poetry.console.commands.installer_command import InstallerCommand
 from poetry.installation.installer import Installer
 
-from ps.plugin.sdk import Environment
+from ps.plugin.sdk.project import Environment
 
 from .command_handler_protocol import CommandHandlerProtocol
 

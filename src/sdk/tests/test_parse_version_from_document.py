@@ -1,6 +1,6 @@
 from tomlkit import parse
 
-from ps.plugin.sdk import parse_version_from_document
+from ps.plugin.sdk.project import parse_version_from_document
 
 
 def test_get_version_from_pep621_format():

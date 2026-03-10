@@ -13,17 +13,10 @@ from cleo.io.outputs.output import Verbosity
 from poetry.plugins.application_plugin import ApplicationPlugin
 from poetry.console.application import Application
 
-from ps.plugin.sdk import (
-    PluginSettings,
-    ActivateProtocol,
-    ListenerCommandProtocol,
-    ListenerTerminateProtocol,
-    ListenerErrorProtocol,
-    ListenerSignalProtocol,
-    Environment,
-    parse_plugin_settings_from_document,
-    DI
-)
+from ps.plugin.sdk.settings import PluginSettings, parse_plugin_settings_from_document
+from ps.plugin.sdk.events import ActivateProtocol, ListenerCommandProtocol, ListenerTerminateProtocol, ListenerErrorProtocol, ListenerSignalProtocol
+from ps.plugin.sdk.project import Environment
+from ps.plugin.sdk.di import DI
 
 from .di import _DI
 from .modules_handler import ModulesHandler

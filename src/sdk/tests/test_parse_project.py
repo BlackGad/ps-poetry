@@ -1,4 +1,4 @@
-from ps.plugin.sdk import parse_project
+from ps.plugin.sdk.project import parse_project
 
 
 def test_parse_project_with_pep621_format(tmp_path):

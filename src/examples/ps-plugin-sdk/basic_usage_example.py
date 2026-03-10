@@ -1,6 +1,6 @@
 from tomlkit import parse
 
-from ps.plugin.sdk import parse_name_from_document, parse_version_from_document
+from ps.plugin.sdk.project import parse_name_from_document, parse_version_from_document
 
 
 def main() -> None:

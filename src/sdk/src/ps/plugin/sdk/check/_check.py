@@ -3,8 +3,8 @@ from typing import ClassVar, Optional
 
 from cleo.io.io import IO
 
-from ..models.project import Project
-from ..protocols.name_aware_protocol import NameAwareProtocol
+from ..project._models import Project
+from ..mixins._name_aware_protocol import NameAwareProtocol
 
 
 class ICheck(NameAwareProtocol, ABC):

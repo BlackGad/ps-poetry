@@ -1,7 +1,7 @@
 from tomlkit import parse
 from packaging.specifiers import SpecifierSet
 
-from ps.plugin.sdk import (
+from ps.plugin.sdk.project import (
     parse_dependencies_from_document,
     parse_project,
 )

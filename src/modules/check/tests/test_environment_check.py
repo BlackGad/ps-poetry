@@ -2,7 +2,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 from cleo.io.io import IO
 
-from ps.plugin.sdk import (
+from ps.plugin.sdk.project import (
     Project,
     parse_project,
 )

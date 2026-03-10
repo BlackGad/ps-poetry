@@ -12,7 +12,7 @@ from poetry.console.commands.add import AddCommand
 from poetry.console.commands.remove import RemoveCommand
 from poetry.installation.installer import Installer
 
-from ps.plugin.sdk import Environment
+from ps.plugin.sdk.project import Environment
 
 from .command_handler_protocol import CommandHandlerProtocol
 

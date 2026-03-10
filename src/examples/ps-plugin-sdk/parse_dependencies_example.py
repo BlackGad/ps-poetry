@@ -1,10 +1,10 @@
 from tomlkit import parse
 
-from ps.plugin.sdk import (
+from ps.plugin.sdk.project import (
     parse_dependencies_from_document,
-    parse_plugin_settings_from_document,
     parse_sources_from_document,
 )
+from ps.plugin.sdk.settings import parse_plugin_settings_from_document
 
 
 def main() -> None:

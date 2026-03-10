@@ -3,7 +3,9 @@ import shutil
 from typing import ClassVar, Optional
 from cleo.io.io import IO
 
-from ps.plugin.sdk import DI, Project, Environment, ICheck
+from ps.plugin.sdk.di import DI
+from ps.plugin.sdk.project import Project, Environment
+from ps.plugin.sdk.check import ICheck
 
 
 class PytestCheck(ICheck):

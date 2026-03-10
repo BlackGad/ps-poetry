@@ -4,15 +4,9 @@ from importlib import metadata
 
 from cleo.io.io import IO
 
-from ps.plugin.sdk import (
-    ActivateProtocol,
-    ListenerCommandProtocol,
-    ListenerTerminateProtocol,
-    ListenerErrorProtocol,
-    ListenerSignalProtocol,
-    DI,
-    PluginSettings
-)
+from ps.plugin.sdk.events import ActivateProtocol, ListenerCommandProtocol, ListenerTerminateProtocol, ListenerErrorProtocol, ListenerSignalProtocol
+from ps.plugin.sdk.di import DI
+from ps.plugin.sdk.settings import PluginSettings
 from .logging import _log_debug, _get_module_verbal_name, _get_module_name
 
 

@@ -8,8 +8,8 @@ from packaging.specifiers import SpecifierSet
 
 from ps.version import Version, VersionConstraint
 
-from .settings import PluginSettings
-from .toml_value import TomlValue
+from ..settings._settings import PluginSettings
+from ._toml_value import TomlValue
 
 
 class SourcePriority(StrEnum):

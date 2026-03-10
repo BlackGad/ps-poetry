@@ -2,7 +2,7 @@ import inspect
 import threading
 from typing import Any, Callable, List, Optional, ParamSpec, Type, TypeVar, Union, cast, get_args, get_origin, get_type_hints
 
-from ps.plugin.sdk import (
+from ps.plugin.sdk.di import (
     DI,
     Binding,
     Lifetime,

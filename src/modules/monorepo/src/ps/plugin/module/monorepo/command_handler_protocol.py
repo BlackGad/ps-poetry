@@ -3,7 +3,7 @@ from typing import Protocol
 from cleo.events.console_command_event import ConsoleCommandEvent
 from cleo.events.console_terminate_event import ConsoleTerminateEvent
 
-from ps.plugin.sdk import Environment
+from ps.plugin.sdk.project import Environment
 
 
 class CommandHandlerProtocol(Protocol):

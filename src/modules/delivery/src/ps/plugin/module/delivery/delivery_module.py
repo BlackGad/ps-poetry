@@ -13,17 +13,10 @@ from poetry.console.commands.publish import PublishCommand
 from poetry.console.application import Application
 
 from ps.version import Version
-from ps.plugin.sdk import (
-    Environment,
-    ActivateProtocol,
-    ListenerCommandProtocol,
-    ListenerTerminateProtocol,
-    NameAwareProtocol,
-    DI,
-    ensure_argument,
-    ensure_option,
-    filter_projects,
-)
+from ps.plugin.sdk.project import Environment, filter_projects
+from ps.plugin.sdk.events import ActivateProtocol, ListenerCommandProtocol, ListenerTerminateProtocol, ensure_argument, ensure_option
+from ps.plugin.sdk.mixins import NameAwareProtocol
+from ps.plugin.sdk.di import DI
 
 from .handle_metadata import resolve_environment_metadata, ResolvedProjectMetadata
 from .handle_projects_patch import patch_projects

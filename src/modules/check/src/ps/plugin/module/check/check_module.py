@@ -12,19 +12,11 @@ from poetry.console.commands.check import CheckCommand
 from poetry.console.application import Application
 
 
-from ps.plugin.sdk import (
-    Project,
-    Environment,
-    ActivateProtocol,
-    ListenerCommandProtocol,
-    ListenerTerminateProtocol,
-    NameAwareProtocol,
-    DI,
-    ICheck,
-    ensure_argument,
-    ensure_option,
-    filter_projects,
-)
+from ps.plugin.sdk.project import Project, Environment, filter_projects
+from ps.plugin.sdk.events import ActivateProtocol, ListenerCommandProtocol, ListenerTerminateProtocol, ensure_argument, ensure_option
+from ps.plugin.sdk.mixins import NameAwareProtocol
+from ps.plugin.sdk.di import DI
+from ps.plugin.sdk.check import ICheck
 
 from .check_settings import CheckSettings
 from .checks.poetry_check import PoetryCheck

@@ -1,7 +1,7 @@
 import pytest
 from tomlkit import parse
 
-from ps.plugin.sdk import TomlValue
+from ps.plugin.sdk.project import TomlValue
 
 
 def test_locate_existing_simple_value():
