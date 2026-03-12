@@ -22,9 +22,7 @@ class RegistryResolver(BaseResolver):
         if value is None:
             return None
         if len(args) > 1:
-            sub = self.pick_resolver(value)
-            if sub is None:
-                return None
+            sub = BaseResolver.pick_resolver(value)
             result = sub(args[1:])
             return str(result) if result is not None else None
         return str(value)

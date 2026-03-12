@@ -2,7 +2,7 @@ import re
 from typing import Optional, cast
 
 from .. import Version, VersionMetadata, VersionPreRelease
-from .base_parser import BaseParser
+from ._base_parser import BaseParser
 
 
 class PEP440Parser(BaseParser):

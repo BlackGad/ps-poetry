@@ -1,23 +1,18 @@
 # ruff: noqa: PLC0415
-from __future__ import annotations
-
 from dataclasses import dataclass
 from functools import lru_cache, total_ordering
 from typing import Optional
 
-from .version_metadata import VersionMetadata
-from .version_prerelease import VersionPreRelease
-from .version_constraint import VersionConstraint
-from .version_standard import VersionStandard
+from ._version_metadata import VersionMetadata
+from ._version_prerelease import VersionPreRelease
+from ._version_constraint import VersionConstraint
+from ._version_standard import VersionStandard
 
 
 @lru_cache
-def _get_parsers():
-    from .parsers.calver_parser import CalVerParser
-    from .parsers.loose_parser import LooseParser
-    from .parsers.nuget_parser import NuGetParser
-    from .parsers.pep440_parser import PEP440Parser
-    from .parsers.semver_parser import SemVerParser
+def _get_parsers() -> list:
+    from .parsers import CalVerParser, LooseParser, NuGetParser, PEP440Parser, SemVerParser
+
     return [
         PEP440Parser(),
         SemVerParser(),
@@ -118,7 +113,7 @@ class Version:
                 parts.append(f".dev{self.dev}")
             if self.metadata:
                 parts.append(f"+{self.metadata}")
-            return ''.join(parts)
+            return "".join(parts)
 
         if standard == VersionStandard.SEMVER:
             parts = [self.core]
@@ -128,7 +123,7 @@ class Version:
                     parts.append(f".{self.pre.number}")
             if self.metadata:
                 parts.append(f"+{self.metadata}")
-            return ''.join(parts)
+            return "".join(parts)
 
         if standard == VersionStandard.NUGET:
             parts = [self.core]
@@ -136,7 +131,7 @@ class Version:
                 parts.append(f"-{self.pre.name}")
                 if self.pre.number is not None:
                     parts.append(f".{self.pre.number}")
-            return ''.join(parts)
+            return "".join(parts)
 
         if standard in (VersionStandard.CALVER, VersionStandard.LOOSE):
             if self.metadata:
@@ -145,7 +140,7 @@ class Version:
 
         return self.format(VersionStandard.PEP440)
 
-    def _compare_core(self, other: Version) -> int:
+    def _compare_core(self, other: "Version") -> int:
         self_parts = (self.major, self.minor or 0, self.patch or 0, self.rev or 0)
         other_parts = (other.major, other.minor or 0, other.patch or 0, other.rev or 0)
         if self_parts < other_parts:
@@ -154,7 +149,7 @@ class Version:
             return 1
         return 0
 
-    def _compare_pre(self, other: Version) -> int:
+    def _compare_pre(self, other: "Version") -> int:
         if self.pre is None and other.pre is None:
             return 0
         if self.pre is None:
@@ -174,10 +169,10 @@ class Version:
         if not isinstance(other, Version):
             return NotImplemented
         return (
-            self._compare_core(other) == 0 and
-            self._compare_pre(other) == 0 and
-            (self.post or 0) == (other.post or 0) and
-            (self.dev or 0) == (other.dev or 0)
+            self._compare_core(other) == 0
+            and self._compare_pre(other) == 0
+            and (self.post or 0) == (other.post or 0)
+            and (self.dev or 0) == (other.dev or 0)
         )
 
     def __hash__(self) -> int:
@@ -243,7 +238,7 @@ class Version:
         return f">={full_version},<{upper}"
 
     @staticmethod
-    def parse(version_string: Optional[str]) -> Optional[Version]:
+    def parse(version_string: Optional[str]) -> Optional["Version"]:
         if version_string:
             for parser in _get_parsers():
                 result = parser.parse(version_string.strip())

@@ -1,9 +1,15 @@
 from typing import Any, Optional
 
-from .base_resolver import BaseResolver, TokenValue
+from ._base_resolver import BaseResolver, TokenResolver, TokenValue
 
 
 class ListResolver(BaseResolver):
+    @staticmethod
+    def resolve_factory(source: Any) -> Optional[TokenResolver]:
+        if isinstance(source, list):
+            return ListResolver(source)
+        return None
+
     def __init__(self, data: list[Any]):
         self._data = data
 
@@ -37,7 +43,7 @@ class ListResolver(BaseResolver):
                 return next_value if i == args_len - 1 else None
 
             if i < args_len - 1:
-                next_resolver = self.pick_resolver(next_value)
+                next_resolver = BaseResolver.pick_resolver(next_value)
                 if next_resolver:
                     return next_resolver(args[i + 1:])
 

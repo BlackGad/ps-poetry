@@ -201,7 +201,7 @@ Objects can be callable, have nested attributes, or contain dicts/lists.
 
 ### Custom Resolver
 
-Implement a custom resolver by subclassing `BaseResolver`. The resolver receives the full `args` list from the token — for example, `{key:arg1:arg2}` passes `["arg1", "arg2"]`. Use `pick_resolver()` to delegate remaining args to a sub-resolver when navigation needs to continue into a returned value.
+Implement a custom resolver by subclassing `BaseResolver`. The resolver receives the full `args` list from the token — for example, `{key:arg1:arg2}` passes `["arg1", "arg2"]`. Use `BaseResolver.pick_resolver()` to obtain a resolver for an intermediate value and delegate remaining args to it.
 
 ```python
 from typing import Optional
@@ -220,9 +220,7 @@ class RegistryResolver(BaseResolver):
         if value is None:
             return None
         if len(args) > 1:
-            sub = self.pick_resolver(value)
-            if sub is None:
-                return None
+            sub = BaseResolver.pick_resolver(value)
             result = sub(args[1:])
             return str(result) if result is not None else None
         return str(value)
@@ -454,10 +452,20 @@ Abstract base class for implementing custom token resolvers.
 ```python
 class BaseResolver(ABC):
     def __call__(self, args: list[str]) -> Optional[TokenValue]: ...
-    def pick_resolver(self, value: Any) -> Optional[Callable]: ...
+
+    @staticmethod
+    def resolve_factory(source: Any) -> Optional[TokenResolver]: ...
+
+    @classmethod
+    def register_resolvers(cls, factories: Iterable[ResolverFactory]) -> None: ...
+
+    @classmethod
+    def pick_resolver(cls, source: Any) -> TokenResolver: ...
 ```
 
-Subclass `BaseResolver` and implement `__call__` to receive the full `args` list from the token. Call `pick_resolver(value)` to obtain a resolver for an intermediate value and delegate remaining args to it.
+Subclass `BaseResolver` and implement `__call__` to receive the full `args` list from the token. Call `BaseResolver.pick_resolver(value)` to obtain a resolver for an intermediate value and delegate remaining args to it.
+
+To register custom resolver factories, call `BaseResolver.register_resolvers(factories)` with an iterable of `ResolverFactory` callables. Each factory receives a source value and returns a `TokenResolver` or `None` if it cannot handle that source type. Registered factories are consulted in registration order.
 
 ### ValidationResult
 

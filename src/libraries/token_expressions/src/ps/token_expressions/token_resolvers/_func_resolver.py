@@ -1,9 +1,16 @@
-from typing import Callable, Optional
+import inspect
+from typing import Any, Callable, Optional
 
-from .base_resolver import BaseResolver, TokenValue
+from ._base_resolver import BaseResolver, TokenResolver, TokenValue
 
 
 class FuncResolver(BaseResolver):
+    @staticmethod
+    def resolve_factory(source: Any) -> Optional[TokenResolver]:
+        if inspect.isfunction(source) or inspect.ismethod(source):
+            return FuncResolver(source)
+        return None
+
     def __init__(self, func: Callable[[str], Optional[TokenValue]]):
         self._func = func
 
@@ -18,7 +25,7 @@ class FuncResolver(BaseResolver):
 
         if not isinstance(result, (str, int, bool, list)):
             if len(args) > 1:
-                sub_resolver = self.pick_resolver(result)
+                sub_resolver = BaseResolver.pick_resolver(result)
                 if sub_resolver is None:
                     return None
                 return sub_resolver(args[1:])

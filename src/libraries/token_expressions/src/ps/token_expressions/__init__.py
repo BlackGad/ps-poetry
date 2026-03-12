@@ -1,6 +1,6 @@
-from .expression_factory import ExpressionFactory
-from .token_resolvers.base_resolver import BaseResolver
-from .validation import (
+from ._expression_factory import ExpressionFactory
+from .token_resolvers import BaseResolver, ResolverFactory
+from ._validation import (
     ExpressionSyntaxError,
     FallbackTokenError,
     MissingResolverError,
@@ -15,6 +15,7 @@ __all__ = [
     "ExpressionSyntaxError",
     "FallbackTokenError",
     "MissingResolverError",
+    "ResolverFactory",
     "TokenError",
     "UnresolvedTokenError",
     "ValidationResult",

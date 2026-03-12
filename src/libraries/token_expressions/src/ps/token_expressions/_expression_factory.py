@@ -1,8 +1,8 @@
 import re
 from typing import Any, Callable, Optional, Sequence, Tuple, Union
 
-from .token_resolvers.resolver import _pick_resolver
-from .validation import (
+from .token_resolvers import BaseResolver
+from ._validation import (
     ExpressionSyntaxError,
     FallbackTokenError,
     MissingResolverError,
@@ -20,7 +20,7 @@ DefaultCallback = Callable[[str, list[str]], TokenValue]
 
 _TOKEN_PATTERN = re.compile(r"\{([^{}]+)\}")
 
-_KEYWORDS = {'and', 'or', 'not', 'in', 'True', 'False', '(', ')'}
+_KEYWORDS = {"and", "or", "not", "in", "True", "False", "(", ")"}
 
 
 def _is_numeric_string(value: str) -> bool:
@@ -52,69 +52,77 @@ def _parse_token(expression: str) -> Tuple[str, list[str], str, bool]:
 def _check_balanced_parentheses(expr: str) -> Optional[ExpressionSyntaxError]:
     paren_count = 0
     for i, char in enumerate(expr):
-        if char == '(':
+        if char == "(":
             paren_count += 1
-        elif char == ')':
+        elif char == ")":
             paren_count -= 1
             if paren_count < 0:
                 return ExpressionSyntaxError(
-                    token=expr, position=i,
-                    message=f"Unmatched closing parenthesis at position {i}"
+                    token=expr,
+                    position=i,
+                    message=f"Unmatched closing parenthesis at position {i}",
                 )
     if paren_count > 0:
         return ExpressionSyntaxError(
-            token=expr, position=0,
-            message=f"Unmatched opening parenthesis ({paren_count} unclosed)"
+            token=expr,
+            position=0,
+            message=f"Unmatched opening parenthesis ({paren_count} unclosed)",
         )
     return None
 
 
 def _validate_token_sequence(expr: str, tokens: list[str]) -> ValidationResult:
     errors: list[TokenError] = []
-    operators, binary_operators, previous, expect_operand = {'and', 'or', 'not', 'in'}, {'and', 'or', 'in'}, None, True
+    operators, binary_operators, previous, expect_operand = {"and", "or", "not", "in"}, {"and", "or", "in"}, None, True
 
     for i, current in enumerate(tokens):
-        if current == '(':
-            if previous and previous not in operators and previous != '(':
+        if current == "(":
+            if previous and previous not in operators and previous != "(":
                 errors.append(ExpressionSyntaxError(
-                    token=expr, position=0,
-                    message=f"Unexpected '(' after {previous} at token position {i}"
+                    token=expr,
+                    position=0,
+                    message=f"Unexpected '(' after {previous} at token position {i}",
                 ))
             expect_operand = True
-        elif current == ')':
-            if expect_operand and previous != ')':
+        elif current == ")":
+            if expect_operand and previous != ")":
                 errors.append(ExpressionSyntaxError(
-                    token=expr, position=0,
-                    message=f"Unexpected ')' at token position {i}, expected operand"
+                    token=expr,
+                    position=0,
+                    message=f"Unexpected ')' at token position {i}, expected operand",
                 ))
             expect_operand = False
-        elif current == 'not':
-            if not expect_operand and previous != '(' and previous not in operators:
+        elif current == "not":
+            if not expect_operand and previous != "(" and previous not in operators:
                 errors.append(ExpressionSyntaxError(
-                    token=expr, position=0,
-                    message=f"Unexpected 'not' at token position {i}, expected binary operator"
+                    token=expr,
+                    position=0,
+                    message=f"Unexpected 'not' at token position {i}, expected binary operator",
                 ))
             expect_operand = True
         elif current in binary_operators:
             if expect_operand:
                 errors.append(ExpressionSyntaxError(
-                    token=expr, position=0,
-                    message=f"Unexpected operator '{current}' at token position {i}, expected operand"
+                    token=expr,
+                    position=0,
+                    message=f"Unexpected operator '{current}' at token position {i}, expected operand",
                 ))
             expect_operand = True
         else:
             if not expect_operand and previous not in operators:
                 errors.append(ExpressionSyntaxError(
-                    token=expr, position=0,
-                    message=f"Unexpected operand '{current}' at token position {i}, expected operator"
+                    token=expr,
+                    position=0,
+                    message=f"Unexpected operand '{current}' at token position {i}, expected operator",
                 ))
             expect_operand = False
         previous = current
 
-    if expect_operand and previous not in {'(', ')'}:
+    if expect_operand and previous not in {"(", ")"}:
         errors.append(ExpressionSyntaxError(
-            token=expr, position=0,
-            message="Expression ends unexpectedly, expected operand"
+            token=expr,
+            position=0,
+            message="Expression ends unexpectedly, expected operand",
         ))
 
     return ValidationResult(errors=errors)
@@ -143,37 +151,37 @@ def _process_quoted_string(expr: str, i: int) -> tuple[str, int]:
             i += 1
             break
         i += 1
-    return ''.join(string_chars), i
+    return "".join(string_chars), i
 
 
 def _process_bracket_list(expr: str, i: int) -> tuple[str, int]:
     bracket_depth = 1
-    list_chars = ['[']
+    list_chars = ["["]
     i += 1
     while i < len(expr) and bracket_depth > 0:
         char = expr[i]
         list_chars.append(char)
-        if char == '[':
+        if char == "[":
             bracket_depth += 1
-        elif char == ']':
+        elif char == "]":
             bracket_depth -= 1
         i += 1
-    return ''.join(list_chars), i
+    return "".join(list_chars), i
 
 
 def _tokenize_expression(expr: str) -> list[str]:
     tokens, chars = [], []
-    operators = ('and', 'or', 'not', 'in')
+    operators = ("and", "or", "not", "in")
     i = 0
 
     def flush_word() -> None:
-        if chars and (word := ''.join(chars).strip()):
+        if chars and (word := "".join(chars).strip()):
             if word in operators:
                 tokens.append(word)
-            elif word.lower() == 'true':
-                tokens.append('True')
-            elif word.lower() == 'false':
-                tokens.append('False')
+            elif word.lower() == "true":
+                tokens.append("True")
+            elif word.lower() == "false":
+                tokens.append("False")
             else:
                 tokens.append(word)
             chars.clear()
@@ -189,18 +197,18 @@ def _tokenize_expression(expr: str) -> list[str]:
             continue
 
         # Handle lists
-        if char == '[':
+        if char == "[":
             flush_word()
             list_token, i = _process_bracket_list(expr, i)
             tokens.append(list_token)
             continue
 
         # Handle parentheses
-        if char in ('(', ')'):
+        if char in ("(", ")"):
             flush_word()
             tokens.append(char)
         # Handle whitespace
-        elif char in (' ', '\t'):
+        elif char in (" ", "\t"):
             flush_word()
         # Accumulate characters
         else:
@@ -216,7 +224,7 @@ def _evaluate_expression(expr: str) -> bool:
     if not (expr := expr.strip()):
         return False
     try:
-        return bool(eval(' '.join(_tokenize_expression(expr)), {"__builtins__": {}}, {}))  # noqa: S307
+        return bool(eval(" ".join(_tokenize_expression(expr)), {"__builtins__": {}}, {}))  # noqa: S307
     except Exception:
         return False
 
@@ -228,7 +236,7 @@ class ExpressionFactory:
         default_callback: Optional[DefaultCallback] = None,
         max_recursion_depth: int = 10,
     ) -> None:
-        self._token_resolvers = [(key, _pick_resolver(resolver)) for key, resolver in token_resolvers]
+        self._token_resolvers = [(key, BaseResolver.pick_resolver(resolver)) for key, resolver in token_resolvers]
         self._default_callback = default_callback
         self._max_recursion_depth = max_recursion_depth
 
@@ -326,8 +334,9 @@ class ExpressionFactory:
             tokens = _tokenize_expression(materialized)
         except Exception as e:
             return ValidationResult(errors=[ExpressionSyntaxError(
-                token=materialized, position=0,
-                message=f"Failed to tokenize expression: {e}"
+                token=materialized,
+                position=0,
+                message=f"Failed to tokenize expression: {e}",
             )])
 
         if not tokens:

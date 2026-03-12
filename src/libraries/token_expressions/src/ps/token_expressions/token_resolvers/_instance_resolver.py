@@ -1,9 +1,13 @@
-from typing import Callable, Optional, cast
+from typing import Any, Callable, Optional, cast
 
-from .base_resolver import BaseResolver, TokenValue
+from ._base_resolver import BaseResolver, TokenResolver, TokenValue
 
 
 class InstanceResolver(BaseResolver):
+    @staticmethod
+    def resolve_factory(source: Any) -> Optional[TokenResolver]:
+        return InstanceResolver(source)
+
     def __init__(self, instance: object):
         self._instance = instance
 
@@ -36,7 +40,7 @@ class InstanceResolver(BaseResolver):
                 return None
 
             if i < args_len - 1:
-                next_resolver = self.pick_resolver(next_value)
+                next_resolver = BaseResolver.pick_resolver(next_value)
                 if next_resolver:
                     result = next_resolver(args[i + 1:])
                     return result if result is not None else None

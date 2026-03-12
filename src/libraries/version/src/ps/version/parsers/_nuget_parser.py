@@ -1,17 +1,17 @@
 import re
 from typing import Optional, cast
 
-from .. import Version, VersionMetadata, VersionPreRelease
-from .base_parser import BaseParser
+from .. import Version, VersionPreRelease
+from ._base_parser import BaseParser
 
 
-class SemVerParser(BaseParser):
+class NuGetParser(BaseParser):
     PATTERN = re.compile(
         r"^(?P<major>\d+)"
         r"\.(?P<minor>\d+)"
         r"\.(?P<patch>\d+)"
-        r"(?:-(?P<pre>[0-9A-Za-z\-]+(?:\.[0-9A-Za-z\-]+)*))?"
-        r"(?:\+(?P<meta>[0-9A-Za-z\-]+(?:\.[0-9A-Za-z\-]+)*))?$"
+        r"(?:\.(?P<rev>\d+))?"
+        r"(?:-(?P<pre>[0-9A-Za-z\-]+(?:\.[0-9A-Za-z\-]+)*))?$"
     )
 
     def parse(self, version_string: str) -> Optional[Version]:
@@ -29,14 +29,14 @@ class SemVerParser(BaseParser):
                 pre_num = pre_parts.group(2)
                 pre_release = VersionPreRelease(
                     cast(str, pre_parts.group(1)),
-                    int(pre_num) if pre_num else None
+                    int(pre_num) if pre_num else None,
                 )
 
-        meta = groups["meta"]
+        rev = groups["rev"]
         return Version(
             major=int(groups["major"]),
             minor=int(groups["minor"]),
             patch=int(groups["patch"]),
+            rev=int(rev) if rev else None,
             pre=pre_release,
-            metadata=VersionMetadata(cast(str, meta)) if meta else None,
         )

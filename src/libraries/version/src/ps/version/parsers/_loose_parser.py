@@ -2,13 +2,13 @@ import re
 from typing import Optional, cast
 
 from .. import Version, VersionMetadata
-from .base_parser import BaseParser
+from ._base_parser import BaseParser
 
 
-class CalVerParser(BaseParser):
+class LooseParser(BaseParser):
     PATTERN = re.compile(
-        r"^(?P<major>20\d{2}|\d{2})"
-        r"\.(?P<minor>\d+)"
+        r"^(?P<major>\d+)"
+        r"(?:\.(?P<minor>\d+))?"
         r"(?:\.(?P<patch>\d+))?"
         r"(?:\.(?P<rev>\d+))?"
         r"(?:[.\-+](?P<suffix>.+))?$"
@@ -20,18 +20,14 @@ class CalVerParser(BaseParser):
             return None
 
         groups = match.groupdict()
-        major = int(groups["major"])
-
-        if major < 20 or (major > 99 and major < 2020):
-            return None
-
+        minor = groups["minor"]
         patch = groups["patch"]
         rev = groups["rev"]
         suffix = groups["suffix"]
 
         return Version(
-            major=major,
-            minor=int(groups["minor"]),
+            major=int(groups["major"]),
+            minor=int(minor) if minor else None,
             patch=int(patch) if patch else None,
             rev=int(rev) if rev else None,
             metadata=VersionMetadata(cast(str, suffix)) if suffix else None,
