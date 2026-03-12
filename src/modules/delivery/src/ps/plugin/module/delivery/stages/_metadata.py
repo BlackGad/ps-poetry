@@ -208,7 +208,7 @@ def resolve_environment_metadata(
         factory = ExpressionFactory(
             token_resolvers=[
                 ("in", input_version),
-                ("env", lambda args: os.getenv(args[0]) if args else None),
+                ("env", lambda args: Version.parse(os.getenv(args[0])) if args else None),
                 ("spec", project_spec_version)
             ],
             default_callback=lambda _key, _args: ""
