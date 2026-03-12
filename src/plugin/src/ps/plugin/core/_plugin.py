@@ -18,9 +18,9 @@ from ps.plugin.sdk.events import ActivateProtocol, ListenerCommandProtocol, List
 from ps.plugin.sdk.project import Environment
 from ps.plugin.sdk.di import DI
 
-from .di import _DI
-from .modules_handler import ModulesHandler
-from .logging import _log_debug, _log_verbose, _get_module_verbal_name
+from ._di import _DI
+from ._modules_handler import _ModulesHandler
+from ps.plugin.sdk.logging import log_debug, log_verbose, get_module_verbal_name
 
 
 def _create_standard_io() -> IO:
@@ -44,13 +44,13 @@ class Plugin(ApplicationPlugin):
         try:
             settings: PluginSettings = parse_plugin_settings_from_document(project_toml)
             if not settings.enabled:
-                _log_verbose(io, f"<fg=yellow>ps-plugin not enabled or disabled in configuration in {application.poetry.pyproject.file}</>")
+                log_verbose(io, f"<fg=yellow>ps-plugin not enabled or disabled in configuration in {application.poetry.pyproject.file}</>")
                 return
         except Exception as e:
-            _log_debug(io, f"<error>Not in a valid poetry project or configuration error: {e}</error>")
+            log_debug(io, f"<error>Not in a valid poetry project or configuration error: {e}</error>")
             return
 
-        _log_verbose(io, "<info>Starting activation</info>")
+        log_verbose(io, "<info>Starting activation</info>")
 
         di = _DI()
         di.register(IO).factory(lambda: io)
@@ -58,21 +58,21 @@ class Plugin(ApplicationPlugin):
         di.register(Environment).factory(lambda path: Environment(path), application.poetry.pyproject_path)
         di.register(PluginSettings).factory(_resolve_settings, di=di)
 
-        modules_handler = ModulesHandler(di)
+        modules_handler = _ModulesHandler(di)
         modules_handler.instantiate_modules()
 
         activate_handlers = modules_handler.acquire_protocol_handlers(ActivateProtocol)
 
-        _log_verbose(io, f"<info>Activating {len(activate_handlers)} modules</info>")
+        log_verbose(io, f"<info>Activating {len(activate_handlers)} modules</info>")
         disabled_handlers: set[object] = set()
         for handler in activate_handlers:
-            _log_debug(io, f"Executing activate for module <comment>{_get_module_verbal_name(handler)}</comment>")
+            log_debug(io, f"Executing activate for module <comment>{get_module_verbal_name(handler)}</comment>")
             try:
                 if not handler.handle_activate(application):
                     disabled_handlers.add(handler)
-                    _log_debug(io, f"Module <comment>{_get_module_verbal_name(handler)}</comment> disabled itself during activation")
+                    log_debug(io, f"Module <comment>{get_module_verbal_name(handler)}</comment> disabled itself during activation")
             except Exception as e:
-                io.write_error_line(f"<error>Error during activation of module <comment>{_get_module_verbal_name(handler)}</comment>: {e}</error>")
+                io.write_error_line(f"<error>Error during activation of module <comment>{get_module_verbal_name(handler)}</comment>: {e}</error>")
                 raise
 
         protocols_to_register = {
@@ -95,7 +95,7 @@ class Plugin(ApplicationPlugin):
                 handlers)
 
         self.poetry = application.poetry
-        _log_verbose(io, "<info>Activation complete</info>")
+        log_verbose(io, "<info>Activation complete</info>")
 
     def _register_protocol_listener(
         self,
@@ -106,25 +106,25 @@ class Plugin(ApplicationPlugin):
         handlers: list,
     ) -> None:
         if not handlers:
-            _log_debug(io, f"No modules implement protocol <comment>{protocol_type.__name__}</comment>; skipping listener registration")
+            log_debug(io, f"No modules implement protocol <comment>{protocol_type.__name__}</comment>; skipping listener registration")
             return
-        _log_verbose(io, f"Found <fg=yellow>{len(handlers)}</> module(s) implementing protocol <comment>{protocol_type.__name__}</comment>")
-        module_names = ", ".join(_get_module_verbal_name(handler) for handler in handlers)
-        _log_debug(io, f"Modules implementing <comment>{protocol_type.__name__}</comment>: <fg=yellow>{module_names}</>")
+        log_verbose(io, f"Found <fg=yellow>{len(handlers)}</> module(s) implementing protocol <comment>{protocol_type.__name__}</comment>")
+        module_names = ", ".join(get_module_verbal_name(handler) for handler in handlers)
+        log_debug(io, f"Modules implementing <comment>{protocol_type.__name__}</comment>: <fg=yellow>{module_names}</>")
 
         # Get the handle_* method name from the protocol type
-        handle_method_name = next((name for name in dir(protocol_type) if name.startswith('handle_')), None)
+        handle_method_name = next((name for name in dir(protocol_type) if name.startswith("handle_")), None)
         if not handle_method_name:
             raise RuntimeError(f"Protocol {protocol_type.__name__} has no handle_* method")
 
         def _listener(event: Event, event_name: str, dispatcher: EventDispatcher) -> None:
-            _log_debug(io, f"Processing <comment>{event_name}</comment> event")
+            log_debug(io, f"Processing <comment>{event_name}</comment> event")
             for handler in handlers:
-                _log_verbose(io, f"<info>Module <comment>{_get_module_verbal_name(handler)}</comment> handling {event_name} event</info>")
+                log_verbose(io, f"<info>Module <comment>{get_module_verbal_name(handler)}</comment> handling {event_name} event</info>")
                 handle_method = getattr(handler, handle_method_name)
                 handle_method(event, event_name, dispatcher)
                 if isinstance(event, ConsoleCommandEvent) and not event.command_should_run():
-                    _log_debug(io, f"Command execution handled by module <comment>{_get_module_verbal_name(handler)}</comment>; stopping further processing")
+                    log_debug(io, f"Command execution handled by module <comment>{get_module_verbal_name(handler)}</comment>; stopping further processing")
                     break
 
         event_dispatcher.add_listener(event_constant, _listener)

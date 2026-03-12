@@ -9,8 +9,8 @@ from poetry.publishing.publisher import Publisher
 
 from ps.plugin.sdk.project import Project
 
-from .handle_metadata import ResolvedEnvironmentMetadata
-from .handle_parallelization import run_topological
+from ._metadata import ResolvedEnvironmentMetadata
+from .._parallelization import run_topological
 
 
 @dataclass
@@ -34,7 +34,6 @@ def _log_publish_plan(
     all_dep_ids = {id(dep) for item in items for dep in get_deps(item)}
     roots = [item for item in items if id(item) not in all_dep_ids]
 
-    # --- Dependency tree ---
     printed: set[int] = set()
 
     def _print_item(item: _PublishItem, prefix: str, child_prefix: str) -> None:
@@ -60,7 +59,6 @@ def _log_publish_plan(
             "  " + ("    " if is_last else "│   "),
         )
 
-    # --- Publish order (waves) ---
     remaining = {id(item) for item in items}
     done: set[int] = set()
     waves: list[list[_PublishItem]] = []

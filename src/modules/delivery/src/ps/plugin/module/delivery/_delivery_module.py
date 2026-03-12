@@ -1,16 +1,15 @@
-from cleo.events.console_command_event import ConsoleCommandEvent
-from cleo.events.console_terminate_event import ConsoleTerminateEvent
-from cleo.events.event_dispatcher import EventDispatcher
 from pathlib import Path
 from typing import ClassVar, Optional
 
-from cleo.io.inputs.input import Input
+from cleo.events.console_command_event import ConsoleCommandEvent
+from cleo.events.console_terminate_event import ConsoleTerminateEvent
+from cleo.events.event_dispatcher import EventDispatcher
 from cleo.io.inputs.argument import Argument
+from cleo.io.inputs.input import Input
 from cleo.io.inputs.option import Option
-
+from poetry.console.application import Application
 from poetry.console.commands.build import BuildCommand
 from poetry.console.commands.publish import PublishCommand
-from poetry.console.application import Application
 
 from ps.version import Version
 from ps.plugin.sdk.project import Environment, filter_projects
@@ -18,10 +17,7 @@ from ps.plugin.sdk.events import ActivateProtocol, ListenerCommandProtocol, List
 from ps.plugin.sdk.mixins import NameAwareProtocol
 from ps.plugin.sdk.di import DI
 
-from .handle_metadata import resolve_environment_metadata, ResolvedProjectMetadata
-from .handle_projects_patch import patch_projects
-from .handle_build import build_projects
-from .handle_publish import publish_projects
+from .stages import build_projects, patch_projects, publish_projects, resolve_environment_metadata, ResolvedProjectMetadata
 
 
 BUILD_VERSION_OPTION = "build-version"
@@ -94,14 +90,14 @@ class DeliveryModule(
             inputs.append(str(environment.entry_project.path))
 
         input_version = Version.parse(_get_version_option(event.io.input))
-        projects_metadata = resolve_environment_metadata(
+        environment_metadata = resolve_environment_metadata(
             event.io,
             input_version,
             environment.host_project,
             environment.projects)
 
         filtered_projects = filter_projects(inputs, environment.projects)
-        excluded = {id(p) for p in filtered_projects if not (projects_metadata.projects.get(p.path) or ResolvedProjectMetadata()).deliver}
+        excluded = {id(p) for p in filtered_projects if not (environment_metadata.projects.get(p.path) or ResolvedProjectMetadata()).deliver}
         event.io.write_line("<fg=magenta>Delivery scope:</>")
         for p in filtered_projects:
             name = p.name.value or p.path.name
@@ -118,7 +114,7 @@ class DeliveryModule(
             environment.backup_projects(filtered_projects)
 
             # Patch all projects
-            patch_exit_code = patch_projects(event.io, filtered_projects, projects_metadata)
+            patch_exit_code = patch_projects(event.io, filtered_projects, environment_metadata)
             if patch_exit_code != 0:
                 self._exit_code = patch_exit_code
                 return
@@ -133,7 +129,7 @@ class DeliveryModule(
                 self._exit_code = publish_projects(
                     event.io,
                     filtered_projects,
-                    projects_metadata,
+                    environment_metadata,
                     repository=opts.get("repository"),
                     username=opts.get("username"),
                     password=opts.get("password"),

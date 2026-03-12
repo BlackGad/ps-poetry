@@ -3,8 +3,9 @@ from cleo.io.io import IO
 
 from ps.version import Version
 from ps.plugin.sdk.project import Project
-from .handle_metadata import ResolvedEnvironmentMetadata
-from .handle_parallelization import run_parallel
+
+from ._metadata import ResolvedEnvironmentMetadata
+from .._parallelization import run_parallel
 
 
 def _patch_project_version(

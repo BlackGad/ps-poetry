@@ -13,7 +13,7 @@ from ps.plugin.sdk.project import (
     ProjectDependency,
 )
 
-from .delivery_settings import DeliverySettings
+from .._delivery_settings import DeliverySettings
 
 _default_version_patterns: list[str] = [
     "[{in}] {in}",

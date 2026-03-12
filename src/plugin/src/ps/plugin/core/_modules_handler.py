@@ -7,7 +7,7 @@ from cleo.io.io import IO
 from ps.plugin.sdk.events import ActivateProtocol, ListenerCommandProtocol, ListenerTerminateProtocol, ListenerErrorProtocol, ListenerSignalProtocol
 from ps.plugin.sdk.di import DI
 from ps.plugin.sdk.settings import PluginSettings
-from .logging import _log_debug, _get_module_verbal_name, _get_module_name
+from ps.plugin.sdk.logging import log_debug, get_module_verbal_name, get_module_name
 
 
 def _load_module_class_types() -> Iterable[tuple[str, Type]]:
@@ -41,7 +41,7 @@ def _load_module_class_types() -> Iterable[tuple[str, Type]]:
     return [(entry_spec, module_type) for module_type, entry_spec in type_to_entry.items()]
 
 
-class ModulesHandler:
+class _ModulesHandler:
     def __init__(self, di: DI) -> None:
         self._modules_instances: List[object] = []
         self._managed_protocols: dict[Type, List[object]] = {}
@@ -56,7 +56,7 @@ class ModulesHandler:
         module_entries = _load_module_class_types()
         all_module_types_list = [(entry_spec, module_type) for entry_spec, module_type in module_entries]
         name_to_entry: dict[str, tuple[str, Type]] = {
-            _get_module_name(module_type): (entry_spec, module_type)
+            get_module_name(module_type): (entry_spec, module_type)
             for entry_spec, module_type in all_module_types_list
         }
 
@@ -75,20 +75,20 @@ class ModulesHandler:
         available_not_selected = [
             (entry_spec, module_type)
             for entry_spec, module_type in all_module_types_list
-            if _get_module_name(module_type) not in selected_names
+            if get_module_name(module_type) not in selected_names
         ]
 
         if io.is_verbose():
             io.write_line("<fg=magenta>Selected modules:</>")
             for idx, (entry_spec, module_type) in enumerate(module_types_list, start=1):
                 suffix = f" <fg=dark_gray>[{entry_spec}]</>" if io.is_debug() else ""
-                io.write_line(f"  {idx}. <fg=cyan>{_get_module_name(module_type)}</>{suffix}")
+                io.write_line(f"  {idx}. <fg=cyan>{get_module_name(module_type)}</>{suffix}")
 
         if io.is_debug() and available_not_selected:
             io.write_line("\n<fg=magenta>Available but not selected:</>")
             for entry_spec, module_type in available_not_selected:
                 suffix = f" <fg=dark_gray>[{entry_spec}]</>" if io.is_debug() else ""
-                io.write_line(f"  - <fg=dark_gray>{_get_module_name(module_type)}</>{suffix}")
+                io.write_line(f"  - <fg=dark_gray>{get_module_name(module_type)}</>{suffix}")
 
         protocols: List[Type] = [
             ActivateProtocol,
@@ -106,9 +106,9 @@ class ModulesHandler:
             if not supported_protocols_by_module:
                 # Module class does not support any known protocol
                 continue
-            _log_debug(io, f"Module <comment>{_get_module_verbal_name(module_type)}</comment> supports {len(supported_protocols_by_module)} protocol(s):")
+            log_debug(io, f"Module <comment>{get_module_verbal_name(module_type)}</comment> supports {len(supported_protocols_by_module)} protocol(s):")
             for protocol in supported_protocols_by_module:
-                _log_debug(io, f"  - <fg=yellow>{protocol.__name__}</>")
+                log_debug(io, f"  - <fg=yellow>{protocol.__name__}</>")
             # Instantiate the module
             module_instance = self._di.spawn(module_type)
             self._modules_instances.append(module_instance)

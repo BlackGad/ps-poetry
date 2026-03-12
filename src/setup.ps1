@@ -3,9 +3,10 @@ $WorkspaceRoot = $PSScriptRoot
 
 Write-Host "Cleaning workspace..." -ForegroundColor Cyan
 
-# Remove all folders starting with '.'
+# Remove all folders starting with '.' except .agents and .vscode
 Write-Host "Removing folders starting with '.'..." -ForegroundColor Yellow
-Get-ChildItem -Path $WorkspaceRoot -Directory -Recurse -Force -Filter ".*" -ErrorAction SilentlyContinue | ForEach-Object {
+$excludedDotFolders = @(".agents", ".vscode")
+Get-ChildItem -Path $WorkspaceRoot -Directory -Recurse -Force -Filter ".*" -ErrorAction SilentlyContinue | Where-Object { $excludedDotFolders -notcontains $_.Name } | ForEach-Object {
     Write-Host "  Removing: $($_.FullName)" -ForegroundColor Gray
     Remove-Item -Path $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
 }
@@ -13,6 +14,13 @@ Get-ChildItem -Path $WorkspaceRoot -Directory -Recurse -Force -Filter ".*" -Erro
 # Remove all __pycache__ folders
 Write-Host "Removing __pycache__ folders..." -ForegroundColor Yellow
 Get-ChildItem -Path $WorkspaceRoot -Directory -Recurse -Filter "__pycache__" -ErrorAction SilentlyContinue | ForEach-Object {
+    Write-Host "  Removing: $($_.FullName)" -ForegroundColor Gray
+    Remove-Item -Path $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+# Remove all dist folders
+Write-Host "Removing dist folders..." -ForegroundColor Yellow
+Get-ChildItem -Path $WorkspaceRoot -Directory -Recurse -Filter "dist" -ErrorAction SilentlyContinue | ForEach-Object {
     Write-Host "  Removing: $($_.FullName)" -ForegroundColor Gray
     Remove-Item -Path $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
 }

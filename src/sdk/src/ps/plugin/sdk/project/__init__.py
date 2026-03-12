@@ -1,4 +1,3 @@
-from ._toml_value import TomlValue
 from ._models import Project, ProjectDependency, ProjectFeedSource, SourcePriority
 from ._environment import Environment
 from ._projects_helper import filter_projects
@@ -11,7 +10,6 @@ from ._parsers import (
 )
 
 __all__ = [
-    "TomlValue",
     "Project",
     "ProjectDependency",
     "ProjectFeedSource",

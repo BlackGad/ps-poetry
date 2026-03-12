@@ -9,7 +9,7 @@ from packaging.specifiers import SpecifierSet
 from ps.version import Version, VersionConstraint
 
 from ..settings._settings import PluginSettings
-from ._toml_value import TomlValue
+from ..toml._toml_value import TomlValue
 
 
 class SourcePriority(StrEnum):

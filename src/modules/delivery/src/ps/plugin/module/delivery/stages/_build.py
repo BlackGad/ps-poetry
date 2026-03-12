@@ -3,17 +3,17 @@ from typing import Any, Optional
 
 from cleo.io.buffered_io import BufferedIO
 from cleo.io.io import IO
-from poetry.console.logging.io_formatter import IOFormatter
 from poetry.console.commands.build import (
     BuildHandler,
     BuildOptions,
 )
+from poetry.console.logging.io_formatter import IOFormatter
 from poetry.factory import Factory
 from poetry.utils.env import EnvManager
 
 from ps.plugin.sdk.project import Project
 
-from .handle_parallelization import ThreadLocalIOHandler, run_parallel
+from .._parallelization import ThreadLocalIOHandler, run_parallel
 
 
 _THREAD_LOG_HANDLER = ThreadLocalIOHandler()

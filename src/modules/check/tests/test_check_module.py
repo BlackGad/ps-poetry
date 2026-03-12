@@ -4,11 +4,11 @@ from unittest.mock import MagicMock
 
 from cleo.io.io import IO
 
-from ps.plugin.core.di import _DI
+from ps.plugin.core._di import _DI
 from ps.plugin.sdk.check import ICheck
 from ps.plugin.sdk.project import Project, parse_project
-from ps.plugin.module.check.check_module import _filter_checkers, _perform_checks
-from ps.plugin.module.check.check_settings import CheckSettings
+from ps.plugin.module.check._check_module import _filter_checkers, _perform_checks
+from ps.plugin.module.check._check_settings import CheckSettings
 
 
 # ---------------------------------------------------------------------------

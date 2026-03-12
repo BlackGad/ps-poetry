@@ -1,6 +1,6 @@
 from tomlkit import TOMLDocument
 
-from ..project._toml_value import TomlValue
+from ..toml._toml_value import TomlValue
 from ._settings import PluginSettings
 
 

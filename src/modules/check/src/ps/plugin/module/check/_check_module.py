@@ -1,29 +1,23 @@
+from typing import ClassVar, Optional, Type
+
 from cleo.events.console_command_event import ConsoleCommandEvent
 from cleo.events.console_terminate_event import ConsoleTerminateEvent
 from cleo.events.event_dispatcher import EventDispatcher
-from typing import ClassVar, Optional, Type
-
-from cleo.io.io import IO
-from cleo.io.inputs.input import Input
 from cleo.io.inputs.argument import Argument
+from cleo.io.inputs.input import Input
 from cleo.io.inputs.option import Option
-
-from poetry.console.commands.check import CheckCommand
+from cleo.io.io import IO
 from poetry.console.application import Application
+from poetry.console.commands.check import CheckCommand
 
-
-from ps.plugin.sdk.project import Project, Environment, filter_projects
+from ps.plugin.sdk.check import ICheck
+from ps.plugin.sdk.di import DI
 from ps.plugin.sdk.events import ActivateProtocol, ListenerCommandProtocol, ListenerTerminateProtocol, ensure_argument, ensure_option
 from ps.plugin.sdk.mixins import NameAwareProtocol
-from ps.plugin.sdk.di import DI
-from ps.plugin.sdk.check import ICheck
+from ps.plugin.sdk.project import Environment, Project, filter_projects
 
-from .check_settings import CheckSettings
-from .checks.poetry_check import PoetryCheck
-from .checks.environment_check import EnvironmentCheck
-from .checks.ruff_check import RuffCheck
-from .checks.pylint_check import PylintCheck
-from .checks.pytest_check import PytestCheck
+from ._check_settings import CheckSettings
+from .checks import EnvironmentCheck, PoetryCheck, PylintCheck, PytestCheck, RuffCheck
 
 
 def _filter_checkers[T: NameAwareProtocol](available_checkers: list[T], check_settings: CheckSettings, io: IO) -> list[T]:

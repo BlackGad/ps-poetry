@@ -4,7 +4,7 @@ from tomlkit import TOMLDocument, parse
 from packaging.requirements import Requirement
 
 from ._models import Project, ProjectDependency, ProjectFeedSource, SourcePriority
-from ._toml_value import TomlValue
+from ..toml._toml_value import TomlValue
 from ..settings._parsers import parse_plugin_settings_from_document
 
 

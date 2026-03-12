@@ -3,7 +3,7 @@ import sys
 import runpy
 from pathlib import Path
 
-from plugin.src.ps.plugin.core.plugin import Plugin
+from plugin.src.ps.plugin.core import Plugin
 from poetry.console.application import Application as PoetryApplication
 
 LOG_PREFIX = "[PS-Launcher]"

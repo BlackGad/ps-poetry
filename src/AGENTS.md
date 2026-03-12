@@ -91,6 +91,42 @@ poetry run pytest -v
 * Avoid duplicating code that already exists elsewhere in the codebase
 * Never modify files in the `experiments/` directory
 
+## Code Style Rules
+
+### Imports
+
+* Order: `stdlib → third-party → local`, separated by blank lines between groups
+* Do NOT use `from __future__ import annotations`
+* Do NOT use `TYPE_CHECKING` guards
+
+### Type Hints
+
+* Nullable types: `Optional[X]` — never `X | None`
+* `|` union operator is acceptable in function signatures (e.g., `str | SpecifierSet`)
+* Type hints are mandatory on all function parameters and return values
+
+### Naming
+
+* Functions and variables: `snake_case`
+* Classes: `PascalCase`
+* Private methods, attributes, and module files: `_single_underscore_prefix`
+* Constants (`ClassVar`) and all enum members: `UPPER_SNAKE_CASE`
+
+### Strings
+
+* Double quotes everywhere; single quotes only when the string itself contains a double quote
+
+### Classes
+
+* Abstract interfaces: inherit from both `Protocol` and `ABC`; always apply `@runtime_checkable`
+* Method order within a class: `__init__` → special methods → `@property`/`@computed_field` → public methods → private methods
+
+### File / Module Structure
+
+* Private implementation in `_*.py` files
+* Public API exposed through `__init__.py` with explicit `__all__`
+* Imports re-exported in `__init__.py`: `from ._module import Symbol`
+
 ## Code Generation Rules
 
 * **Docstrings Policy** — **DO NOT generate docstrings unless the user explicitly requests them.** When explicitly requested:

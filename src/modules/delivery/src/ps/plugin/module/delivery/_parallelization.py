@@ -1,7 +1,7 @@
 import logging
 import threading
 from concurrent.futures import ThreadPoolExecutor
-from typing import Callable, TypeVar
+from typing import Callable, Optional, TypeVar
 
 from cleo.formatters.formatter import Formatter
 from cleo.io.buffered_io import BufferedIO
@@ -14,7 +14,7 @@ _thread_io: threading.local = threading.local()
 
 class ThreadLocalIOHandler(logging.Handler):
     def emit(self, record: logging.LogRecord) -> None:
-        bio: BufferedIO | None = getattr(_thread_io, "io", None)
+        bio: Optional[BufferedIO] = getattr(_thread_io, "io", None)
         if bio is None:
             return
         try:

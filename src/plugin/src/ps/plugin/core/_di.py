@@ -70,7 +70,6 @@ class _DI(DI):
         self._type_name_cache: dict[str, Type] = {}
 
     def _resolve_type(self, key: Type[T] | str) -> Type[T]:
-        """Resolve a type from either a Type object or a string name."""
         if isinstance(key, str):
             if key not in self._type_name_cache:
                 # Try to find the type in the registry by matching __name__

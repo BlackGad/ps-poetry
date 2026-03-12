@@ -1,4 +1,4 @@
-from .delivery_module import DeliveryModule
+from ._delivery_module import DeliveryModule
 
 __all__ = [
     "DeliveryModule",

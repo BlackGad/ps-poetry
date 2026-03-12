@@ -1,13 +1,12 @@
 from typing import ClassVar, Optional
-from cleo.io.io import IO
+
 from cleo.io.buffered_io import BufferedIO
-
-from poetry.factory import Factory
+from cleo.io.io import IO
 from poetry.console.commands.check import CheckCommand
+from poetry.factory import Factory
 
-
-from ps.plugin.sdk.project import Project
 from ps.plugin.sdk.check import ICheck
+from ps.plugin.sdk.project import Project
 
 
 class PoetryCheck(ICheck):
@@ -23,7 +22,6 @@ class PoetryCheck(ICheck):
                 poetry_project = Factory().create_poetry(cwd=project.path, io=io)
                 check_command = CheckCommand()
                 check_command.set_poetry(poetry_project)
-                # Use BufferedIO to capture output
                 buffered_io = BufferedIO(decorated=io.is_decorated())
                 check_command.execute(buffered_io)
             except Exception as e:

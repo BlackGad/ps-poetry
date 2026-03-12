@@ -1,8 +1,9 @@
 from typing import Type, Union
+
 from cleo.io.io import IO
 
 
-def _get_module_verbal_name(obj: Union[Type, object], include_type: bool = False) -> str:
+def get_module_verbal_name(obj: Union[Type, object], include_type: bool = False) -> str:
     cls = obj if isinstance(obj, type) else type(obj)
     cls_name = f"<fg=dark_gray>{cls.__module__}.{cls.__name__}</>"
     name_attr = getattr(cls, "name", None)
@@ -13,7 +14,7 @@ def _get_module_verbal_name(obj: Union[Type, object], include_type: bool = False
     return cls_name
 
 
-def _get_module_name(obj: Union[Type, object]) -> str:
+def get_module_name(obj: Union[Type, object]) -> str:
     cls = obj if isinstance(obj, type) else type(obj)
     cls_name = f"{cls.__module__}.{cls.__name__}"
     name_attr = getattr(cls, "name", None)
@@ -24,11 +25,11 @@ def _get_module_name(obj: Union[Type, object]) -> str:
     return cls_name
 
 
-def _log_verbose(io: IO, message: str) -> None:
+def log_verbose(io: IO, message: str) -> None:
     if io.is_verbose():
         io.write_line(message)
 
 
-def _log_debug(io: IO, message: str) -> None:
+def log_debug(io: IO, message: str) -> None:
     if io.is_debug():
         io.write_line(message)

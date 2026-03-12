@@ -1,8 +1,9 @@
 from typing import ClassVar, Optional
+
 from cleo.io.io import IO
 
-from ps.plugin.sdk.project import Project
 from ps.plugin.sdk.check import ICheck
+from ps.plugin.sdk.project import Project
 
 
 class EnvironmentCheck(ICheck):
@@ -20,7 +21,6 @@ class EnvironmentCheck(ICheck):
         return Exception(f"Environment check failed with {len(errors)} error(s)")
 
     def _check_conflicting_sources(self, projects: list[Project]) -> list[str]:
-        # Group occurrences by source name → {field_value: [project_names]}
         urls: dict[str, dict[Optional[str], list[str]]] = {}
         priorities: dict[str, dict[Optional[str], list[str]]] = {}
         names: dict[str, str] = {}

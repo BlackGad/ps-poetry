@@ -2,7 +2,7 @@ import pytest
 import threading
 from typing import List, Optional
 
-from ps.plugin.core.di import _DI
+from ps.plugin.core._di import _DI
 from ps.plugin.sdk.di import DI, Lifetime, Priority
 
 

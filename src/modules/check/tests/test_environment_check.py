@@ -6,7 +6,7 @@ from ps.plugin.sdk.project import (
     Project,
     parse_project,
 )
-from ps.plugin.module.check.checks.environment_check import EnvironmentCheck
+from ps.plugin.module.check.checks import EnvironmentCheck
 
 
 def make_project(tmp_path: Path, name: str, sources: str = "") -> Project:
