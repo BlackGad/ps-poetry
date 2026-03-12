@@ -15,6 +15,7 @@ from ps.plugin.sdk.project import (
 )
 
 from .._delivery_settings import DeliverySettings
+from ..token_resolvers import DateResolver
 
 _default_version_patterns: list[str] = [
     "[{in}] {in}",
@@ -22,27 +23,6 @@ _default_version_patterns: list[str] = [
     "{spec}"
 ]
 _default_version: Version = Version()
-
-
-def _format_date(dt: datetime, cs_format: str) -> str:
-    py_format = (
-        cs_format
-        .replace("yyyy", "\x00YYYY\x00")
-        .replace("yy", "\x00YY\x00")
-        .replace("MM", "\x00MONTH\x00")
-        .replace("dd", "\x00DAY\x00")
-        .replace("HH", "\x00HOUR24\x00")
-        .replace("mm", "\x00MINUTE\x00")
-        .replace("ss", "\x00SEC\x00")
-        .replace("\x00YYYY\x00", "%Y")
-        .replace("\x00YY\x00", "%y")
-        .replace("\x00MONTH\x00", "%m")
-        .replace("\x00DAY\x00", "%d")
-        .replace("\x00HOUR24\x00", "%H")
-        .replace("\x00MINUTE\x00", "%M")
-        .replace("\x00SEC\x00", "%S")
-    )
-    return dt.strftime(py_format)
 
 
 @dataclass
@@ -234,7 +214,7 @@ def resolve_environment_metadata(
                 ("env", lambda arg: os.getenv(arg) if arg else None),
                 ("env-ver", lambda arg: Version.parse(os.getenv(arg)) if arg else None),
                 ("spec", project_spec_version),
-                ("date", lambda arg: _format_date(now, arg) if arg else str(now.date())),
+                ("date", DateResolver(now)),
             ],
             default_callback=lambda _key, _args: ""
         )

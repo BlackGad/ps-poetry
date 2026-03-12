@@ -158,7 +158,45 @@ Examples:
 {date:<format>}
 ```
 
-Uses C# DateTime formatting.
+Formats the current date and time. When no format is provided, returns the date in `YYYY-MM-DD` form.
+
+Three format styles are supported and may be mixed freely within a single format string:
+
+**C#-style custom tokens**
+
+| Token  | Meaning           | Example output |
+| ------ | ----------------- | -------------- |
+| `yyyy` | 4-digit year      | `2026`         |
+| `yy`   | 2-digit year      | `26`           |
+| `MM`   | 2-digit month     | `03`           |
+| `dd`   | 2-digit day       | `12`           |
+| `HH`   | 24-hour hour      | `14`           |
+| `mm`   | 2-digit minute    | `05`           |
+| `ss`   | 2-digit second    | `09`           |
+
+**Python strftime directives**
+
+Any `%X` directive (e.g. `%Y`, `%m`, `%H`) is passed through to `strftime` unchanged.
+
+```txt
+{date:%Y-%m-%d}
+{date:%H%M%S}
+```
+
+Mixed C# and Python tokens in the same format are supported:
+
+```txt
+{date:yyyy-%m-dd}
+```
+
+**Standard named formats**
+
+| Name        | Aliases   | Output example                      | Notes                                 |
+| ----------- | --------- | ------------------------------------ | ------------------------------------- |
+| `iso`       |           | `2026-03-12T16:05:09+00:00`          | ISO 8601, seconds precision           |
+| `iso-round` | `o`, `O`  | `2026-03-12T16:05:09.123456+00:00`   | ISO 8601, microseconds precision      |
+| `sortable`  | `s`       | `2026-03-12T16:05:09`                | Similar to .NET `s` specifier         |
+| `universal` | `u`       | `2026-03-12 16:05:09Z`               | UTC; converts timezone-aware inputs   |
 
 Examples:
 
@@ -166,6 +204,9 @@ Examples:
 {date:yyyy.MM.dd}
 {date:yyMM}
 {date:yyyyMMdd}
+{date:iso}
+{date:sortable}
+{date:o}
 ```
 
 ### Random

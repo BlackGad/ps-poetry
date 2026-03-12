@@ -1,4 +1,6 @@
-from ps.token_expressions import ExpressionFactory
+from typing import Optional
+
+from ps.token_expressions import BaseResolver, ExpressionFactory
 
 
 def test_materialize_single_recursion():
@@ -190,3 +192,92 @@ def test_materialize_complex_recursive_template():
 
     result = factory.materialize("Connecting to: {config:{env}}")
     assert result == "Connecting to: prod.example.com"
+
+
+# ---------------------------------------------------------------------------
+# Nested argument syntax: {prov1:{prov2}}
+# Inner token resolves first, its value becomes the argument for the outer token
+# ---------------------------------------------------------------------------
+
+
+def test_nested_arg_inner_resolves_first():
+    factory = ExpressionFactory([
+        ("outer", lambda arg: f"got:{arg}" if arg else "no_args"),
+        ("inner", lambda _: "inner_value"),
+    ])
+    assert factory.materialize("{outer:{inner}}") == "got:inner_value"
+
+
+def test_nested_arg_inner_value_passed_as_arg():
+    factory = ExpressionFactory([
+        ("prefix", lambda arg: arg.upper() if arg else ""),
+        ("key", lambda _: "hello"),
+    ])
+    assert factory.materialize("{prefix:{key}}") == "HELLO"
+
+
+def test_nested_arg_inner_with_its_own_arg():
+    class OuterResolver(BaseResolver):
+        def __call__(self, args: list[str]) -> Optional[str]:
+            return f"outer:{':'.join(args)}" if args else ""
+
+    class InnerResolver(BaseResolver):
+        def __call__(self, args: list[str]) -> Optional[str]:
+            return f"inner:{':'.join(args)}" if args else ""
+
+    factory = ExpressionFactory([
+        ("outer", OuterResolver()),
+        ("inner", InnerResolver()),
+    ])
+    assert factory.materialize("{outer:{inner:x}}") == "outer:inner:x"
+
+
+def test_nested_arg_multiple_outer_args_with_inner():
+    class JoinResolver(BaseResolver):
+        def __call__(self, args: list[str]) -> Optional[str]:
+            return "-".join(args)
+
+    factory = ExpressionFactory([
+        ("join", JoinResolver()),
+        ("val", lambda _: "mid"),
+    ])
+    assert factory.materialize("{join:a:{val}:b}") == "a-mid-b"
+
+
+def test_nested_arg_two_inner_tokens_in_args():
+    class FmtResolver(BaseResolver):
+        def __call__(self, args: list[str]) -> Optional[str]:
+            return f"{args[0]}/{args[1]}" if len(args) >= 2 else ""
+
+    factory = ExpressionFactory([
+        ("fmt", FmtResolver()),
+        ("year", lambda _: "2026"),
+        ("month", lambda _: "03"),
+    ])
+    assert factory.materialize("{fmt:{year}:{month}}") == "2026/03"
+
+
+def test_nested_arg_inner_feeds_into_outer_lookup():
+    config = {"production": "prod.example.com", "staging": "stg.example.com"}
+    factory = ExpressionFactory([
+        ("server", config),
+        ("env", lambda _: "production"),
+    ])
+    assert factory.materialize("{server:{env}}") == "prod.example.com"
+
+
+def test_nested_arg_three_levels_deep():
+    factory = ExpressionFactory([
+        ("a", lambda arg: f"a({arg})" if arg else "a()"),
+        ("b", lambda arg: f"b({arg})" if arg else "b()"),
+        ("c", lambda _: "leaf"),
+    ])
+    assert factory.materialize("{a:{b:{c}}}") == "a(b(leaf))"
+
+
+def test_nested_arg_unresolved_inner_leaves_outer_unresolved():
+    factory = ExpressionFactory([
+        ("outer", lambda arg: f"got:{arg}" if arg else "no_args"),
+    ])
+    result = factory.materialize("{outer:{missing}}")
+    assert result == "{outer:{missing}}"

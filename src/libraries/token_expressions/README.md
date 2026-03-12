@@ -355,6 +355,75 @@ result = factory.materialize("Connecting to: {config:{env}}")
 # Resolution: {env} -> "production" -> {db_host:production} -> "prod.db.com"
 ```
 
+## Nested Token Arguments
+
+A token can be used as an argument to another token by placing it inside the outer token's argument position: `{outer:{inner}}`. The innermost tokens are resolved first; their values are then substituted as arguments for the outer token.
+
+```python
+config = {"production": "prod.example.com", "staging": "stg.example.com"}
+factory = ExpressionFactory([
+    ("server", config),
+    ("env", lambda _: "production"),
+])
+
+factory.materialize("{server:{env}}")   # "prod.example.com"
+# Resolution: {env} -> "production", then {server:production} -> "prod.example.com"
+```
+
+Nested tokens can appear anywhere within the argument list. Static args and dynamic token args can be mixed freely:
+
+```python
+factory = ExpressionFactory([
+    ("join", JoinResolver()),   # BaseResolver returning "-".join(args)
+    ("val", lambda _: "mid"),
+])
+
+factory.materialize("{join:a:{val}:b}")   # "a-mid-b"
+# Resolution: {val} -> "mid", then {join:a:mid:b} -> "a-mid-b"
+```
+
+Nesting can go multiple levels deep. Tokens are resolved from the innermost outward:
+
+```python
+factory = ExpressionFactory([
+    ("a", lambda arg: f"a({arg})"),
+    ("b", lambda arg: f"b({arg})"),
+    ("c", lambda _: "leaf"),
+])
+
+factory.materialize("{a:{b:{c}}}")   # "a(b(leaf))"
+# Resolution: {c} -> "leaf", then {b:leaf} -> "b(leaf)", then {a:b(leaf)} -> "a(b(leaf))"
+```
+
+When using function resolvers (plain functions or lambdas), the resolver receives the first argument as a single `str`. When multiple arguments or access to the full argument list is required, use a `BaseResolver` subclass instead:
+
+```python
+from typing import Optional
+
+from ps.token_expressions import BaseResolver, ExpressionFactory
+
+
+class JoinResolver(BaseResolver):
+    def __call__(self, args: list[str]) -> Optional[str]:
+        return "-".join(args)
+
+
+factory = ExpressionFactory([
+    ("join", JoinResolver()),
+    ("year", lambda _: "2026"),
+    ("month", lambda _: "03"),
+])
+
+factory.materialize("{join:{year}:{month}}")   # "2026-03"
+```
+
+If the inner token cannot be resolved, the outer token is also left unresolved:
+
+```python
+factory = ExpressionFactory([("outer", lambda arg: f"got:{arg}")])
+factory.materialize("{outer:{missing}}")   # "{outer:{missing}}"
+```
+
 ## Token Validation
 
 Check template validity before using them with `validate_materialize()`. Returns a `ValidationResult` with `success` property and `errors` list, without raising exceptions.

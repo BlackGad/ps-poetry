@@ -11,6 +11,11 @@ description: 'Create, update, review, or fix unit test files in tests/ directori
 * Maintain the directory structure mapping: plugin source at `plugin/src/.../x.py` maps to `plugin/tests/test_x.py`; SDK source at `sdk/src/.../x.py` maps to `sdk/tests/test_x.py`; module source at `modules/<name>/src/.../x.py` maps to `modules/<name>/tests/test_x.py`; library source at `libraries/<name>/src/.../x.py` maps to `libraries/<name>/tests/test_x.py`
 * Do not create test files for `__init__.py` files
 * Only create or modify files within each component's `tests/` directory; do not modify source code files
+* Every component root directory that contains a `pyproject.toml` (e.g. `modules/delivery/`, `libraries/version/`) **must** contain an `__init__.py` file at that same level — alongside `src/`, `tests/`, and `pyproject.toml`. This makes the component a proper Python package so that VS Code's test discovery can resolve relative imports. If the file does not exist when you create or modify tests in that component, create it with the following standard comment:
+
+  ```python
+  # This init file is for VSCode to recognize this folder as a module and to allow for relative imports within the module in test files. It does not contain any code and can be left empty.
+  ```
 
 ## Code Standards
 
@@ -71,6 +76,7 @@ poetry run pytest --cov
 Before marking work complete, verify ALL of these:
 
 * [ ] All new or modified test files are inside a component's `tests/` directory
+* [ ] Component root directory (alongside `src/`, `tests/`, `pyproject.toml`) has an `__init__.py` with the standard VS Code comment
 * [ ] No `__init__.py` test files were created
 * [ ] No source files were modified
 * [ ] All imports verified against actual source file paths
