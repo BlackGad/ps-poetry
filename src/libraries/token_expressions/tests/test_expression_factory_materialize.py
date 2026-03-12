@@ -9,10 +9,10 @@ def test_materialize_no_resolvers():
 
 
 def test_materialize_resolver_order():
-    def first_resolver(_args: list[str]) -> Optional[str]:
+    def first_resolver(_arg: str) -> Optional[str]:
         return None
 
-    def second_resolver(_args: list[str]) -> Optional[str]:
+    def second_resolver(_arg: str) -> Optional[str]:
         return "ok"
 
     factory = ExpressionFactory([
@@ -23,15 +23,15 @@ def test_materialize_resolver_order():
 
 
 def test_materialize_args_passed():
-    def resolver_func(args: list[str]) -> Optional[str]:
-        return ",".join(args)
+    def resolver_func(arg: str) -> Optional[str]:
+        return arg or None
 
     factory = ExpressionFactory([("rand", resolver_func)])
-    assert factory.materialize("{rand:num:min..max}") == "num,min..max"
+    assert factory.materialize("{rand:num}") == "num"
 
 
 def test_materialize_casts_values():
-    def resolver_func(_args: list[str]) -> Optional[bool]:
+    def resolver_func(_arg: str) -> Optional[bool]:
         return True
 
     factory = ExpressionFactory([("flag", resolver_func)])
@@ -44,7 +44,7 @@ def test_materialize_fallback_used():
 
 
 def test_materialize_fallback_not_used():
-    def resolver_func(_args: list[str]) -> Optional[str]:
+    def resolver_func(_arg: str) -> Optional[str]:
         return "resolved"
 
     factory = ExpressionFactory([("key", resolver_func)])

@@ -1,7 +1,7 @@
 import inspect
 from typing import Any
 
-from .base_resolver import TokenResolver
+from .base_resolver import BaseResolver, TokenResolver
 from .dict_resolver import DictResolver
 from .func_resolver import FuncResolver
 from .instance_resolver import InstanceResolver
@@ -11,11 +11,16 @@ from .none_resolver import NoneResolver
 
 def _pick_resolver(source: Any) -> TokenResolver:
     if source is None:
-        return NoneResolver()
-    if isinstance(source, dict):
-        return DictResolver(source, _pick_resolver)
-    if isinstance(source, list):
-        return ListResolver(source, _pick_resolver)
-    if inspect.isfunction(source) or inspect.ismethod(source):
-        return FuncResolver(source)
-    return InstanceResolver(source, _pick_resolver)
+        resolver: BaseResolver = NoneResolver()
+    elif isinstance(source, BaseResolver):
+        resolver = source
+    elif isinstance(source, dict):
+        resolver = DictResolver(source)
+    elif isinstance(source, list):
+        resolver = ListResolver(source)
+    elif inspect.isfunction(source) or inspect.ismethod(source):
+        resolver = FuncResolver(source)
+    else:
+        resolver = InstanceResolver(source)
+    resolver._bind_picker(_pick_resolver)
+    return resolver

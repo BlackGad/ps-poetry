@@ -8,12 +8,14 @@ PickerFunc = Callable[[Any], TokenResolverFunc]
 
 
 class BaseResolver(ABC):
-    def __init__(self, picker: Optional[PickerFunc]):
-        self._picker = picker
+    _picker: Optional[PickerFunc] = None
 
     @abstractmethod
     def __call__(self, args: list[str]) -> Optional[TokenValue]:
         pass
+
+    def _bind_picker(self, picker: PickerFunc) -> None:
+        self._picker = picker
 
     def pick_resolver(self, value: Any) -> Optional[TokenResolverFunc]:
         if self._picker:

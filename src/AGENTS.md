@@ -42,13 +42,13 @@ All commands must be executed from the workspace root (`src/`) using Poetry.
 Run Ruff linter on the entire codebase:
 
 ```bash
-poetry run ruff check .
+poetry run --no-plugins ruff check .
 ```
 
 Run Ruff linter on a specific file or directory:
 
 ```bash
-poetry run ruff check <path>
+poetry run --no-plugins ruff check <path>
 ```
 
 ### Testing
@@ -56,25 +56,25 @@ poetry run ruff check <path>
 Run all tests:
 
 ```bash
-poetry run pytest
+poetry run --no-plugins pytest
 ```
 
 Run tests for a specific file:
 
 ```bash
-poetry run pytest <path/to/test_file.py>
+poetry run --no-plugins pytest <path/to/test_file.py>
 ```
 
 Run a specific test:
 
 ```bash
-poetry run pytest <path/to/test_file.py>::<test_name>
+poetry run --no-plugins pytest <path/to/test_file.py>::<test_name>
 ```
 
 Run tests with verbose output:
 
 ```bash
-poetry run pytest -v
+poetry run --no-plugins pytest -v
 ```
 
 ## Code Usage Analysis

@@ -12,7 +12,7 @@ PS Token Expressions provides:
 * **Conditional matching** — Evaluate boolean expressions with tokens
 * **Membership testing** — Use `in` and `not in` operators with lists and strings
 * **Token validation** — Detect and report all resolution issues
-* **Multiple resolver types** — Dict, function, and instance-based resolution
+* **Multiple resolver types** — Dict, function, instance, and custom resolver support
 * **Nested access** — Navigate through nested data structures
 * **Fallback values** — Provide defaults when tokens cannot be resolved
 * **Type-safe** — Returns strings, integers, booleans, or lists
@@ -38,7 +38,7 @@ from ps.token_expressions import ExpressionFactory
 
 factory = ExpressionFactory([
     ("config", {"version": "1.2.3", "build": 456}),
-    ("env", lambda args: os.getenv(args[0]) if args else None),
+    ("env", lambda arg: os.getenv(arg) if arg else None),
     ("tags", ["production", "release", "stable"]),
 ])
 
@@ -99,7 +99,7 @@ from ps.token_expressions import ExpressionFactory
 
 resolvers = [
     ("config", {"version": "1.2.3"}),  # Dict resolver
-    ("env", lambda args: os.getenv(args[0])),  # Function resolver
+    ("env", lambda arg: os.getenv(arg)),  # Function resolver
 ]
 
 factory = ExpressionFactory(resolvers)
@@ -176,8 +176,8 @@ Works with nested lists and lists containing dicts or objects.
 Call functions to generate values dynamically:
 
 ```python
-def get_env(args: list[str]) -> str:
-    return os.getenv(args[0]) if args else ""
+def get_env(arg: str) -> str:
+    return os.getenv(arg) if arg else ""
 
 factory = ExpressionFactory([("env", get_env)])
 factory.materialize("{env:PATH}")   # Returns PATH value
@@ -198,6 +198,47 @@ factory.materialize("{app:debug}")     # "True"
 ```
 
 Objects can be callable, have nested attributes, or contain dicts/lists.
+
+### Custom Resolver
+
+Implement a custom resolver by subclassing `BaseResolver`. The resolver receives the full `args` list from the token — for example, `{key:arg1:arg2}` passes `["arg1", "arg2"]`. Use `pick_resolver()` to delegate remaining args to a sub-resolver when navigation needs to continue into a returned value.
+
+```python
+from typing import Optional
+
+from ps.token_expressions import BaseResolver, ExpressionFactory
+
+
+class RegistryResolver(BaseResolver):
+    def __init__(self, data: dict) -> None:
+        self._data = data
+
+    def __call__(self, args: list[str]) -> Optional[str]:
+        if not args:
+            return None
+        value = self._data.get(args[0])
+        if value is None:
+            return None
+        if len(args) > 1:
+            sub = self.pick_resolver(value)
+            if sub is None:
+                return None
+            result = sub(args[1:])
+            return str(result) if result is not None else None
+        return str(value)
+
+
+registry = {
+    "config": {"host": "prod.example.com", "port": 443},
+    "version": "2.5.0",
+}
+
+factory = ExpressionFactory([("reg", RegistryResolver(registry))])
+factory.materialize("{reg:version}")       # "2.5.0"
+factory.materialize("{reg:config:host}")   # "prod.example.com"
+```
+
+[View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-token-expressions/custom_resolver_example.py)
 
 ## Fallback Values
 
@@ -295,15 +336,15 @@ factory.match("4 not in {items} or 2 in {items}")      # True
 Resolver output can contain tokens that will be resolved automatically up to `max_recursion_depth` (default: 10). Useful for configuration chains and template indirection.
 
 ```python
-def env_name(_args: list[str]) -> str:
+def env_name(_arg: str) -> str:
     return "production"
 
-def db_config(args: list[str]) -> str:
-    return "{db_host:" + args[0] + "}"
+def db_config(arg: str) -> str:
+    return "{db_host:" + arg + "}"
 
-def db_host(args: list[str]) -> str:
+def db_host(arg: str) -> str:
     hosts = {"production": "prod.db.com", "dev": "localhost"}
-    return hosts.get(args[0], "localhost")
+    return hosts.get(arg, "localhost")
 
 factory = ExpressionFactory([
     ("env", env_name),
@@ -406,6 +447,18 @@ Methods:
 * `validate_materialize(value: str, threat_fallback_as_failure: bool = False) -> ValidationResult` - Validate tokens without exceptions
 * `validate_match(condition: str, threat_fallback_as_failure: bool = False) -> ValidationResult` - Validate boolean expression and tokens
 
+### BaseResolver
+
+Abstract base class for implementing custom token resolvers.
+
+```python
+class BaseResolver(ABC):
+    def __call__(self, args: list[str]) -> Optional[TokenValue]: ...
+    def pick_resolver(self, value: Any) -> Optional[Callable]: ...
+```
+
+Subclass `BaseResolver` and implement `__call__` to receive the full `args` list from the token. Call `pick_resolver(value)` to obtain a resolver for an intermediate value and delegate remaining args to it.
+
 ### ValidationResult
 
 ```python
@@ -447,7 +500,7 @@ class ExpressionSyntaxError(TokenError):
 
 ### Type Signatures
 
-Function signature: `(args: list[str]) -> Optional[str | int | bool | list[str | int | bool]]`
+Function resolver signature: `(arg: str) -> Optional[str | int | bool | list[str | int | bool]]`
 
 Default callback signature: `(key: str, args: list[str]) -> str | int | bool | list[str | int | bool]`
 

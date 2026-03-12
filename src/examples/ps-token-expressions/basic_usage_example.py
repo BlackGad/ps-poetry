@@ -10,8 +10,8 @@ class AppConfig:
         self.tags: list[str] = ["production", "stable"]
 
 
-def env_resolver(args: list[str]) -> str | None:
-    return os.getenv(args[0]) if args else None
+def env_resolver(arg: str) -> str | None:
+    return os.getenv(arg) if arg else None
 
 
 def main() -> None:

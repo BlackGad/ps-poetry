@@ -2,10 +2,10 @@ from ps.token_expressions import ExpressionFactory
 
 
 def test_materialize_single_recursion():
-    def level1_resolver(_args: list[str]) -> str:
+    def level1_resolver(_arg: str) -> str:
         return "{level2}"
 
-    def level2_resolver(_args: list[str]) -> str:
+    def level2_resolver(_arg: str) -> str:
         return "final"
 
     factory = ExpressionFactory([("level1", level1_resolver), ("level2", level2_resolver)])
@@ -14,13 +14,13 @@ def test_materialize_single_recursion():
 
 
 def test_materialize_multiple_recursion():
-    def level1_resolver(_args: list[str]) -> str:
+    def level1_resolver(_arg: str) -> str:
         return "{level2}_{level2}"
 
-    def level2_resolver(_args: list[str]) -> str:
+    def level2_resolver(_arg: str) -> str:
         return "{level3}"
 
-    def level3_resolver(_args: list[str]) -> str:
+    def level3_resolver(_arg: str) -> str:
         return "value"
 
     factory = ExpressionFactory([
@@ -33,7 +33,7 @@ def test_materialize_multiple_recursion():
 
 
 def test_materialize_max_depth_default():
-    def recursive_resolver(_args: list[str]) -> str:
+    def recursive_resolver(_arg: str) -> str:
         return "{recursive}"
 
     factory = ExpressionFactory([("recursive", recursive_resolver)])
@@ -53,8 +53,8 @@ def test_materialize_max_depth_custom():
 
 
 def test_materialize_partial_recursion():
-    def resolver(args: list[str]) -> str:
-        if args and args[0] == "nested":
+    def resolver(arg: str) -> str:
+        if arg == "nested":
             return "prefix_{key}_suffix"
         return "final"
 
@@ -64,7 +64,7 @@ def test_materialize_partial_recursion():
 
 
 def test_materialize_mixed_recursive_and_static():
-    def dynamic_resolver(_args: list[str]) -> str:
+    def dynamic_resolver(_arg: str) -> str:
         return "{static}"
 
     factory = ExpressionFactory([
@@ -76,7 +76,7 @@ def test_materialize_mixed_recursive_and_static():
 
 
 def test_materialize_recursive_with_fallback():
-    def level1_resolver(_args: list[str]) -> str:
+    def level1_resolver(_arg: str) -> str:
         return "{missing<fallback>}"
 
     factory = ExpressionFactory([("level1", level1_resolver)])
@@ -85,24 +85,24 @@ def test_materialize_recursive_with_fallback():
 
 
 def test_materialize_recursive_with_args():
-    def builder(args: list[str]) -> str:
-        if args and args[0] == "nested":
-            return "{value:arg1:arg2}"
+    def builder(arg: str) -> str:
+        if arg == "nested":
+            return "{value:arg1}"
         return ""
 
-    def value_resolver(args: list[str]) -> str:
-        return "_".join(args) if args else "empty"
+    def value_resolver(arg: str) -> str:
+        return arg or "empty"
 
     factory = ExpressionFactory([("builder", builder), ("value", value_resolver)])
     result = factory.materialize("{builder:nested}")
-    assert result == "arg1_arg2"
+    assert result == "arg1"
 
 
 def test_materialize_circular_reference_protection():
-    def a_resolver(_args: list[str]) -> str:
+    def a_resolver(_arg: str) -> str:
         return "{b}"
 
-    def b_resolver(_args: list[str]) -> str:
+    def b_resolver(_arg: str) -> str:
         return "{a}"
 
     factory = ExpressionFactory([("a", a_resolver), ("b", b_resolver)])
@@ -112,10 +112,10 @@ def test_materialize_circular_reference_protection():
 
 
 def test_materialize_depth_one():
-    def level1_resolver(_args: list[str]) -> str:
+    def level1_resolver(_arg: str) -> str:
         return "{level2}"
 
-    def level2_resolver(_args: list[str]) -> str:
+    def level2_resolver(_arg: str) -> str:
         return "final"
 
     factory = ExpressionFactory(
@@ -128,10 +128,10 @@ def test_materialize_depth_one():
 
 
 def test_validate_materialize_recursive_tokens():
-    def level1_resolver(_args: list[str]) -> str:
+    def level1_resolver(_arg: str) -> str:
         return "{level2}"
 
-    def level2_resolver(_args: list[str]) -> str:
+    def level2_resolver(_arg: str) -> str:
         return "{missing}"
 
     factory = ExpressionFactory([("level1", level1_resolver), ("level2", level2_resolver)])
@@ -142,7 +142,7 @@ def test_validate_materialize_recursive_tokens():
 
 
 def test_validate_materialize_recursive_with_fallback():
-    def level1_resolver(_args: list[str]) -> str:
+    def level1_resolver(_arg: str) -> str:
         return "{missing<default>}"
 
     factory = ExpressionFactory([("level1", level1_resolver)])
@@ -151,13 +151,13 @@ def test_validate_materialize_recursive_with_fallback():
 
 
 def test_validate_materialize_deep_recursion():
-    def level1_resolver(_args: list[str]) -> str:
+    def level1_resolver(_arg: str) -> str:
         return "{level2}"
 
-    def level2_resolver(_args: list[str]) -> str:
+    def level2_resolver(_arg: str) -> str:
         return "{level3}"
 
-    def level3_resolver(_args: list[str]) -> str:
+    def level3_resolver(_arg: str) -> str:
         return "{level4}"  # level4 doesn't exist
 
     factory = ExpressionFactory([
@@ -170,15 +170,15 @@ def test_validate_materialize_deep_recursion():
 
 
 def test_materialize_complex_recursive_template():
-    def env_name_resolver(_args: list[str]) -> str:
+    def env_name_resolver(_arg: str) -> str:
         return "production"
 
-    def env_config_resolver(args: list[str]) -> str:
-        env = args[0] if args else "dev"
+    def env_config_resolver(arg: str) -> str:
+        env = arg or "dev"
         return f"{{server:{env}}}"
 
-    def server_resolver(args: list[str]) -> str:
-        env = args[0] if args else "dev"
+    def server_resolver(arg: str) -> str:
+        env = arg or "dev"
         servers = {"production": "prod.example.com", "dev": "localhost"}
         return servers.get(env, "unknown")
 

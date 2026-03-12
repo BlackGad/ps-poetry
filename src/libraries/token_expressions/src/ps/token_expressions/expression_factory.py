@@ -14,7 +14,8 @@ from .validation import (
 
 TokenValue = Union[str, int, bool, list[Union[str, int, bool]]]
 TokenResolver = Callable[[list[str]], Optional[TokenValue]]
-TokenResolverEntry = Tuple[str, Union[TokenResolver, Any]]
+RawFuncResolver = Callable[[str], Optional[TokenValue]]
+TokenResolverEntry = Tuple[str, Union[RawFuncResolver, Any]]
 DefaultCallback = Callable[[str, list[str]], TokenValue]
 
 _TOKEN_PATTERN = re.compile(r"\{([^{}]+)\}")

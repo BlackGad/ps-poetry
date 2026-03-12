@@ -87,7 +87,7 @@ def test_validate_match_empty_parentheses():
 
 
 def test_validate_match_with_tokens():
-    def flag_resolver(_args: list[str]) -> str:
+    def flag_resolver(_arg: str) -> str:
         return "1"
 
     factory = ExpressionFactory([("flag", flag_resolver)])

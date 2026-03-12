@@ -14,7 +14,7 @@ def test_default_callback_with_args():
 
 
 def test_default_callback_not_called_when_resolved():
-    def resolver_func(_args: list[str]) -> str:
+    def resolver_func(_arg: str) -> str:
         return "resolved"
 
     def custom_callback(_key: str, _args: list[str]) -> str:
@@ -67,8 +67,8 @@ def test_custom_default_callback_returns_bool():
 
 
 def test_default_callback_mixed_resolved_and_missing():
-    def resolver_func(args: list[str]) -> str | None:
-        if args and args[0] == "exists":
+    def resolver_func(arg: str) -> str | None:
+        if arg == "exists":
             return "found"
         return None
 
@@ -131,7 +131,7 @@ def test_custom_callback_error_handling():
 
 
 def test_default_callback_with_resolver_returning_none():
-    def always_none_resolver(_args: list[str]) -> None:
+    def always_none_resolver(_arg: str) -> None:
         return None
 
     factory = ExpressionFactory([("key", always_none_resolver)])

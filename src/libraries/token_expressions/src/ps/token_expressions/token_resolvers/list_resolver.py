@@ -1,11 +1,10 @@
 from typing import Any, Optional
 
-from .base_resolver import BaseResolver, PickerFunc, TokenValue
+from .base_resolver import BaseResolver, TokenValue
 
 
 class ListResolver(BaseResolver):
-    def __init__(self, data: list[Any], picker: PickerFunc):
-        super().__init__(picker)
+    def __init__(self, data: list[Any]):
         self._data = data
 
     def __call__(self, args: list[str]) -> Optional[TokenValue]:

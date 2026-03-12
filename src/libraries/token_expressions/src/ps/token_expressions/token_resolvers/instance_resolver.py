@@ -1,11 +1,10 @@
 from typing import Callable, Optional, cast
 
-from .base_resolver import BaseResolver, PickerFunc, TokenValue
+from .base_resolver import BaseResolver, TokenValue
 
 
 class InstanceResolver(BaseResolver):
-    def __init__(self, instance: object, picker: PickerFunc):
-        super().__init__(picker)
+    def __init__(self, instance: object):
         self._instance = instance
 
     def __call__(self, args: list[str]) -> Optional[TokenValue]:

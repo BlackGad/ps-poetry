@@ -71,7 +71,7 @@ def test_match_complex_expression():
 
 
 def test_match_with_tokens():
-    def resolver_func(_args: list[str]) -> Optional[str]:
+    def resolver_func(_arg: str) -> Optional[str]:
         return "1"
 
     factory = ExpressionFactory([("flag", resolver_func)])
@@ -85,7 +85,7 @@ def test_match_with_tokens_and_fallback():
 
 
 def test_match_token_resolves_to_and_operator():
-    def resolver(_args: list[str]) -> str:
+    def resolver(_arg: str) -> str:
         return "and"
 
     factory = ExpressionFactory([("op", resolver)])
@@ -96,7 +96,7 @@ def test_match_token_resolves_to_and_operator():
 
 
 def test_match_token_resolves_to_or_operator():
-    def resolver(_args: list[str]) -> str:
+    def resolver(_arg: str) -> str:
         return "or"
 
     factory = ExpressionFactory([("op", resolver)])
@@ -107,7 +107,7 @@ def test_match_token_resolves_to_or_operator():
 
 
 def test_match_token_resolves_to_not_operator():
-    def resolver(_args: list[str]) -> str:
+    def resolver(_arg: str) -> str:
         return "not"
 
     factory = ExpressionFactory([("op", resolver)])
@@ -117,7 +117,7 @@ def test_match_token_resolves_to_not_operator():
 
 
 def test_match_token_resolves_to_left_parenthesis():
-    def resolver(_args: list[str]) -> str:
+    def resolver(_arg: str) -> str:
         return "("
 
     factory = ExpressionFactory([("paren", resolver)])
@@ -126,7 +126,7 @@ def test_match_token_resolves_to_left_parenthesis():
 
 
 def test_match_token_resolves_to_right_parenthesis():
-    def resolver(_args: list[str]) -> str:
+    def resolver(_arg: str) -> str:
         return ")"
 
     factory = ExpressionFactory([("paren", resolver)])
@@ -135,10 +135,10 @@ def test_match_token_resolves_to_right_parenthesis():
 
 
 def test_match_token_resolves_to_both_parentheses():
-    def left_resolver(_args: list[str]) -> str:
+    def left_resolver(_arg: str) -> str:
         return "("
 
-    def right_resolver(_args: list[str]) -> str:
+    def right_resolver(_arg: str) -> str:
         return ")"
 
     factory = ExpressionFactory([("lp", left_resolver), ("rp", right_resolver)])
@@ -148,8 +148,8 @@ def test_match_token_resolves_to_both_parentheses():
 
 
 def test_match_multiple_operator_tokens():
-    def resolver(args: list[str]) -> str:
-        return args[0] if args else "and"
+    def resolver(arg: str) -> str:
+        return arg or "and"
 
     factory = ExpressionFactory([("op", resolver)])
     assert factory.match("1 {op:and} 1") is True
@@ -158,12 +158,12 @@ def test_match_multiple_operator_tokens():
 
 
 def test_match_complex_expression_with_operator_tokens():
-    def op_resolver(args: list[str]) -> str:
+    def op_resolver(arg: str) -> str:
         ops = {"a": "and", "o": "or", "n": "not"}
-        return ops.get(args[0], "and") if args else "and"
+        return ops.get(arg, "and") if arg else "and"
 
-    def paren_resolver(args: list[str]) -> str:
-        return "(" if args and args[0] == "l" else ")"
+    def paren_resolver(arg: str) -> str:
+        return "(" if arg == "l" else ")"
 
     factory = ExpressionFactory([("op", op_resolver), ("p", paren_resolver)])
 
@@ -178,10 +178,10 @@ def test_match_complex_expression_with_operator_tokens():
 
 
 def test_match_operator_token_preserves_boolean_logic():
-    def and_resolver(_args: list[str]) -> str:
+    def and_resolver(_arg: str) -> str:
         return "and"
 
-    def or_resolver(_args: list[str]) -> str:
+    def or_resolver(_arg: str) -> str:
         return "or"
 
     factory = ExpressionFactory([("and_op", and_resolver), ("or_op", or_resolver)])
@@ -204,9 +204,8 @@ def test_match_operator_token_preserves_boolean_logic():
 
 
 def test_match_operator_tokens_with_values():
-    def joint_resolver(args: list[str]) -> str:
-        # Returns operator or value based on argument
-        return args[0] if args else "1"
+    def joint_resolver(arg: str) -> str:
+        return arg or "1"
 
     factory = ExpressionFactory([("v", joint_resolver)])
 
@@ -217,7 +216,7 @@ def test_match_operator_tokens_with_values():
 
 
 def test_match_nested_operator_tokens():
-    def resolver(args: list[str]) -> str:
+    def resolver(arg: str) -> str:
         mapping = {
             "and": "and",
             "or": "or",
@@ -225,7 +224,7 @@ def test_match_nested_operator_tokens():
             "(": "(",
             ")": ")",
         }
-        return mapping.get(args[0], "1") if args else "1"
+        return mapping.get(arg, "1") if arg else "1"
 
     factory = ExpressionFactory([("t", resolver)])
 
@@ -241,7 +240,7 @@ def test_match_nested_operator_tokens():
 
 
 def test_match_operator_token_edge_cases():
-    def resolver(_args: list[str]) -> str:
+    def resolver(_arg: str) -> str:
         return "and"
 
     factory = ExpressionFactory([("op", resolver)])
@@ -263,8 +262,8 @@ def test_match_all_operators_as_tokens():
         "rparen": ")",
     }
 
-    def make_resolver(op: str) -> Callable[[list[str]], str]:
-        def resolver(_args: list[str]) -> str:
+    def make_resolver(op: str) -> Callable[[str], str]:
+        def resolver(_arg: str) -> str:
             return op
         return resolver
 

@@ -21,7 +21,7 @@ def test_validate_no_tokens():
 
 
 def test_validate_success_with_resolver():
-    def resolver(_args: list[str]) -> str:
+    def resolver(_arg: str) -> str:
         return "value"
 
     factory = ExpressionFactory([("key", resolver)])
@@ -63,7 +63,7 @@ def test_validate_multiple_missing_resolvers():
 
 
 def test_validate_unresolved_token():
-    def resolver(_args: list[str]) -> None:
+    def resolver(_arg: str) -> None:
         return None
 
     factory = ExpressionFactory([("key", resolver)])
@@ -78,7 +78,7 @@ def test_validate_unresolved_token():
 
 
 def test_validate_resolver_returning_none_treated_as_unresolved():
-    def failing_resolver(_args: list[str]) -> str:
+    def failing_resolver(_arg: str) -> str:
         raise ValueError("Test error")
 
     factory = ExpressionFactory([("key", failing_resolver)])
@@ -90,10 +90,10 @@ def test_validate_resolver_returning_none_treated_as_unresolved():
 
 
 def test_validate_mixed_errors():
-    def failing_resolver(_args: list[str]) -> str:
+    def failing_resolver(_arg: str) -> str:
         raise RuntimeError("Failure")
 
-    def none_resolver(_args: list[str]) -> None:
+    def none_resolver(_arg: str) -> None:
         return None
 
     factory = ExpressionFactory([
@@ -144,8 +144,8 @@ def test_validate_bool_conversion():
 
 
 def test_validate_with_args():
-    def resolver(args: list[str]) -> str | None:
-        if args and args[0] == "valid":
+    def resolver(arg: str) -> str | None:
+        if arg == "valid":
             return "ok"
         return None
 
@@ -161,8 +161,8 @@ def test_validate_with_args():
 
 
 def test_validate_resolver_exception_treated_as_unresolved():
-    def failing_resolver(args: list[str]) -> str:
-        raise ValueError(f"Failed with {args}")
+    def failing_resolver(arg: str) -> str:
+        raise ValueError(f"Failed with {arg}")
 
     factory = ExpressionFactory([("key", failing_resolver)])
     result = factory.validate_materialize("{key:arg1:arg2}")
@@ -180,10 +180,10 @@ def test_validate_empty_key_ignored():
 
 
 def test_validate_resolver_order():
-    def first_resolver(_args: list[str]) -> None:
+    def first_resolver(_arg: str) -> None:
         return None
 
-    def second_resolver(_args: list[str]) -> str:
+    def second_resolver(_arg: str) -> str:
         return "ok"
 
     factory = ExpressionFactory([
@@ -196,10 +196,10 @@ def test_validate_resolver_order():
 
 
 def test_validate_resolver_chain_continues_after_exception():
-    def first_failing(_args: list[str]) -> str:
+    def first_failing(_arg: str) -> str:
         raise ValueError("First fails")
 
-    def second_working(_args: list[str]) -> str:
+    def second_working(_arg: str) -> str:
         return "ok"
 
     factory = ExpressionFactory([
@@ -212,9 +212,9 @@ def test_validate_resolver_chain_continues_after_exception():
 
 
 def test_validate_complex_template():
-    def env_resolver(args: list[str]) -> str | None:
+    def env_resolver(arg: str) -> str | None:
         env_vars = {"USER": "john", "HOME": "/home/john"}
-        return env_vars.get(args[0]) if args else None
+        return env_vars.get(arg) if arg else None
 
     config = {"version": "1.0.0", "name": "myapp"}
 
@@ -297,7 +297,7 @@ def test_validate_fallback_as_failure():
 
 
 def test_validate_fallback_with_resolver_unresolved():
-    def resolver(_args: list[str]) -> None:
+    def resolver(_arg: str) -> None:
         return None
 
     factory = ExpressionFactory([("key", resolver)])
@@ -312,7 +312,7 @@ def test_validate_fallback_with_resolver_unresolved():
 
 
 def test_validate_fallback_with_resolver_resolved():
-    def resolver(_args: list[str]) -> str:
+    def resolver(_arg: str) -> str:
         return "resolved"
 
     factory = ExpressionFactory([("key", resolver)])
@@ -380,8 +380,8 @@ def test_validate_fallback_parameter_false():
 
 
 def test_validate_complex_with_fallback_as_failure():
-    def resolver(args: list[str]) -> str | None:
-        if args and args[0] == "valid":
+    def resolver(arg: str) -> str | None:
+        if arg == "valid":
             return "ok"
         return None
 

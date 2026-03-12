@@ -107,8 +107,8 @@ def test_mixed_instance_and_dict():
 
 
 def test_function_resolver():
-    def my_func(args: list[str]) -> Optional[str]:
-        if args and args[0] == "version":
+    def my_func(arg: str) -> Optional[str]:
+        if arg == "version":
             return "1.0.0"
         return None
 
@@ -118,7 +118,7 @@ def test_function_resolver():
 
 
 def test_mixed_resolvers():
-    def func_resolver(_args: list[str]) -> Optional[str]:
+    def func_resolver(_arg: str) -> Optional[str]:
         return "from_func"
 
     data = {"key": "from_dict"}
