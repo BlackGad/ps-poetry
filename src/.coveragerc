@@ -6,6 +6,8 @@ omit =
     tests/*
     experiments/*
     */__init__.py
+    conftest.py
+    launcher.py
 
 [report]
 show_missing = True
@@ -15,6 +17,8 @@ omit =
     */test_*.py
     */exp_*.py
     experiments/*
+    conftest.py
+    launcher.py
 
 [html]
 directory = coverage_html

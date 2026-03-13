@@ -102,43 +102,9 @@ class Version:
 
         return compatible
 
-    def format(self, standard: VersionStandard) -> str:
-        if standard == VersionStandard.PEP440:
-            parts = [self.core]
-            if self.pre:
-                parts.append(str(self.pre))
-            if self.post is not None:
-                parts.append(f".post{self.post}")
-            if self.dev is not None:
-                parts.append(f".dev{self.dev}")
-            if self.metadata:
-                parts.append(f"+{self.metadata}")
-            return "".join(parts)
-
-        if standard == VersionStandard.SEMVER:
-            parts = [self.core]
-            if self.pre:
-                parts.append(f"-{self.pre.name}")
-                if self.pre.number is not None:
-                    parts.append(f".{self.pre.number}")
-            if self.metadata:
-                parts.append(f"+{self.metadata}")
-            return "".join(parts)
-
-        if standard == VersionStandard.NUGET:
-            parts = [self.core]
-            if self.pre:
-                parts.append(f"-{self.pre.name}")
-                if self.pre.number is not None:
-                    parts.append(f".{self.pre.number}")
-            return "".join(parts)
-
-        if standard in (VersionStandard.CALVER, VersionStandard.LOOSE):
-            if self.metadata:
-                return f"{self.core}-{self.metadata}"
-            return self.core
-
-        return self.format(VersionStandard.PEP440)
+    @property
+    def format(self) -> "VersionFormatter":
+        return VersionFormatter(self)
 
     def _compare_core(self, other: "Version") -> int:
         self_parts = (self.major, self.minor or 0, self.patch or 0, self.rev or 0)
@@ -245,3 +211,66 @@ class Version:
                 if result:
                     return result
         return None
+
+
+@dataclass(slots=True)
+class VersionFormatter:
+    version: Version
+
+    def __call__(self, standard: VersionStandard) -> str:
+        if standard == VersionStandard.PEP440:
+            parts = [self.version.core]
+            if self.version.pre:
+                parts.append(str(self.version.pre))
+            if self.version.post is not None:
+                parts.append(f".post{self.version.post}")
+            if self.version.dev is not None:
+                parts.append(f".dev{self.version.dev}")
+            if self.version.metadata:
+                parts.append(f"+{self.version.metadata}")
+            return "".join(parts)
+
+        if standard == VersionStandard.SEMVER:
+            parts = [self.version.core]
+            if self.version.pre:
+                parts.append(f"-{self.version.pre.name}")
+                if self.version.pre.number is not None:
+                    parts.append(f".{self.version.pre.number}")
+            if self.version.metadata:
+                parts.append(f"+{self.version.metadata}")
+            return "".join(parts)
+
+        if standard == VersionStandard.NUGET:
+            parts = [self.version.core]
+            if self.version.pre:
+                parts.append(f"-{self.version.pre.name}")
+                if self.version.pre.number is not None:
+                    parts.append(f".{self.version.pre.number}")
+            return "".join(parts)
+
+        if standard in (VersionStandard.CALVER, VersionStandard.LOOSE):
+            if self.version.metadata:
+                return f"{self.version.core}-{self.version.metadata}"
+            return self.version.core
+
+        return self(VersionStandard.PEP440)
+
+    @property
+    def pep440(self) -> str:
+        return self(VersionStandard.PEP440)
+
+    @property
+    def semver(self) -> str:
+        return self(VersionStandard.SEMVER)
+
+    @property
+    def nuget(self) -> str:
+        return self(VersionStandard.NUGET)
+
+    @property
+    def calver(self) -> str:
+        return self(VersionStandard.CALVER)
+
+    @property
+    def loose(self) -> str:
+        return self(VersionStandard.LOOSE)

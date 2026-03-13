@@ -2,7 +2,7 @@ import os
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Any, Iterable, Optional
 
 from cleo.io.io import IO
 from packaging.specifiers import SpecifierSet
@@ -15,7 +15,7 @@ from ps.plugin.sdk.project import (
 )
 
 from .._delivery_settings import DeliverySettings
-from ..token_resolvers import DateResolver, RandResolver, VersionResolver
+from ..token_resolvers import DateResolver, RandResolver, VersionResolver, collect_git_info
 
 _default_version_patterns: list[str] = [
     "[{in}] {in}",
@@ -191,6 +191,15 @@ def resolve_environment_metadata(
 
     projects = list(projects)
     now = datetime.now()
+    git_info = collect_git_info(host_project.path)
+    shared_resolvers: list[tuple[str, Any]] = [
+        ("in", input_version),
+        ("env", lambda arg: os.getenv(arg) if arg else None),
+        ("date", DateResolver(now)),
+        ("rand", RandResolver()),
+        ("v", VersionResolver()),
+        ("git", git_info),
+    ]
 
     for project in projects:
         project_display_name = project.name.value or project.path.name
@@ -209,14 +218,7 @@ def resolve_environment_metadata(
             project_spec_version = host_project_version
 
         factory = ExpressionFactory(
-            token_resolvers=[
-                ("in", input_version),
-                ("env", lambda arg: os.getenv(arg) if arg else None),
-                ("spec", project_spec_version),
-                ("date", DateResolver(now)),
-                ("rand", RandResolver()),
-                ("v", VersionResolver()),
-            ],
+            token_resolvers=[*shared_resolvers, ("spec", project_spec_version)],
             default_callback=lambda _key, _args: ""
         )
 

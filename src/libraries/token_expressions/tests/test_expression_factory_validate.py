@@ -1,8 +1,10 @@
 from ps.token_expressions import (
     ExpressionFactory,
     FallbackTokenError,
+    FallbackUsedWarning,
     MissingResolverError,
     UnresolvedTokenError,
+    ValidationWarning,
 )
 
 
@@ -403,3 +405,88 @@ def test_validate_complex_with_fallback_as_failure():
     assert isinstance(result.errors[2], FallbackTokenError)
     assert result.errors[2].key == "key"
     assert result.errors[2].fallback == "backup"
+
+
+def test_validate_fallback_emits_warning_missing_resolver():
+    factory = ExpressionFactory([])
+    result = factory.validate_materialize("{missing<fallback>}")
+    assert result.success is True
+    assert len(result.errors) == 0
+    assert len(result.warnings) == 1
+    warning = result.warnings[0]
+    assert isinstance(warning, FallbackUsedWarning)
+    assert warning.fallback == "fallback"
+    assert isinstance(warning.error, MissingResolverError)
+    assert warning.error.key == "missing"
+
+
+def test_validate_fallback_emits_warning_unresolved_token():
+    def resolver(_arg: str) -> None:
+        return None
+
+    factory = ExpressionFactory([("key", resolver)])
+    result = factory.validate_materialize("{key:arg<fallback>}")
+    assert result.success is True
+    assert len(result.errors) == 0
+    assert len(result.warnings) == 1
+    warning = result.warnings[0]
+    assert isinstance(warning, FallbackUsedWarning)
+    assert warning.fallback == "fallback"
+    assert isinstance(warning.error, UnresolvedTokenError)
+    assert warning.error.key == "key"
+    assert warning.error.args == ["arg"]
+
+
+def test_validate_fallback_warning_no_warning_when_resolved():
+    def resolver(_arg: str) -> str:
+        return "resolved"
+
+    factory = ExpressionFactory([("key", resolver)])
+    result = factory.validate_materialize("{key<fallback>}")
+    assert result.success is True
+    assert len(result.warnings) == 0
+
+
+def test_validate_fallback_multiple_warnings():
+    factory = ExpressionFactory([])
+    result = factory.validate_materialize("{first<a>} {second<b>}")
+    assert result.success is True
+    assert len(result.errors) == 0
+    assert len(result.warnings) == 2
+    assert isinstance(result.warnings[0], FallbackUsedWarning)
+    assert result.warnings[0].fallback == "a"
+    assert isinstance(result.warnings[0].error, MissingResolverError)
+    assert result.warnings[0].error.key == "first"
+    assert isinstance(result.warnings[1], FallbackUsedWarning)
+    assert result.warnings[1].fallback == "b"
+    assert isinstance(result.warnings[1].error, MissingResolverError)
+    assert result.warnings[1].error.key == "second"
+
+
+def test_validate_fallback_no_warning_when_threat_as_failure():
+    factory = ExpressionFactory([])
+    result = factory.validate_materialize("{missing<fallback>}", threat_fallback_as_failure=True)
+    assert result.success is False
+    assert len(result.warnings) == 0
+
+
+def test_validate_fallback_warning_str():
+    factory = ExpressionFactory([])
+    result = factory.validate_materialize("{missing<default>}")
+    warning = result.warnings[0]
+    assert isinstance(warning, FallbackUsedWarning)
+    assert "default" in str(warning)
+    assert "missing" in str(warning)
+
+
+def test_validate_no_warnings_without_fallbacks():
+    factory = ExpressionFactory([])
+    result = factory.validate_materialize("no tokens here")
+    assert len(result.warnings) == 0
+
+
+def test_validate_warning_is_validation_warning_subclass():
+    factory = ExpressionFactory([])
+    result = factory.validate_materialize("{missing<fallback>}")
+    warning = result.warnings[0]
+    assert isinstance(warning, ValidationWarning)

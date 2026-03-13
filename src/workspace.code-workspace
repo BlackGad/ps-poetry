@@ -19,7 +19,8 @@
 		"chat.tools.terminal.autoApprove": {
 			"poetry": true,
 			"Move-Item": true,
-			"Set-Content": true
+			"Set-Content": true,
+			".\\.venv\\Scripts\\pytest.exe": true
 		},
 	},
 	"extensions": {

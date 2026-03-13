@@ -2,13 +2,21 @@ import re
 from typing import Any, Callable, Optional, Sequence, Tuple, Union
 
 from .token_resolvers import BaseResolver
+from ._expression_engine import (
+    _check_balanced_parentheses,
+    _evaluate_expression,
+    _tokenize_expression,
+    _validate_token_sequence,
+)
 from ._validation import (
     ExpressionSyntaxError,
     FallbackTokenError,
+    FallbackUsedWarning,
     MissingResolverError,
     TokenError,
     UnresolvedTokenError,
     ValidationResult,
+    ValidationWarning,
 )
 
 
@@ -47,186 +55,6 @@ def _parse_token(expression: str) -> Tuple[str, list[str], str, bool]:
         has_fallback = True
     parts = expression.split(":")
     return parts[0], parts[1:], fallback, has_fallback
-
-
-def _check_balanced_parentheses(expr: str) -> Optional[ExpressionSyntaxError]:
-    paren_count = 0
-    for i, char in enumerate(expr):
-        if char == "(":
-            paren_count += 1
-        elif char == ")":
-            paren_count -= 1
-            if paren_count < 0:
-                return ExpressionSyntaxError(
-                    token=expr,
-                    position=i,
-                    message=f"Unmatched closing parenthesis at position {i}",
-                )
-    if paren_count > 0:
-        return ExpressionSyntaxError(
-            token=expr,
-            position=0,
-            message=f"Unmatched opening parenthesis ({paren_count} unclosed)",
-        )
-    return None
-
-
-def _validate_token_sequence(expr: str, tokens: list[str]) -> ValidationResult:
-    errors: list[TokenError] = []
-    operators, binary_operators, previous, expect_operand = {"and", "or", "not", "in"}, {"and", "or", "in"}, None, True
-
-    for i, current in enumerate(tokens):
-        if current == "(":
-            if previous and previous not in operators and previous != "(":
-                errors.append(ExpressionSyntaxError(
-                    token=expr,
-                    position=0,
-                    message=f"Unexpected '(' after {previous} at token position {i}",
-                ))
-            expect_operand = True
-        elif current == ")":
-            if expect_operand and previous != ")":
-                errors.append(ExpressionSyntaxError(
-                    token=expr,
-                    position=0,
-                    message=f"Unexpected ')' at token position {i}, expected operand",
-                ))
-            expect_operand = False
-        elif current == "not":
-            if not expect_operand and previous != "(" and previous not in operators:
-                errors.append(ExpressionSyntaxError(
-                    token=expr,
-                    position=0,
-                    message=f"Unexpected 'not' at token position {i}, expected binary operator",
-                ))
-            expect_operand = True
-        elif current in binary_operators:
-            if expect_operand:
-                errors.append(ExpressionSyntaxError(
-                    token=expr,
-                    position=0,
-                    message=f"Unexpected operator '{current}' at token position {i}, expected operand",
-                ))
-            expect_operand = True
-        else:
-            if not expect_operand and previous not in operators:
-                errors.append(ExpressionSyntaxError(
-                    token=expr,
-                    position=0,
-                    message=f"Unexpected operand '{current}' at token position {i}, expected operator",
-                ))
-            expect_operand = False
-        previous = current
-
-    if expect_operand and previous not in {"(", ")"}:
-        errors.append(ExpressionSyntaxError(
-            token=expr,
-            position=0,
-            message="Expression ends unexpectedly, expected operand",
-        ))
-
-    return ValidationResult(errors=errors)
-
-
-def _to_bool(value: str) -> bool:
-    if not (value := value.strip()):
-        return False
-    try:
-        return int(value) > 0
-    except ValueError:
-        try:
-            return float(value) > 0
-        except ValueError:
-            return len(value) > 2 if value[0] in ('"', "'") and value[-1] == value[0] else True
-
-
-def _process_quoted_string(expr: str, i: int) -> tuple[str, int]:
-    quote_char = expr[i]
-    string_chars = [quote_char]
-    i += 1
-    while i < len(expr):
-        char = expr[i]
-        string_chars.append(char)
-        if char == quote_char:
-            i += 1
-            break
-        i += 1
-    return "".join(string_chars), i
-
-
-def _process_bracket_list(expr: str, i: int) -> tuple[str, int]:
-    bracket_depth = 1
-    list_chars = ["["]
-    i += 1
-    while i < len(expr) and bracket_depth > 0:
-        char = expr[i]
-        list_chars.append(char)
-        if char == "[":
-            bracket_depth += 1
-        elif char == "]":
-            bracket_depth -= 1
-        i += 1
-    return "".join(list_chars), i
-
-
-def _tokenize_expression(expr: str) -> list[str]:
-    tokens, chars = [], []
-    operators = ("and", "or", "not", "in")
-    i = 0
-
-    def flush_word() -> None:
-        if chars and (word := "".join(chars).strip()):
-            if word in operators:
-                tokens.append(word)
-            elif word.lower() == "true":
-                tokens.append("True")
-            elif word.lower() == "false":
-                tokens.append("False")
-            else:
-                tokens.append(word)
-            chars.clear()
-
-    while i < len(expr):
-        char = expr[i]
-
-        # Handle quoted strings
-        if char in ('"', "'"):
-            flush_word()
-            string_token, i = _process_quoted_string(expr, i)
-            tokens.append(string_token)
-            continue
-
-        # Handle lists
-        if char == "[":
-            flush_word()
-            list_token, i = _process_bracket_list(expr, i)
-            tokens.append(list_token)
-            continue
-
-        # Handle parentheses
-        if char in ("(", ")"):
-            flush_word()
-            tokens.append(char)
-        # Handle whitespace
-        elif char in (" ", "\t"):
-            flush_word()
-        # Accumulate characters
-        else:
-            chars.append(char)
-
-        i += 1
-
-    flush_word()
-    return tokens
-
-
-def _evaluate_expression(expr: str) -> bool:
-    if not (expr := expr.strip()):
-        return False
-    try:
-        return bool(eval(" ".join(_tokenize_expression(expr)), {"__builtins__": {}}, {}))  # noqa: S307
-    except Exception:
-        return False
 
 
 class ExpressionFactory:
@@ -281,10 +109,11 @@ class ExpressionFactory:
 
     def validate_materialize(self, value: str, threat_fallback_as_failure: bool = False) -> ValidationResult:
         if not value:
-            return ValidationResult(errors=[])
+            return ValidationResult(errors=())
 
         errors: list[TokenError] = []
-        checked = set()
+        warnings: list[ValidationWarning] = []
+        checked: set[str] = set()
 
         def validate(val: str, depth: int = 0) -> None:
             if depth >= self._max_recursion_depth or val in checked:
@@ -303,12 +132,18 @@ class ExpressionFactory:
                         validate(resolved_str, depth + 1)
                     continue
 
+                resolver_exists = any(rk == key for rk, _ in self._token_resolvers)
                 if has_fallback and not threat_fallback_as_failure:
+                    underlying_error: TokenError = (
+                        UnresolvedTokenError(token=token, position=position, key=key, args=args)
+                        if resolver_exists
+                        else MissingResolverError(token=token, position=position, key=key)
+                    )
+                    warnings.append(FallbackUsedWarning(error=underlying_error, fallback=fallback))
                     if _TOKEN_PATTERN.search(fallback):
                         validate(fallback, depth + 1)
                     continue
 
-                resolver_exists = any(rk == key for rk, _ in self._token_resolvers)
                 if has_fallback:
                     errors.append(FallbackTokenError(token=token, position=position, key=key, args=args, fallback=fallback))
                     if _TOKEN_PATTERN.search(fallback):
@@ -319,7 +154,7 @@ class ExpressionFactory:
                     errors.append(MissingResolverError(token=token, position=position, key=key))
 
         validate(value)
-        return ValidationResult(errors=errors)
+        return ValidationResult(errors=tuple(errors), warnings=tuple(warnings))
 
     def validate_match(self, condition: str, threat_fallback_as_failure: bool = False) -> ValidationResult:
         if not (result := self.validate_materialize(condition, threat_fallback_as_failure)).success:
@@ -328,19 +163,19 @@ class ExpressionFactory:
         materialized = self.materialize(condition)
 
         if error := _check_balanced_parentheses(materialized):
-            return ValidationResult(errors=[error])
+            return ValidationResult(errors=(error,))
 
         try:
             tokens = _tokenize_expression(materialized)
         except Exception as e:
-            return ValidationResult(errors=[ExpressionSyntaxError(
+            return ValidationResult(errors=(ExpressionSyntaxError(
                 token=materialized,
                 position=0,
                 message=f"Failed to tokenize expression: {e}",
-            )])
+            ),))
 
         if not tokens:
-            return ValidationResult(errors=[])
+            return ValidationResult(errors=())
 
         return _validate_token_sequence(materialized, tokens)
 

@@ -9,7 +9,7 @@ This library enables dynamic string templating through token substitution and co
 PS Token Expressions provides:
 
 * **Token materialization** — Replace `{tokens}` in strings with dynamic values
-* **Conditional matching** — Evaluate boolean expressions with tokens
+* **Conditional matching** — Evaluate boolean expressions with tokens using logical and comparison operators
 * **Membership testing** — Use `in` and `not in` operators with lists and strings
 * **Token validation** — Detect and report all resolution issues
 * **Multiple resolver types** — Dict, function, instance, and custom resolver support
@@ -290,7 +290,7 @@ factory.materialize("{srv:0:name}")  # "prod"
 
 ## Boolean Expressions
 
-Evaluate boolean expressions with token substitution using `and`, `or`, `not`, `in` operators and parentheses. Values follow Python truthiness rules (empty strings and `0` are falsy).
+Evaluate boolean expressions with token substitution using `and`, `or`, `not`, `in`, and comparison operators. Values follow Python truthiness rules (empty strings and `0` are falsy).
 
 ```python
 factory = ExpressionFactory([("config", {"enabled": True})])
@@ -298,6 +298,32 @@ factory = ExpressionFactory([("config", {"enabled": True})])
 factory.match("1 and 1")                               # True
 factory.match("{config:enabled} and 1")                # True
 factory.match("{config:missing<0>} or 1")              # True
+```
+
+### Comparison Operators
+
+Compare values using `==`, `!=`, `>`, `<`, `>=`, and `<=`. Operators work with or without surrounding spaces:
+
+```python
+factory = ExpressionFactory([("ver", lambda _: "2")])
+
+factory.match("2 > 1")                    # True
+factory.match("1 == 1")                   # True
+factory.match("1 != 0")                   # True
+factory.match("2 >= 2")                   # True
+factory.match("1 <= 2")                   # True
+
+# With token values
+factory.match("{ver} >= 1")               # True
+factory.match("{ver} == 2")               # True
+
+# Operators can be written without spaces
+factory.match("2>1")                      # True
+factory.match("1==1")                     # True
+
+# Combined with logical operators
+factory.match("2 > 1 and 3 > 2")         # True
+factory.match("(1 == 1) or (2 != 3)")    # True
 ```
 
 ### Membership Testing with `in` Operator
@@ -426,7 +452,7 @@ factory.materialize("{outer:{missing}}")   # "{outer:{missing}}"
 
 ## Token Validation
 
-Check template validity before using them with `validate_materialize()`. Returns a `ValidationResult` with `success` property and `errors` list, without raising exceptions.
+Check template validity before using them with `validate_materialize()`. Returns a `ValidationResult` with a `success` property, an `errors` list, and a `warnings` list — without raising exceptions.
 
 ```python
 template = "Version: {app:version}, Build: {ci:build}"
@@ -438,6 +464,19 @@ else:
     for error in result.errors:
         print(f"Error at position {error.position}: {error.token}")
 ```
+
+When a token cannot be resolved but a fallback value is available, validation still succeeds. A `FallbackUsedWarning` is added to `result.warnings` containing the original error and the fallback value that was used:
+
+```python
+factory = ExpressionFactory([])
+result = factory.validate_materialize("{missing<default>}")
+
+assert result.success  # True — fallback keeps it valid
+for warning in result.warnings:
+    print(warning)  # Fallback value 'default' was used: Missing resolver for key 'missing' ...
+```
+
+Passing `threat_fallback_as_failure=True` treats fallback usage as an error instead, adding a `FallbackTokenError` to `result.errors` and producing no warnings.
 
 Error types: `MissingResolverError` (no resolver registered), `UnresolvedTokenError` (resolver returned `None`), `FallbackTokenError` (fallback used when `threat_fallback_as_failure=True`), `ExpressionSyntaxError` (invalid boolean expression syntax).
 
@@ -539,12 +578,10 @@ To register custom resolver factories, call `BaseResolver.register_resolvers(fac
 ### ValidationResult
 
 ```python
-@dataclass
+@dataclass(frozen=True)
 class ValidationResult:
-    errors: list[TokenError]
-    
-    @property
-    def success(self) -> bool
+    errors: tuple[TokenError, ...]
+    warnings: tuple[ValidationWarning, ...]
 ```
 
 ### Error Types
@@ -574,6 +611,21 @@ class FallbackTokenError(TokenError):
 class ExpressionSyntaxError(TokenError):
     message: str
 ```
+
+### Warning Types
+
+```python
+@dataclass(frozen=True)
+class ValidationWarning:
+    pass
+
+@dataclass(frozen=True)
+class FallbackUsedWarning(ValidationWarning):
+    error: TokenError
+    fallback: str
+```
+
+`FallbackUsedWarning` is added to `ValidationResult.warnings` whenever a token cannot be resolved but a fallback value is present and `threat_fallback_as_failure=False`. The `error` field contains the underlying `MissingResolverError` or `UnresolvedTokenError` that would have been raised otherwise.
 
 ### Type Signatures
 

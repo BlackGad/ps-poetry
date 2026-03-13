@@ -3,10 +3,12 @@ from .token_resolvers import BaseResolver, ResolverFactory
 from ._validation import (
     ExpressionSyntaxError,
     FallbackTokenError,
+    FallbackUsedWarning,
     MissingResolverError,
     TokenError,
     UnresolvedTokenError,
     ValidationResult,
+    ValidationWarning,
 )
 
 __all__ = [
@@ -14,9 +16,11 @@ __all__ = [
     "ExpressionFactory",
     "ExpressionSyntaxError",
     "FallbackTokenError",
+    "FallbackUsedWarning",
     "MissingResolverError",
     "ResolverFactory",
     "TokenError",
     "UnresolvedTokenError",
     "ValidationResult",
+    "ValidationWarning",
 ]

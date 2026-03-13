@@ -47,9 +47,24 @@ class ExpressionSyntaxError(TokenError):
         return f"Syntax error in '{self.token}' at position {self.position}: {self.message}"
 
 
-@dataclass
+@dataclass(frozen=True)
+class ValidationWarning:
+    pass
+
+
+@dataclass(frozen=True)
+class FallbackUsedWarning(ValidationWarning):
+    error: TokenError
+    fallback: str
+
+    def __str__(self) -> str:
+        return f"Fallback value '{self.fallback}' was used: {self.error}"
+
+
+@dataclass(frozen=True)
 class ValidationResult:
-    errors: list[TokenError]
+    errors: tuple[TokenError, ...]
+    warnings: tuple[ValidationWarning, ...] = ()
 
     @property
     def success(self) -> bool:

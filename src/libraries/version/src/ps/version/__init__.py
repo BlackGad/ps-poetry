@@ -1,4 +1,4 @@
-from ._version import Version
+from ._version import Version, VersionFormatter
 from ._version_constraint import VersionConstraint
 from ._version_metadata import VersionMetadata
 from ._version_prerelease import VersionPreRelease
@@ -7,6 +7,7 @@ from .parsers import CalVerParser, LooseParser, NuGetParser, PEP440Parser, SemVe
 
 __all__ = [
     "Version",
+    "VersionFormatter",
     "VersionConstraint",
     "VersionMetadata",
     "VersionPreRelease",

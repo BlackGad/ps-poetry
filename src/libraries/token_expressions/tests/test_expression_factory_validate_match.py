@@ -83,6 +83,43 @@ def test_validate_match_empty_parentheses():
     result = factory.validate_match("()")
     assert result.success is False
     assert len(result.errors) == 1
+
+
+def test_validate_match_comparison_operator_valid():
+    factory = ExpressionFactory([])
+    assert factory.validate_match("1 == 1").success is True
+    assert factory.validate_match("1 != 0").success is True
+    assert factory.validate_match("2 > 1").success is True
+    assert factory.validate_match("1 < 2").success is True
+    assert factory.validate_match("2 >= 2").success is True
+    assert factory.validate_match("1 <= 2").success is True
+
+
+def test_validate_match_comparison_operator_no_spaces():
+    factory = ExpressionFactory([])
+    assert factory.validate_match("2>1").success is True
+    assert factory.validate_match("1==1").success is True
+    assert factory.validate_match("1!=0").success is True
+    assert factory.validate_match("2>=2").success is True
+    assert factory.validate_match("1<=2").success is True
+
+
+def test_validate_match_comparison_combined_with_logical():
+    factory = ExpressionFactory([])
+    assert factory.validate_match("2 > 1 and 3 > 2").success is True
+    assert factory.validate_match("(1 == 1) or (2 != 3)").success is True
+
+
+def test_validate_match_comparison_operator_at_start_is_invalid():
+    factory = ExpressionFactory([])
+    result = factory.validate_match("== 1")
+    assert result.success is False
+
+
+def test_validate_match_comparison_operator_at_end_is_invalid():
+    factory = ExpressionFactory([])
+    result = factory.validate_match("1 ==")
+    assert result.success is False
     assert isinstance(result.errors[0], ExpressionSyntaxError)
 
 

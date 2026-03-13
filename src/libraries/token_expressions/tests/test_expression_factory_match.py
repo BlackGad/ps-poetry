@@ -203,6 +203,74 @@ def test_match_operator_token_preserves_boolean_logic():
     assert factory.match("0 {or_op} 0 {and_op} 1") is False
 
 
+def test_match_equal_operator():
+    factory = ExpressionFactory([])
+    assert factory.match("1 == 1") is True
+    assert factory.match("1 == 0") is False
+    assert factory.match("'a' == 'a'") is True
+    assert factory.match("'a' == 'b'") is False
+
+
+def test_match_not_equal_operator():
+    factory = ExpressionFactory([])
+    assert factory.match("1 != 0") is True
+    assert factory.match("1 != 1") is False
+
+
+def test_match_greater_than_operator():
+    factory = ExpressionFactory([])
+    assert factory.match("2 > 1") is True
+    assert factory.match("1 > 2") is False
+    assert factory.match("1 > 1") is False
+
+
+def test_match_less_than_operator():
+    factory = ExpressionFactory([])
+    assert factory.match("1 < 2") is True
+    assert factory.match("2 < 1") is False
+    assert factory.match("1 < 1") is False
+
+
+def test_match_greater_or_equal_operator():
+    factory = ExpressionFactory([])
+    assert factory.match("2 >= 1") is True
+    assert factory.match("2 >= 2") is True
+    assert factory.match("1 >= 2") is False
+
+
+def test_match_less_or_equal_operator():
+    factory = ExpressionFactory([])
+    assert factory.match("1 <= 2") is True
+    assert factory.match("2 <= 2") is True
+    assert factory.match("2 <= 1") is False
+
+
+def test_match_comparison_with_token():
+    def resolver(_arg: str) -> Optional[str]:
+        return "2"
+
+    factory = ExpressionFactory([("ver", resolver)])
+    assert factory.match("{ver} >= 1") is True
+    assert factory.match("{ver} == 2") is True
+    assert factory.match("{ver} < 1") is False
+
+
+def test_match_comparison_combined_with_logical():
+    factory = ExpressionFactory([])
+    assert factory.match("2 > 1 and 3 > 2") is True
+    assert factory.match("2 > 1 and 1 > 2") is False
+    assert factory.match("0 > 1 or 3 > 2") is True
+
+
+def test_match_comparison_no_spaces():
+    factory = ExpressionFactory([])
+    assert factory.match("2>1") is True
+    assert factory.match("1==1") is True
+    assert factory.match("1!=0") is True
+    assert factory.match("2>=2") is True
+    assert factory.match("1<=2") is True
+
+
 def test_match_operator_tokens_with_values():
     def joint_resolver(arg: str) -> str:
         return arg or "1"

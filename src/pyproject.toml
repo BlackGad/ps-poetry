@@ -58,8 +58,10 @@ checks = [
 # ps-delivery settings
 version-patterns = [
     "[{in}] {in}",
-    "[{env:BUILD_VERSION}] {env:BUILD_VERSION}",
-    "{spec}"
+    "[{git:mainline} and {git:dirty}] {git:version:major}.{git:version:minor<0>}.{git:distance}+dirty",
+    "[{git:mainline}] {git:version:major}.{git:version:minor<0>}.{git:distance}",
+    "[{git:dirty}] {git:version:major}.{git:version:minor<0>}.{git:distance}+{git:branch}.dirty",
+    "{git:version:major}.{git:version:minor<0>}.{git:distance}+{git:branch}"
 ]
 version-pinning = "compatible"
 deliver = false
