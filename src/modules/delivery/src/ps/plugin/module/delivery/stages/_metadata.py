@@ -15,7 +15,7 @@ from ps.plugin.sdk.project import (
 )
 
 from .._delivery_settings import DeliverySettings
-from ..token_resolvers import DateResolver
+from ..token_resolvers import DateResolver, RandResolver, VersionResolver
 
 _default_version_patterns: list[str] = [
     "[{in}] {in}",
@@ -212,9 +212,10 @@ def resolve_environment_metadata(
             token_resolvers=[
                 ("in", input_version),
                 ("env", lambda arg: os.getenv(arg) if arg else None),
-                ("env-ver", lambda arg: Version.parse(os.getenv(arg)) if arg else None),
                 ("spec", project_spec_version),
                 ("date", DateResolver(now)),
+                ("rand", RandResolver()),
+                ("v", VersionResolver()),
             ],
             default_callback=lambda _key, _args: ""
         )

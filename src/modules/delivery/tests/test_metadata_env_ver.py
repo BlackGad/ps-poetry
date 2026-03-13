@@ -10,7 +10,7 @@ def test_env_ver_resolves_when_var_set(tmp_path):
     with patch.dict(os.environ, {"BUILD_VERSION": "8.1.0"}):
         result = resolve(
             tmp_path,
-            project_patterns=["[{env-ver:BUILD_VERSION}] {env-ver:BUILD_VERSION}"],
+            project_patterns=["[{env:BUILD_VERSION}] {v:{env:BUILD_VERSION}}"],
         )
     versions = list(result.projects.values())
     assert versions[0].version == Version.parse("8.1.0")
@@ -22,28 +22,28 @@ def test_env_ver_condition_false_when_var_missing(tmp_path):
         result = resolve(
             tmp_path,
             project_version="1.5.0",
-            project_patterns=["[{env-ver:BUILD_VERSION}] {env-ver:BUILD_VERSION}", "{spec}"],
+            project_patterns=["[{env:BUILD_VERSION}] {v:{env:BUILD_VERSION}}", "{spec}"],
         )
     versions = list(result.projects.values())
     assert versions[0].version == Version.parse("1.5.0")
 
 
-def test_env_ver_condition_false_when_var_not_a_version(tmp_path):
+def test_env_ver_var_not_a_version_produces_default(tmp_path):
     with patch.dict(os.environ, {"BUILD_VERSION": "not-a-version"}):
         result = resolve(
             tmp_path,
             project_version="2.0.0",
-            project_patterns=["[{env-ver:BUILD_VERSION}] {env-ver:BUILD_VERSION}", "{spec}"],
+            project_patterns=["[{env:BUILD_VERSION}] {v:{env:BUILD_VERSION}}"],
         )
     versions = list(result.projects.values())
-    assert versions[0].version == Version.parse("2.0.0")
+    assert versions[0].version == Version()
 
 
 def test_env_ver_major_accessor(tmp_path):
     with patch.dict(os.environ, {"BUILD_VERSION": "6.4.2"}):
         result = resolve(
             tmp_path,
-            project_patterns=["{env-ver:BUILD_VERSION:major}.0.0"],
+            project_patterns=["{v:{env:BUILD_VERSION}:major}.0.0"],
         )
     versions = list(result.projects.values())
     assert versions[0].version == Version.parse("6.0.0")
@@ -53,7 +53,7 @@ def test_env_ver_minor_accessor(tmp_path):
     with patch.dict(os.environ, {"BUILD_VERSION": "6.4.2"}):
         result = resolve(
             tmp_path,
-            project_patterns=["0.{env-ver:BUILD_VERSION:minor}.0"],
+            project_patterns=["0.{v:{env:BUILD_VERSION}:minor}.0"],
         )
     versions = list(result.projects.values())
     assert versions[0].version == Version.parse("0.4.0")
@@ -63,7 +63,7 @@ def test_env_ver_patch_accessor(tmp_path):
     with patch.dict(os.environ, {"BUILD_VERSION": "6.4.2"}):
         result = resolve(
             tmp_path,
-            project_patterns=["0.0.{env-ver:BUILD_VERSION:patch}"],
+            project_patterns=["0.0.{v:{env:BUILD_VERSION}:patch}"],
         )
     versions = list(result.projects.values())
     assert versions[0].version == Version.parse("0.0.2")
@@ -73,7 +73,7 @@ def test_env_ver_custom_var_name(tmp_path):
     with patch.dict(os.environ, {"MY_VER": "3.1.0"}):
         result = resolve(
             tmp_path,
-            project_patterns=["[{env-ver:MY_VER}] {env-ver:MY_VER}"],
+            project_patterns=["[{env:MY_VER}] {v:{env:MY_VER}}"],
         )
     versions = list(result.projects.values())
     assert versions[0].version == Version.parse("3.1.0")
@@ -85,7 +85,7 @@ def test_env_ver_missing_falls_through_to_next_pattern(tmp_path):
         result = resolve(
             tmp_path,
             project_version="5.0.0",
-            project_patterns=["[{env-ver:MISSING_VAR}] {env-ver:MISSING_VAR}", "{spec}"],
+            project_patterns=["[{env:MISSING_VAR}] {v:{env:MISSING_VAR}}", "{spec}"],
         )
     versions = list(result.projects.values())
     assert versions[0].version == Version.parse("5.0.0")
