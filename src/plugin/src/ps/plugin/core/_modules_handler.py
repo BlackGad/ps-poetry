@@ -69,8 +69,8 @@ class _ModulesHandler:
             ]
             selected_names = {name for name in specified_modules if name in name_to_entry}
         else:
-            module_types_list = all_module_types_list
-            selected_names = set(name_to_entry.keys())
+            module_types_list = []
+            selected_names = set()
 
         available_not_selected = [
             (entry_spec, module_type)
