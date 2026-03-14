@@ -18,6 +18,7 @@ from ps.plugin.sdk.mixins import NameAwareProtocol
 from ps.plugin.sdk.di import DI
 
 from .stages import build_projects, patch_projects, publish_projects, resolve_environment_metadata, ResolvedProjectMetadata
+from .commands import DeliveryCommand
 
 
 BUILD_VERSION_OPTION = "build-version"
@@ -71,6 +72,9 @@ class DeliveryModule(
             shortcut=BUILD_VERSION_OPTION_SHORT,
             flag=False)
         )
+
+        application.add(DeliveryCommand(self._di))
+
         return True
 
     def handle_command(self, event: ConsoleCommandEvent, event_name: str, dispatcher: EventDispatcher) -> None:

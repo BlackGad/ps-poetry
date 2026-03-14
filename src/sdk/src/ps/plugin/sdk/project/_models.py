@@ -61,7 +61,7 @@ class ProjectDependency(BaseModel):
             # Either PEP 508 string or Poetry simple string
             try:
                 req = Requirement(current_value)
-                return str(req.specifier) if req.specifier else None
+                return str(req.specifier) if req.specifier else "*"
             except (ValueError, TypeError):
                 # Poetry simple string format
                 return current_value

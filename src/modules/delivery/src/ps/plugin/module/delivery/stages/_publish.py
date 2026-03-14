@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Optional
 
 from cleo.io.buffered_io import BufferedIO
 from cleo.io.io import IO
@@ -9,6 +9,7 @@ from poetry.publishing.publisher import Publisher
 
 from ps.plugin.sdk.project import Project
 
+from ._logging import log_dependency_tree, log_publish_waves
 from ._metadata import ResolvedEnvironmentMetadata
 from .._parallelization import run_topological
 
@@ -24,62 +25,6 @@ class _PublishItem:
     dist_dir: Optional[Path]
     dry_run: bool
     skip_existing: bool
-
-
-def _log_publish_plan(
-    io: IO,
-    items: list[_PublishItem],
-    get_deps: Callable[["_PublishItem"], list["_PublishItem"]],
-) -> None:
-    all_dep_ids = {id(dep) for item in items for dep in get_deps(item)}
-    roots = [item for item in items if id(item) not in all_dep_ids]
-
-    printed: set[int] = set()
-
-    def _print_item(item: _PublishItem, prefix: str, child_prefix: str) -> None:
-        name = item.project.name.value or item.project.path.name
-        io.write_line(f"{prefix}<fg=blue>{name}</>")
-        if id(item) not in printed:
-            printed.add(id(item))
-            deps = get_deps(item)
-            for i, dep in enumerate(deps):
-                is_last = i == len(deps) - 1
-                _print_item(
-                    dep,
-                    child_prefix + ("└── " if is_last else "├── "),
-                    child_prefix + ("    " if is_last else "│   "),
-                )
-
-    io.write_line("<fg=magenta>Dependency tree:</>")
-    for i, root in enumerate(roots):
-        is_last = i == len(roots) - 1
-        _print_item(
-            root,
-            "  " + ("└── " if is_last else "├── "),
-            "  " + ("    " if is_last else "│   "),
-        )
-
-    remaining = {id(item) for item in items}
-    done: set[int] = set()
-    waves: list[list[_PublishItem]] = []
-    while remaining:
-        wave = [item for item in items if id(item) in remaining and all(id(dep) in done for dep in get_deps(item))]
-        waves.append(wave)
-        for item in wave:
-            remaining.discard(id(item))
-            done.add(id(item))
-
-    io.write_line("<fg=magenta>Publish order:</>")
-    for wave_idx, wave in enumerate(waves, 1):
-        is_last_wave = wave_idx == len(waves)
-        wave_prefix = "└── " if is_last_wave else "├── "
-        wave_child_prefix = "    " if is_last_wave else "│   "
-        io.write_line(f"  {wave_prefix}<fg=magenta>Wave {wave_idx}</>")
-        for j, item in enumerate(wave):
-            name = item.project.name.value or item.project.path.name
-            is_last_item = j == len(wave) - 1
-            item_prefix = "└── " if is_last_item else "├── "
-            io.write_line(f"  {wave_child_prefix}{item_prefix}<fg=blue>{name}</>")
 
 
 def _publish_one(buffered_io: BufferedIO, item: _PublishItem) -> int:
@@ -125,5 +70,6 @@ def publish_projects(
         dep_paths = {dep.parent.resolve() for dep in meta.project_dependencies} & filtered_paths
         return [path_to_item[p] for p in dep_paths]
 
-    _log_publish_plan(io, items, get_deps)
+    log_dependency_tree(io, filtered_projects, project_metadata)
+    log_publish_waves(io, filtered_projects, project_metadata)
     return run_topological(io, items, _publish_one, get_deps)

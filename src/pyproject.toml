@@ -10,6 +10,7 @@ packages = [
     { include = "experiments", from = "." },
 ]
 version = "42.42.42"
+package-mode = false
 
 [tool.poetry.dependencies]
 poetry = "^2.3.1"
@@ -19,14 +20,12 @@ pydantic = "^2.12.5"
 entry_folder = "experiments.ps_module_in_host"
 entry_class  = "experiments.ps_module_in_host:ModuleInHost"
 
-
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.14.9"
 pytest = "^9.0.2"
 pytest-cov = "^7.0.0"
 autopep8 = "^2.3.2"
 pytest-asyncio = "^1.3.0"
-
 
 [tool.poetry.group.ps.dependencies]
 ps-version                  = { path = "libraries/version", develop = true }
@@ -64,7 +63,7 @@ version-patterns = [
     "{git:version:major}.{git:version:minor<0>}.{git:distance}+{git:branch}"
 ]
 version-pinning = "compatible"
-deliver = false
+# deliver = false
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

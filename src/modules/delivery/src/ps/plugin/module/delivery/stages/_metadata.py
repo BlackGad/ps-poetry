@@ -14,6 +14,8 @@ from ps.plugin.sdk.project import (
     ProjectDependency,
 )
 
+from ps.plugin.sdk.toml import TomlValue
+
 from .._delivery_settings import DeliverySettings
 from ..token_resolvers import DateResolver, RandResolver, VersionResolver, collect_git_info
 
@@ -67,6 +69,8 @@ def _validate_and_match_condition(io: IO, factory: ExpressionFactory, condition_
         if io.is_debug():
             io.write_line(f"  <fg=dark_gray>- Version: Condition '<fg=cyan>{condition_pattern}</> evaluated to false.</>")
         return False
+    if io.is_debug():
+        io.write_line(f"  <fg=dark_gray>- Version: Condition '<fg=cyan>{condition_pattern}</> evaluated to true.</>")
     return True
 
 
@@ -207,7 +211,13 @@ def resolve_environment_metadata(
         version_patterns = project_delivery_settings.version_patterns or host_project_delivery_settings.version_patterns or _default_version_patterns
         pinning_rule = project_delivery_settings.version_pinning or host_project_delivery_settings.version_pinning or VersionConstraint.COMPATIBLE
 
+        package_mode = TomlValue.locate(project.document, ["tool.poetry.package-mode"]).value
+        deliver = package_mode is not False
+
         io.write_line(f"<fg=magenta>Resolving project:</> <fg=blue>{project_display_name}</> [<fg=dark_gray>{project.path}</>]")
+
+        deliver_label = "<fg=green>true</>" if deliver else "<fg=yellow>false</>"
+        io.write_line(f"  - Deliverable: {deliver_label}")
 
         if io.is_debug():
             for i, pattern in enumerate(version_patterns, 1):
@@ -224,7 +234,7 @@ def resolve_environment_metadata(
 
         metadata = ResolvedProjectMetadata()
         metadata.pinning = pinning_rule
-        metadata.deliver = project_delivery_settings.deliver
+        metadata.deliver = deliver
         version = _resolve_project_version(io, factory, version_patterns, pinning_rule)
         if version is not None:
             metadata.version = version
