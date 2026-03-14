@@ -17,7 +17,7 @@ from ps.plugin.sdk.mixins import NameAwareProtocol
 from ps.plugin.sdk.project import Environment, Project, filter_projects
 
 from ._check_settings import CheckSettings
-from .checks import EnvironmentCheck, PoetryCheck, PylintCheck, PytestCheck, RuffCheck
+from .checks import EnvironmentCheck, PoetryCheck, PylintCheck, PyrightCheck, PytestCheck, RuffCheck
 
 
 def _filter_checkers[T: NameAwareProtocol](available_checkers: list[T], check_settings: CheckSettings, io: IO) -> list[T]:
@@ -89,6 +89,7 @@ _builtin_checks: list[Type[ICheck]] = [
     PytestCheck,
     PylintCheck,
     RuffCheck,
+    PyrightCheck,
 ]
 
 

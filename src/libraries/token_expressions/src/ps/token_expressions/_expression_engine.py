@@ -11,17 +11,9 @@ def _check_balanced_parentheses(expr: str) -> Optional[ExpressionSyntaxError]:
         elif char == ")":
             paren_count -= 1
             if paren_count < 0:
-                return ExpressionSyntaxError(
-                    token=expr,
-                    position=i,
-                    message=f"Unmatched closing parenthesis at position {i}",
-                )
+                return ExpressionSyntaxError(expr, i, f"Unmatched closing parenthesis at position {i}")
     if paren_count > 0:
-        return ExpressionSyntaxError(
-            token=expr,
-            position=0,
-            message=f"Unmatched opening parenthesis ({paren_count} unclosed)",
-        )
+        return ExpressionSyntaxError(expr, 0, f"Unmatched opening parenthesis ({paren_count} unclosed)")
     return None
 
 
@@ -36,52 +28,28 @@ def _validate_token_sequence(expr: str, tokens: list[str]) -> ValidationResult:
     for i, current in enumerate(tokens):
         if current == "(":
             if previous and previous not in operators and previous != "(":
-                errors.append(ExpressionSyntaxError(
-                    token=expr,
-                    position=0,
-                    message=f"Unexpected '(' after {previous} at token position {i}",
-                ))
+                errors.append(ExpressionSyntaxError(expr, 0, f"Unexpected '(' after {previous} at token position {i}"))
             expect_operand = True
         elif current == ")":
             if expect_operand and previous != ")":
-                errors.append(ExpressionSyntaxError(
-                    token=expr,
-                    position=0,
-                    message=f"Unexpected ')' at token position {i}, expected operand",
-                ))
+                errors.append(ExpressionSyntaxError(expr, 0, f"Unexpected ')' at token position {i}, expected operand"))
             expect_operand = False
         elif current == "not":
             if not expect_operand and previous != "(" and previous not in operators:
-                errors.append(ExpressionSyntaxError(
-                    token=expr,
-                    position=0,
-                    message=f"Unexpected 'not' at token position {i}, expected binary operator",
-                ))
+                errors.append(ExpressionSyntaxError(expr, 0, f"Unexpected 'not' at token position {i}, expected binary operator"))
             expect_operand = True
         elif current in binary_operators:
             if expect_operand:
-                errors.append(ExpressionSyntaxError(
-                    token=expr,
-                    position=0,
-                    message=f"Unexpected operator '{current}' at token position {i}, expected operand",
-                ))
+                errors.append(ExpressionSyntaxError(expr, 0, f"Unexpected operator '{current}' at token position {i}, expected operand"))
             expect_operand = True
         else:
             if not expect_operand and previous not in operators:
-                errors.append(ExpressionSyntaxError(
-                    token=expr,
-                    position=0,
-                    message=f"Unexpected operand '{current}' at token position {i}, expected operator",
-                ))
+                errors.append(ExpressionSyntaxError(expr, 0, f"Unexpected operand '{current}' at token position {i}, expected operator"))
             expect_operand = False
         previous = current
 
     if expect_operand and previous not in {"(", ")"}:
-        errors.append(ExpressionSyntaxError(
-            token=expr,
-            position=0,
-            message="Expression ends unexpectedly, expected operand",
-        ))
+        errors.append(ExpressionSyntaxError(expr, 0, "Expression ends unexpectedly, expected operand"))
 
     return ValidationResult(errors=tuple(errors))
 
