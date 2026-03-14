@@ -62,7 +62,7 @@ A single module class may implement any combination of these protocols.
 
 # Dependency Injection
 
-The plugin creates a `DI` container (defined in `ps.plugin.sdk.di`) that is shared across all module instances. Constructor parameters of module classes are resolved automatically by type when the module is instantiated via `DI.spawn`. The following types are pre-registered by the plugin host:
+The plugin creates a `DI` instance (from the `ps-di` library) that is shared across all module instances. Constructor parameters of module classes are resolved automatically by type when the module is instantiated via `DI.spawn`. See the [ps-di README](../libraries/di/README.md) for the full documentation. The following types are pre-registered by the plugin host:
 
 * `IO` — The Cleo IO object for the current Poetry invocation.
 * `Application` — The active Poetry `Application` instance.

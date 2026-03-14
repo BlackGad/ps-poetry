@@ -1,7 +1,7 @@
 from cleo.commands.command import Command
 
 from ps.plugin.sdk.project import Environment
-from ps.plugin.sdk.di import DI
+from ps.di import DI
 
 from ..stages import ResolvedProjectMetadata, resolve_environment_metadata, log_dependency_tree, log_publish_waves
 

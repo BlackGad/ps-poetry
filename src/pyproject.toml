@@ -28,6 +28,7 @@ autopep8 = "^2.3.2"
 pytest-asyncio = "^1.3.0"
 
 [tool.poetry.group.ps.dependencies]
+ps-di                       = { path = "libraries/di", develop = true }
 ps-version                  = { path = "libraries/version", develop = true }
 ps-token-expressions        = { path = "libraries/token_expressions", develop = true }
 ps-plugin-sdk               = { path = "sdk", develop = true }
@@ -57,9 +58,9 @@ checks = [
 # ps-delivery settings
 version-patterns = [
     "[{in}] {in}",
-    "[{git:mainline} and {git:dirty}] {git:version:major}.{git:version:minor<0>}.{git:distance}+dirty",
+    "[{git:mainline} and {git:dirty}] {git:version:major}.{git:version:minor<0>}.{git:distance}+{date:%Y%m%d%H%M}",
     "[{git:mainline}] {git:version:major}.{git:version:minor<0>}.{git:distance}",
-    "[{git:dirty}] {git:version:major}.{git:version:minor<0>}.{git:distance}+{git:branch}.dirty",
+    "[{git:dirty}] {git:version:major}.{git:version:minor<0>}.{git:distance}+{git:branch}.{date:%Y%m%d%H%M}",
     "{git:version:major}.{git:version:minor<0>}.{git:distance}+{git:branch}"
 ]
 version-pinning = "compatible"

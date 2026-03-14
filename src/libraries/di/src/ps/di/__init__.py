@@ -1,4 +1,5 @@
-from ._di import DI, Binding, Lifetime, Priority
+from ._enums import Lifetime, Priority
+from ._di import Binding, DI
 
 __all__ = [
     "DI",

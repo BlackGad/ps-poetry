@@ -1,0 +1,15 @@
+[project]
+name        = "ps-di"
+description = ""
+requires-python = ">=3.10,<3.14"
+version = "0.0.0"
+
+[tool.poetry]
+packages = [ { include = "ps/di", from = "src" } ]
+
+[tool.ps-plugin]
+host-project = "../.."
+
+[build-system]
+requires    = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

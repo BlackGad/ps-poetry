@@ -2,7 +2,7 @@ import pytest
 import threading
 from typing import List, Optional
 
-from ps.di import DI, Lifetime, Priority
+from ps.di import DI, Binding, Lifetime, Priority
 
 
 class Counter:
@@ -37,6 +37,17 @@ class ComplexService:
         self.counter = counter
         self.services = services or []
         self.default_value = default_value
+
+
+def test_di_instantiation():
+    di = DI()
+    assert isinstance(di, DI)
+
+
+def test_register_returns_binding():
+    di = DI()
+    binding = di.register(Service)
+    assert isinstance(binding, Binding)
 
 
 def test_singleton_returns_same_instance():
@@ -399,7 +410,6 @@ def test_spawn_with_string_annotations():
     di = DI()
     di.register(Service).factory(lambda: Service("resolved"))
 
-    # Manually create class with string annotation
     class ServiceWithStringAnnotation:
         def __init__(self, service: "Service") -> None:
             self.service = service
@@ -413,10 +423,8 @@ def test_spawn_with_string_annotations():
 def test_register_and_resolve_with_string_type_name():
     di = DI()
 
-    # Register using the actual type first so it's in the registry
     di.register(Service).factory(lambda: Service("string-resolved"))
 
-    # Resolve using string type name
     instance = di.resolve("Service")
 
     assert instance is not None
@@ -517,7 +525,6 @@ def test_priority_default_is_low():
 
     service = di.resolve(Service)
 
-    # Both have LOW priority, most recent wins
     assert service is not None
     assert service.name == "explicit-low"
 
@@ -532,7 +539,6 @@ def test_priority_with_different_lifetimes():
 
     assert service1 is not None
     assert service1.name == "transient-high"
-    # Transient should create new instances
     assert service1 is not service2
 
 
@@ -554,7 +560,6 @@ def test_priority_concurrent_registration():
     for thread in threads:
         thread.join()
 
-    # Resolve should return a high priority item
     service = di.resolve(Service)
     assert service is not None
     assert "high" in service.name

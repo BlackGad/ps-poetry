@@ -6,15 +6,14 @@ from cleo.events.event_dispatcher import EventDispatcher
 from cleo.io.io import IO
 from poetry.console.application import Application
 
-from ps.plugin.core._di import _DI
+from ps.di import DI
 from ps.plugin.core._modules_handler import _ModulesHandler
-from ps.plugin.sdk.di import DI
 from ps.plugin.sdk.events import ActivateProtocol, ListenerCommandProtocol
 from ps.plugin.sdk.settings import PluginSettings
 
 
 def _make_di(modules: List[str] | None) -> DI:
-    di = _DI()
+    di = DI()
     io = MagicMock(spec=IO)
     io.is_verbose.return_value = False
     io.is_debug.return_value = False

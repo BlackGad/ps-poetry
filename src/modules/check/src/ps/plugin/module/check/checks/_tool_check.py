@@ -7,7 +7,7 @@ from typing import Optional
 from cleo.io.io import IO
 
 from ps.plugin.sdk.check import ICheck
-from ps.plugin.sdk.di import DI
+from ps.di import DI
 from ps.plugin.sdk.project import Environment, Project
 
 

@@ -15,7 +15,7 @@ from ps.version import Version
 from ps.plugin.sdk.project import Environment, filter_projects
 from ps.plugin.sdk.events import ActivateProtocol, ListenerCommandProtocol, ListenerTerminateProtocol, ensure_argument, ensure_option
 from ps.plugin.sdk.mixins import NameAwareProtocol
-from ps.plugin.sdk.di import DI
+from ps.di import DI
 
 from .stages import build_projects, patch_projects, publish_projects, resolve_environment_metadata, ResolvedProjectMetadata
 from .commands import DeliveryCommand

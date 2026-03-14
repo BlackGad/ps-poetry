@@ -8,6 +8,7 @@ version = "0.0.0"
 entry = "ps.plugin.core._plugin:Plugin"
 
 [tool.poetry.group.ps.dependencies]
+ps-di         = { path = "../libraries/di", develop = true }
 ps-plugin-sdk = { path = "../sdk", develop = true }
 
 [tool.poetry]

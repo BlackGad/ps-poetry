@@ -13,12 +13,11 @@ from cleo.io.outputs.output import Verbosity
 from poetry.plugins.application_plugin import ApplicationPlugin
 from poetry.console.application import Application
 
+from ps.di import DI
+
 from ps.plugin.sdk.settings import PluginSettings, parse_plugin_settings_from_document
 from ps.plugin.sdk.events import ActivateProtocol, ListenerCommandProtocol, ListenerTerminateProtocol, ListenerErrorProtocol, ListenerSignalProtocol
 from ps.plugin.sdk.project import Environment
-from ps.plugin.sdk.di import DI
-
-from ._di import _DI
 from ._modules_handler import _ModulesHandler
 from ps.plugin.sdk.logging import log_debug, log_verbose, get_module_verbal_name
 
@@ -52,7 +51,7 @@ class Plugin(ApplicationPlugin):
 
         log_verbose(io, "<info>Starting activation</info>")
 
-        di = _DI()
+        di = DI()
         di.register(IO).factory(lambda: io)
         di.register(Application).factory(lambda: application)
         di.register(Environment).factory(lambda path: Environment(path), application.poetry.pyproject_path)

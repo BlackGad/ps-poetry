@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 from cleo.io.io import IO
 
-from ps.plugin.core._di import _DI
+from ps.di import DI
 from ps.plugin.sdk.check import ICheck
 from ps.plugin.sdk.project import Project, parse_project
 from ps.plugin.module.check._check_module import _filter_checkers, _perform_checks
@@ -38,8 +38,8 @@ def make_io() -> MagicMock:
     return io
 
 
-def make_di(io: Optional[MagicMock] = None) -> _DI:
-    di = _DI()
+def make_di(io: Optional[MagicMock] = None) -> DI:
+    di = DI()
     resolved_io = io or make_io()
     di.register(IO).factory(lambda: resolved_io)
     return di

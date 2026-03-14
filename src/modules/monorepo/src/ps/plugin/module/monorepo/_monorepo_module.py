@@ -4,7 +4,7 @@ from cleo.events.console_command_event import ConsoleCommandEvent
 from cleo.events.console_terminate_event import ConsoleTerminateEvent
 from cleo.events.event_dispatcher import EventDispatcher
 
-from ps.plugin.sdk.di import DI
+from ps.di import DI
 from ps.plugin.sdk.events import ListenerCommandProtocol, ListenerTerminateProtocol
 from ps.plugin.sdk.mixins import NameAwareProtocol
 from ps.plugin.sdk.project import Environment

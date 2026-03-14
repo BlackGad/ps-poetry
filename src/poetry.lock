@@ -1173,6 +1173,20 @@ files = [
 ]
 
 [[package]]
+name = "ps-di"
+version = "0.0.0"
+description = ""
+optional = false
+python-versions = ">=3.10,<3.14"
+groups = ["ps"]
+files = []
+develop = true
+
+[package.source]
+type = "directory"
+url = "libraries/di"
+
+[[package]]
 name = "ps-plugin-core"
 version = "0.0.0"
 description = ""
@@ -2121,4 +2135,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.14"
-content-hash = "37b9fd6d41c1eb03c28b6b5e141004cc17f69b77bb5769cbe4ca1e21a912cfa7"
+content-hash = "8e43464d7a90d312663642eb8bea23ce54345d5c6c5c8c50550e4589847ca4d1"

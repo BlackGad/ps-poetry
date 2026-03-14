@@ -119,7 +119,7 @@ The SDK defines structural protocols (using `typing_extensions.Protocol`) that d
 
 # Dependency Injection
 
-The `DI` abstract class defines the interface for the plugin's dependency injection container. Plugin modules receive a `DI` instance and use it to register and resolve services.
+The SDK re-exports the `DI` class and related types (`Binding`, `Lifetime`, `Priority`) from the `ps-di` library. Plugin modules receive a `DI` instance and use it to register and resolve services. See the [ps-di README](../libraries/di/README.md) for the full documentation.
 
 * `register(cls, lifetime, priority)` — Registers a class or string key with an optional lifetime and priority. Returns a `Binding` that configures the implementation via `.implementation(impl)` or a factory via `.factory(factory, *args, **kwargs)`.
 * `resolve(key)` — Returns the highest-priority registered instance for `key`, or `None`.
