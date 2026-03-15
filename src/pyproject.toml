@@ -48,7 +48,7 @@ modules = [
     "ModuleInHost",
     "ps-check",
     "ps-delivery",
-    "ps-monorepo"
+    # "ps-monorepo"
 ]
 # ps-check settings
 checks = [

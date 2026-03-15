@@ -2,11 +2,8 @@ from typing import ClassVar, Optional, Type
 
 from cleo.events.console_command_event import ConsoleCommandEvent
 from cleo.events.console_terminate_event import ConsoleTerminateEvent
-from cleo.events.event_dispatcher import EventDispatcher
 
 from ps.di import DI
-from ps.plugin.sdk.events import ListenerCommandProtocol, ListenerTerminateProtocol
-from ps.plugin.sdk.mixins import NameAwareProtocol
 from ps.plugin.sdk.project import Environment
 
 from ._command_handler_dependencies import DependenciesCommandHandler
@@ -21,11 +18,7 @@ _command_handler_types: list[Type[CommandHandlerProtocol]] = [
 ]
 
 
-class MonorepoModule(
-    NameAwareProtocol,
-    ListenerCommandProtocol,
-    ListenerTerminateProtocol,
-):
+class MonorepoModule:
     name: ClassVar[str] = "ps-monorepo"
 
     def __init__(self, di: DI) -> None:
@@ -33,7 +26,7 @@ class MonorepoModule(
         self._handlers: list[CommandHandlerProtocol] = []
         self._exit_code: Optional[int] = None
 
-    def handle_command(self, event: ConsoleCommandEvent, event_name: str, dispatcher: EventDispatcher) -> None:
+    def poetry_command(self, event: ConsoleCommandEvent) -> None:
         environment = self._di.resolve(Environment)
         assert environment is not None
 
@@ -46,7 +39,7 @@ class MonorepoModule(
 
         self._exit_code = 0
 
-    def handle_terminate(self, event: ConsoleTerminateEvent, event_name: str, dispatcher: EventDispatcher) -> None:
+    def poetry_terminate(self, event: ConsoleTerminateEvent) -> None:
         if self._exit_code is None:
             return
 

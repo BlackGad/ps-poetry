@@ -1,119 +1,287 @@
-from typing import Iterable, List, Type
 import inspect
+import re
+import traceback
+from dataclasses import dataclass, field
 from importlib import metadata
+from typing import Any, Callable, Optional
 
 from cleo.io.io import IO
 
-from ps.plugin.sdk.events import ActivateProtocol, ListenerCommandProtocol, ListenerTerminateProtocol, ListenerErrorProtocol, ListenerSignalProtocol
 from ps.di import DI
+from ps.plugin.sdk.logging import log_debug, log_verbose
 from ps.plugin.sdk.settings import PluginSettings
-from ps.plugin.sdk.logging import log_debug, get_module_verbal_name, get_module_name
+
+_HANDLER_PATTERN = re.compile(r"^poetry_(activate|command|error|terminate|signal)(_\w+)?$")
+_EVENT_TYPES = ("activate", "command", "error", "terminate", "signal")
 
 
-def _load_module_class_types() -> Iterable[tuple[str, Type]]:
-    all_entries: list[tuple[str, Type]] = []
+@dataclass
+class _ModuleInfo:
+    name: str
+    handlers: dict[str, Callable] = field(default_factory=dict)
+    distribution: Optional[str] = None
+    instance: Optional[object] = None
+    path: Optional[str] = None
+
+
+def _get_module_path(obj: Any) -> Optional[str]:
+    try:
+        return inspect.getfile(obj)
+    except (TypeError, OSError):
+        return None
+
+
+def _get_distribution(entry_point: metadata.EntryPoint) -> Optional[str]:
+    try:
+        return entry_point.dist.name if entry_point.dist else None
+    except Exception:
+        return None
+
+
+def _get_class_name(cls: type) -> str:
+    name_attr = getattr(cls, "name", None)
+    return name_attr if isinstance(name_attr, str) else cls.__name__
+
+
+def _is_static_or_classmethod(cls: type, name: str) -> bool:
+    for klass in cls.__mro__:
+        if name in klass.__dict__:
+            val = klass.__dict__[name]
+            return isinstance(val, (staticmethod, classmethod))
+    return False
+
+
+def _scan_class(cls: type, distribution: Optional[str]) -> list[_ModuleInfo]:
+    instance_handlers: dict[str, Callable] = {}
+    static_handlers: dict[str, tuple[str, Callable]] = {}
+
+    for name in dir(cls):
+        match = _HANDLER_PATTERN.match(name)
+        if not match:
+            continue
+        event_type = match.group(1)
+        suffix = (match.group(2) or "")[1:]  # strip leading _
+
+        if _is_static_or_classmethod(cls, name):
+            if not suffix:
+                continue  # static/class methods MUST have suffix
+            fn = getattr(cls, name)
+            static_handlers[name] = (suffix, fn)
+        else:
+            instance_handlers[event_type] = getattr(cls, name)
+
+    modules: list[_ModuleInfo] = []
+
+    cls_path = _get_module_path(cls)
+
+    if instance_handlers:
+        modules.append(_ModuleInfo(
+            name=_get_class_name(cls),
+            handlers=instance_handlers,
+            distribution=distribution,
+            path=cls_path,
+        ))
+
+    # Group static methods by suffix
+    suffix_groups: dict[str, dict[str, Callable]] = {}
+    for name, (suffix, fn) in static_handlers.items():
+        match = _HANDLER_PATTERN.match(name)
+        if match:
+            event_type = match.group(1)
+            suffix_groups.setdefault(suffix, {})[event_type] = fn
+
+    for suffix, handlers in suffix_groups.items():
+        modules.append(_ModuleInfo(
+            name=suffix,
+            handlers=handlers,
+            distribution=distribution,
+            path=cls_path,
+        ))
+
+    return modules
+
+
+def _scan_function(fn: Callable, distribution: Optional[str]) -> Optional[_ModuleInfo]:
+    name = getattr(fn, "__name__", "")
+    match = _HANDLER_PATTERN.match(name)
+    if not match:
+        return None
+    event_type = match.group(1)
+    suffix = (match.group(2) or "")[1:]
+    if not suffix:
+        return None  # global functions MUST have suffix
+    return _ModuleInfo(name=suffix, handlers={event_type: fn}, distribution=distribution, path=_get_module_path(fn))
+
+
+def _load_module_infos(io: IO) -> list[_ModuleInfo]:
+    all_modules: list[_ModuleInfo] = []
 
     for entry_point in metadata.entry_points(group="ps.module"):
+        ep_name = f"{entry_point.group}:{entry_point.name}"
         try:
-            entry_spec = entry_point.value
-            loaded_entry_point = entry_point.load()
-            classes_to_add: list[Type] = []
-            if inspect.isclass(loaded_entry_point):
-                classes_to_add.append(loaded_entry_point)
-            elif inspect.ismodule(loaded_entry_point):
-                classes_to_add.extend(
-                    obj for _, obj in inspect.getmembers(loaded_entry_point, inspect.isclass)
-                    if obj.__module__.startswith(loaded_entry_point.__name__)
-                )
-            elif inspect.isfunction(loaded_entry_point):
-                raise TypeError("Module entry point cannot be a function.")
-            all_entries.extend((entry_spec, module_type) for module_type in classes_to_add)
-        except metadata.PackageNotFoundError:
+            loaded = entry_point.load()
+            dist = _get_distribution(entry_point)
+        except Exception as e:
+            log_verbose(io, f"  <fg=yellow>Warning: failed to load entry point '{ep_name}': {e}</>")
+            log_debug(io, f"  <fg=dark_gray>{traceback.format_exc().strip()}</>")
             continue
 
-    # Keep only the longest entry_spec for each module_type
-    type_to_entry: dict[Type, str] = {}
-    for entry_spec, module_type in all_entries:
-        existing_spec = type_to_entry.get(module_type)
-        if existing_spec is None or len(entry_spec) > len(existing_spec):
-            type_to_entry[module_type] = entry_spec
+        if inspect.isclass(loaded):
+            all_modules.extend(_scan_class(loaded, dist))
+        elif inspect.ismodule(loaded):
+            for _, obj in inspect.getmembers(loaded):
+                if inspect.isclass(obj) and obj.__module__.startswith(loaded.__name__):
+                    all_modules.extend(_scan_class(obj, dist))
+                elif inspect.isfunction(obj) and obj.__module__ == loaded.__name__:
+                    info = _scan_function(obj, dist)
+                    if info:
+                        all_modules.append(info)
+        elif inspect.isfunction(loaded):
+            info = _scan_function(loaded, dist)
+            if info:
+                all_modules.append(info)
+        else:
+            log_verbose(io, f"  <fg=yellow>Warning: entry point '{ep_name}' loaded unsupported type {type(loaded).__name__}, skipping.</>")
 
-    return [(entry_spec, module_type) for module_type, entry_spec in type_to_entry.items()]
+    return all_modules
+
+
+def _detect_collisions(modules: list[_ModuleInfo], io: IO) -> list[_ModuleInfo]:
+    name_groups: dict[str, list[_ModuleInfo]] = {}
+    for mod in modules:
+        name_groups.setdefault(mod.name, []).append(mod)
+
+    result: list[_ModuleInfo] = []
+    for name, group in name_groups.items():
+        if len(group) == 1:
+            result.append(group[0])
+        else:
+            dist_list = ", ".join(
+                f"<fg=yellow>{m.distribution or 'unknown'}</>" for m in group
+            )
+            log_verbose(
+                io,
+                f"  <fg=yellow>Warning: module name collision: '<fg=cyan>{name}</>' found in [{dist_list}]. None will be loaded.</>",
+            )
+            if io.is_debug():
+                for m in group:
+                    path_hint = f" — {m.path}" if m.path else ""
+                    io.write_line(f"    <fg=dark_gray>  {m.distribution or 'unknown'}{path_hint}</>")
+    return result
 
 
 class _ModulesHandler:
     def __init__(self, di: DI, io: IO, plugin_settings: PluginSettings) -> None:
-        self._modules_instances: List[object] = []
-        self._managed_protocols: dict[Type, List[object]] = {}
         self._di = di
         self._io = io
         self._plugin_settings = plugin_settings
+        self._modules: list[_ModuleInfo] = []
+        self._disabled: set[str] = set()
 
-    def instantiate_modules(self) -> None:
+    def discover_and_instantiate(self) -> None:
         io = self._io
-        plugin_settings = self._plugin_settings
-        specified_modules = plugin_settings.modules
-        module_entries = _load_module_class_types()
-        all_module_types_list = [(entry_spec, module_type) for entry_spec, module_type in module_entries]
-        name_to_entry: dict[str, tuple[str, Type]] = {
-            get_module_name(module_type): (entry_spec, module_type)
-            for entry_spec, module_type in all_module_types_list
-        }
+        all_modules = _load_module_infos(io)
+        modules = _detect_collisions(all_modules, io)
 
-        if specified_modules is not None:
-            # Ordered selection: keep only specified, in user-defined order
-            module_types_list = [
-                name_to_entry[name]
-                for name in specified_modules
-                if name in name_to_entry
-            ]
-            selected_names = {name for name in specified_modules if name in name_to_entry}
+        specified = self._plugin_settings.modules
+        if specified is not None:
+            name_map = {m.name: m for m in modules}
+            modules = [name_map[n] for n in specified if n in name_map]
+            selected_names = {m.name for m in modules}
         else:
-            module_types_list = []
+            modules = []
             selected_names = set()
 
-        available_not_selected = [
-            (entry_spec, module_type)
-            for entry_spec, module_type in all_module_types_list
-            if get_module_name(module_type) not in selected_names
-        ]
-
         if io.is_verbose():
+            available_not_selected = [m for m in all_modules if m.name not in selected_names]
+
             io.write_line("<fg=magenta>Selected modules:</>")
-            for idx, (entry_spec, module_type) in enumerate(module_types_list, start=1):
-                suffix = f" <fg=dark_gray>[{entry_spec}]</>" if io.is_debug() else ""
-                io.write_line(f"  {idx}. <fg=cyan>{get_module_name(module_type)}</>{suffix}")
+            for idx, mod in enumerate(modules, start=1):
+                dist_hint = f" <fg=dark_gray>[{mod.distribution}]</>" if mod.distribution else ""
+                io.write_line(f"  {idx}. <fg=cyan>{mod.name}</>{dist_hint}")
+                if io.is_debug() and mod.path:
+                    io.write_line(f"       <fg=dark_gray>{mod.path}</>")
 
-        if io.is_debug() and available_not_selected:
-            io.write_line("\n<fg=magenta>Available but not selected:</>")
-            for entry_spec, module_type in available_not_selected:
-                suffix = f" <fg=dark_gray>[{entry_spec}]</>" if io.is_debug() else ""
-                io.write_line(f"  - <fg=dark_gray>{get_module_name(module_type)}</>{suffix}")
+            if available_not_selected:
+                io.write_line("<fg=magenta>Discovered but not selected:</>")
+                for mod in available_not_selected:
+                    dist_hint = f" <fg=dark_gray>[{mod.distribution}]</>" if mod.distribution else ""
+                    io.write_line(f"  - <fg=dark_gray>{mod.name}</>{dist_hint}")
+                    if io.is_debug() and mod.path:
+                        io.write_line(f"       <fg=dark_gray>{mod.path}</>")
 
-        protocols: List[Type] = [
-            ActivateProtocol,
-            ListenerCommandProtocol,
-            ListenerTerminateProtocol,
-            ListenerErrorProtocol,
-            ListenerSignalProtocol,
+        # Instantiate class-based modules
+        for mod in modules:
+            handlers = mod.handlers
+            # Check if any handler is an unbound method (needs instance)
+            needs_instance = any(
+                _is_unbound_method(fn) for fn in handlers.values()
+            )
+            if needs_instance:
+                # Find the class from first unbound method
+                cls = _get_defining_class(next(iter(handlers.values())))
+                if cls:
+                    instance = self._di.spawn(cls)
+                    mod.instance = instance
+                    # Bind methods to instance
+                    mod.handlers = {
+                        event_type: getattr(instance, _event_to_method_name(event_type, mod.name, cls))
+                        for event_type, fn in handlers.items()
+                    }
+                    log_debug(io, f"Instantiated module <comment>{mod.name}</comment> ({cls.__module__}.{cls.__name__})")
+
+            event_types = ", ".join(sorted(mod.handlers.keys()))
+            log_debug(io, f"Module <comment>{mod.name}</comment> handles: {event_types}")
+
+        self._modules = modules
+
+    def activate(self) -> None:
+        io = self._io
+        activate_modules = [m for m in self._modules if "activate" in m.handlers]
+        log_verbose(io, f"<info>Activating {len(activate_modules)} module(s)</info>")
+
+        for mod in activate_modules:
+            fn = mod.handlers["activate"]
+            log_debug(io, f"Executing activate for module <comment>{mod.name}</comment>")
+            try:
+                result = self._di.satisfy(fn)()
+                if result is False:
+                    self._disabled.add(mod.name)
+                    log_debug(io, f"Module <comment>{mod.name}</comment> disabled itself during activation")
+            except Exception as e:
+                io.write_error_line(f"<error>Error during activation of module {mod.name}: {e}</error>")
+                raise
+
+    def get_event_handlers(self, event_type: str) -> list[Callable[..., Any]]:
+        return [
+            mod.handlers[event_type]
+            for mod in self._modules
+            if event_type in mod.handlers and mod.name not in self._disabled
         ]
 
-        unique_module_types = list(dict.fromkeys(module_type for _, module_type in module_types_list))
+    def get_module_names(self) -> list[str]:
+        return [m.name for m in self._modules if m.name not in self._disabled]
 
-        for module_type in unique_module_types:
-            # Get supported protocols for this module
-            supported_protocols_by_module: List[Type] = [protocol for protocol in protocols if issubclass(module_type, protocol)]
-            if not supported_protocols_by_module:
-                # Module class does not support any known protocol
-                continue
-            log_debug(io, f"Module <comment>{get_module_verbal_name(module_type)}</comment> supports {len(supported_protocols_by_module)} protocol(s):")
-            for protocol in supported_protocols_by_module:
-                log_debug(io, f"  - <fg=yellow>{protocol.__name__}</>")
-            # Instantiate the module
-            module_instance = self._di.spawn(module_type)
-            self._modules_instances.append(module_instance)
-            for protocol in supported_protocols_by_module:
-                self._managed_protocols.setdefault(protocol, []).append(module_instance)
 
-    def acquire_protocol_handlers[T](self, protocol: Type[T]) -> List[T]:
-        return self._managed_protocols.get(protocol, [])  # type: ignore
+def _is_unbound_method(fn: Callable) -> bool:
+    return inspect.isfunction(fn) and "." in getattr(fn, "__qualname__", "")
+
+
+def _get_defining_class(fn: Callable) -> Optional[type]:
+    qualname = getattr(fn, "__qualname__", "")
+    parts = qualname.rsplit(".", 1)
+    if len(parts) < 2:
+        return None
+    module = inspect.getmodule(fn)
+    if module is None:
+        return None
+    return getattr(module, parts[0], None)
+
+
+def _event_to_method_name(event_type: str, module_name: str, cls: type) -> str:
+    # Try without suffix first (instance methods can omit suffix)
+    base = f"poetry_{event_type}"
+    if hasattr(cls, base):
+        return base
+    # Try with module name as suffix
+    return f"poetry_{event_type}_{module_name}"

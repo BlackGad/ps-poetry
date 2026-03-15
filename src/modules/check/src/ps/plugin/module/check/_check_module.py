@@ -2,7 +2,6 @@ from typing import ClassVar, Optional, Type
 
 from cleo.events.console_command_event import ConsoleCommandEvent
 from cleo.events.console_terminate_event import ConsoleTerminateEvent
-from cleo.events.event_dispatcher import EventDispatcher
 from cleo.io.inputs.argument import Argument
 from cleo.io.inputs.input import Input
 from cleo.io.inputs.option import Option
@@ -10,11 +9,12 @@ from cleo.io.io import IO
 from poetry.console.application import Application
 from poetry.console.commands.check import CheckCommand
 
-from ps.plugin.sdk.check import ICheck
 from ps.di import DI
-from ps.plugin.sdk.events import ActivateProtocol, ListenerCommandProtocol, ListenerTerminateProtocol, ensure_argument, ensure_option
-from ps.plugin.sdk.mixins import NameAwareProtocol
+from ps.plugin.module.check._icheck import ICheck
+from ps.plugin.sdk.events import ensure_argument, ensure_option
 from ps.plugin.sdk.project import Environment, Project, filter_projects
+
+from ps.plugin.sdk.mixins import NameAwareProtocol
 
 from ._check_settings import CheckSettings
 from .checks import EnvironmentCheck, PoetryCheck, PylintCheck, PyrightCheck, PytestCheck, RuffCheck
@@ -93,12 +93,7 @@ _builtin_checks: list[Type[ICheck]] = [
 ]
 
 
-class CheckModule(
-    NameAwareProtocol,
-    ActivateProtocol,
-    ListenerCommandProtocol,
-    ListenerTerminateProtocol
-):
+class CheckModule:
     name: ClassVar[str] = "ps-check"
 
     def __init__(self, di: DI) -> None:
@@ -107,7 +102,7 @@ class CheckModule(
         self._di = di
         self._exit_code: Optional[int] = None
 
-    def handle_activate(self, application: Application) -> bool:
+    def poetry_activate(self, application: Application) -> bool:
         ensure_argument(CheckCommand, Argument(
             name="inputs",
             description="Optional inputs pointers to check. It could be project names or paths. If not provided, all discovered projects will be checked.",
@@ -128,7 +123,7 @@ class CheckModule(
         )
         return True
 
-    def handle_command(self, event: ConsoleCommandEvent, event_name: str, dispatcher: EventDispatcher) -> None:
+    def poetry_command(self, event: ConsoleCommandEvent) -> None:
         if not isinstance(event.command, CheckCommand):
             return
         event.disable_command()
@@ -165,6 +160,6 @@ class CheckModule(
         event.io.write_line(f"\n<fg=magenta>Checking <comment>{len(filtered_projects)}</comment> project(s)</>")
         self._exit_code = _perform_checks(self._di, filtered_projects, checkers, fix, continue_on_error)
 
-    def handle_terminate(self, event: ConsoleTerminateEvent, event_name: str, dispatcher: EventDispatcher) -> None:
+    def poetry_terminate(self, event: ConsoleTerminateEvent) -> None:
         if self._exit_code is not None:
             event.set_exit_code(self._exit_code)

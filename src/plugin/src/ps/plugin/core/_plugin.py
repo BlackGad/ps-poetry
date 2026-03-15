@@ -1,25 +1,29 @@
 import sys
 
 import cleo.events.console_events
-from cleo.events.event_dispatcher import EventDispatcher
-from cleo.events.event import Event
 from cleo.events.console_command_event import ConsoleCommandEvent
-
-from cleo.io.io import IO
+from cleo.events.event import Event
+from cleo.events.event_dispatcher import EventDispatcher
 from cleo.io.inputs.argv_input import ArgvInput
-from cleo.io.outputs.stream_output import StreamOutput
+from cleo.io.io import IO
 from cleo.io.outputs.output import Verbosity
-
-from poetry.plugins.application_plugin import ApplicationPlugin
+from cleo.io.outputs.stream_output import StreamOutput
 from poetry.console.application import Application
+from poetry.plugins.application_plugin import ApplicationPlugin
 
 from ps.di import DI
-
-from ps.plugin.sdk.settings import PluginSettings, parse_plugin_settings_from_document
-from ps.plugin.sdk.events import ActivateProtocol, ListenerCommandProtocol, ListenerTerminateProtocol, ListenerErrorProtocol, ListenerSignalProtocol
+from ps.plugin.sdk.logging import log_debug, log_verbose
 from ps.plugin.sdk.project import Environment
+from ps.plugin.sdk.settings import PluginSettings, parse_plugin_settings_from_document
+
 from ._modules_handler import _ModulesHandler
-from ps.plugin.sdk.logging import log_debug, log_verbose, get_module_verbal_name
+
+_EVENT_LISTENERS = {
+    "command": cleo.events.console_events.COMMAND,
+    "terminate": cleo.events.console_events.TERMINATE,
+    "error": cleo.events.console_events.ERROR,
+    "signal": cleo.events.console_events.SIGNAL,
+}
 
 
 def _create_standard_io() -> IO:
@@ -61,76 +65,38 @@ class Plugin(ApplicationPlugin):
         di.register(PluginSettings).factory(_resolve_settings)
         di.register(EventDispatcher).factory(lambda: event_dispatcher)
 
-        modules_handler = di.spawn(_ModulesHandler)
-        modules_handler.instantiate_modules()
+        handler = di.spawn(_ModulesHandler)
+        handler.discover_and_instantiate()
+        handler.activate()
 
-        activate_handlers = modules_handler.acquire_protocol_handlers(ActivateProtocol)
-
-        log_verbose(io, f"<info>Activating {len(activate_handlers)} modules</info>")
-        disabled_handlers: set[object] = set()
-        for handler in activate_handlers:
-            log_debug(io, f"Executing activate for module <comment>{get_module_verbal_name(handler)}</comment>")
-            try:
-                if not handler.handle_activate(application):
-                    disabled_handlers.add(handler)
-                    log_debug(io, f"Module <comment>{get_module_verbal_name(handler)}</comment> disabled itself during activation")
-            except Exception as e:
-                io.write_error_line(f"<error>Error during activation of module <comment>{get_module_verbal_name(handler)}</comment>: {e}</error>")
-                raise
-
-        protocols_to_register = {
-            ListenerCommandProtocol: cleo.events.console_events.COMMAND,
-            ListenerTerminateProtocol: cleo.events.console_events.TERMINATE,
-            ListenerErrorProtocol: cleo.events.console_events.ERROR,
-            ListenerSignalProtocol: cleo.events.console_events.SIGNAL,
-        }
-
-        for protocol_type, event_constant in protocols_to_register.items():
-            handlers = [
-                handler for handler in modules_handler.acquire_protocol_handlers(protocol_type)
-                if handler not in disabled_handlers
-            ]
-            self._register_protocol_listener(
-                event_dispatcher,
-                protocol_type,
-                event_constant,
-                handlers)
+        for event_type, event_constant in _EVENT_LISTENERS.items():
+            fns = handler.get_event_handlers(event_type)
+            if not fns:
+                log_debug(io, f"No handlers for <comment>{event_type}</comment>; skipping listener")
+                continue
+            log_verbose(io, f"Registering <fg=yellow>{len(fns)}</> handler(s) for <comment>{event_type}</comment>")
+            self._register_listener(event_dispatcher, di, io, event_type, event_constant, fns)
 
         self.poetry = application.poetry
         log_verbose(io, "<info>Activation complete</info>")
 
-    def _register_protocol_listener(
+    def _register_listener(
         self,
         event_dispatcher: EventDispatcher,
-        protocol_type: type,
+        di: DI,
+        io: IO,
+        event_type: str,
         event_constant: str,
-        handlers: list,
+        fns: list,
     ) -> None:
-        di = self._di
-        io = di.resolve(IO)
-        assert io is not None
-        if not handlers:
-            log_debug(io, f"No modules implement protocol <comment>{protocol_type.__name__}</comment>; skipping listener registration")
-            return
-        log_verbose(io, f"Found <fg=yellow>{len(handlers)}</> module(s) implementing protocol <comment>{protocol_type.__name__}</comment>")
-        module_names = ", ".join(get_module_verbal_name(handler) for handler in handlers)
-        log_debug(io, f"Modules implementing <comment>{protocol_type.__name__}</comment>: <fg=yellow>{module_names}</>")
-
-        # Get the handle_* method name from the protocol type
-        handle_method_name = next((name for name in dir(protocol_type) if name.startswith("handle_")), None)
-        if not handle_method_name:
-            raise RuntimeError(f"Protocol {protocol_type.__name__} has no handle_* method")
-
-        def _listener(event: Event, event_name: str, dispatcher: EventDispatcher) -> None:
+        def _listener(event: Event, event_name: str, dispatcher: EventDispatcher) -> None:  # noqa: ARG001
             with di.scope() as scope:
                 scope.register(type(event)).factory(lambda: event)
                 log_debug(io, f"Processing <comment>{event_name}</comment> event")
-                for handler in handlers:
-                    log_verbose(io, f"<info>Module <comment>{get_module_verbal_name(handler)}</comment> handling {event_name} event</info>")
-                    handle_method = getattr(handler, handle_method_name)
-                    handle_method(event, event_name, dispatcher)
+                for fn in fns:
+                    scope.satisfy(fn)()
                     if isinstance(event, ConsoleCommandEvent) and not event.command_should_run():
-                        log_debug(io, f"Command execution handled by module <comment>{get_module_verbal_name(handler)}</comment>; stopping further processing")
+                        log_debug(io, f"Command execution stopped after <comment>{event_type}</comment> handler")
                         break
 
         event_dispatcher.add_listener(event_constant, _listener)
@@ -138,7 +104,6 @@ class Plugin(ApplicationPlugin):
     def _ensure_io(self, application: Application) -> IO:
         io = getattr(application, "_io", None)
         if io is None:
-            # For debugging outside Poetry projects
             io = _create_standard_io()
             application._io = io
         return io

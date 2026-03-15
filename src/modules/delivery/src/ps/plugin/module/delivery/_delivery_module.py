@@ -3,7 +3,6 @@ from typing import ClassVar, Optional
 
 from cleo.events.console_command_event import ConsoleCommandEvent
 from cleo.events.console_terminate_event import ConsoleTerminateEvent
-from cleo.events.event_dispatcher import EventDispatcher
 from cleo.io.inputs.argument import Argument
 from cleo.io.inputs.input import Input
 from cleo.io.inputs.option import Option
@@ -11,11 +10,10 @@ from poetry.console.application import Application
 from poetry.console.commands.build import BuildCommand
 from poetry.console.commands.publish import PublishCommand
 
-from ps.version import Version
-from ps.plugin.sdk.project import Environment, filter_projects
-from ps.plugin.sdk.events import ActivateProtocol, ListenerCommandProtocol, ListenerTerminateProtocol, ensure_argument, ensure_option
-from ps.plugin.sdk.mixins import NameAwareProtocol
 from ps.di import DI
+from ps.plugin.sdk.events import ensure_argument, ensure_option
+from ps.plugin.sdk.project import Environment, filter_projects
+from ps.version import Version
 
 from .stages import build_projects, patch_projects, publish_projects, resolve_environment_metadata, ResolvedProjectMetadata
 from .commands import DeliveryCommand
@@ -34,19 +32,14 @@ def _get_version_option(input: Input) -> Optional[str]:
     return input.options.get(BUILD_VERSION_OPTION, None)
 
 
-class DeliveryModule(
-    NameAwareProtocol,
-    ActivateProtocol,
-    ListenerCommandProtocol,
-    ListenerTerminateProtocol
-):
+class DeliveryModule:
     name: ClassVar[str] = "ps-delivery"
 
     def __init__(self, di: DI) -> None:
         self._di = di
         self._exit_code: Optional[int] = None
 
-    def handle_activate(self, application: Application) -> bool:
+    def poetry_activate(self, application: Application) -> bool:
         # Extend the BuildCommand with an optional "inputs" argument
         ensure_argument(BuildCommand, Argument(
             name=INPUTS_ARGUMENT,
@@ -77,7 +70,7 @@ class DeliveryModule(
 
         return True
 
-    def handle_command(self, event: ConsoleCommandEvent, event_name: str, dispatcher: EventDispatcher) -> None:
+    def poetry_command(self, event: ConsoleCommandEvent) -> None:
         if not isinstance(event.command, (BuildCommand, PublishCommand)):
             return
 
@@ -161,7 +154,7 @@ class DeliveryModule(
         finally:
             environment.restore_projects(environment.projects)
 
-    def handle_terminate(self, event: ConsoleTerminateEvent, event_name: str, dispatcher: EventDispatcher) -> None:
+    def poetry_terminate(self, event: ConsoleTerminateEvent) -> None:
         if self._exit_code is None:
             return
         event.set_exit_code(self._exit_code)

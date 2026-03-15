@@ -287,11 +287,11 @@ Examples:
 
 ### Custom Token Resolvers
 
-Additional token resolvers can be registered through the DI container. Implement `IVersionTokenResolver` from `ps.plugin.sdk.delivery`, declare a `name: ClassVar[str]` for the token source, and implement `get_resolver()` to return the resolver callable:
+Additional token resolvers can be registered through the DI container. Implement `IVersionTokenResolver` from `ps.plugin.module.delivery`, declare a `name: ClassVar[str]` for the token source, and implement `get_resolver()` to return the resolver callable:
 
 ```python
 from typing import Any, ClassVar, Optional
-from ps.plugin.sdk.delivery import IVersionTokenResolver
+from ps.plugin.module.delivery import IVersionTokenResolver
 from ps.token_expressions import BaseResolver
 from ps.token_expressions.token_resolvers._base_resolver import TokenValue
 

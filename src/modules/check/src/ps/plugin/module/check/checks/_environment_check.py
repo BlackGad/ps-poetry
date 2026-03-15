@@ -2,7 +2,7 @@ from typing import ClassVar, Optional
 
 from cleo.io.io import IO
 
-from ps.plugin.sdk.check import ICheck
+from ps.plugin.module.check._icheck import ICheck
 from ps.plugin.sdk.project import Project
 
 

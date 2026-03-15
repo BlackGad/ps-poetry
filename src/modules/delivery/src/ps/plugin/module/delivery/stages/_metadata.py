@@ -16,7 +16,7 @@ from ps.plugin.sdk.project import (
 from ps.plugin.sdk.toml import TomlValue
 
 from ps.di import DI
-from ps.plugin.sdk.delivery import IVersionTokenResolver
+from ps.plugin.module.delivery._iversion_token_resolver import IVersionTokenResolver
 
 from .._delivery_settings import DeliverySettings
 from ..token_resolvers import DateResolver, EnvResolver, RandResolver, VersionResolver, collect_git_info

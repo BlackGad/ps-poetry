@@ -44,29 +44,63 @@ modules = ["delivery", "check"]
 
 # Module Loading
 
-Modules are distributed as Python packages that register a class under the `ps.module` entry-point group. The plugin scans this group at runtime using `importlib.metadata`, inspects each discovered class for supported lifecycle protocols, and instantiates only those that implement at least one known protocol.
+Modules are discovered by scanning the `ps.module` entry-point group at runtime. The plugin inspects every loaded object for functions whose names match the pattern `poetry_<event>` or `poetry_<event>_<suffix>`, where `<event>` is one of: `activate`, `command`, `error`, `terminate`, `signal`.
 
-When a `modules` list is present in the configuration, the plugin activates exactly those modules in the user-defined order and ignores the rest. When the list is absent, no modules are loaded.
+> **Note:** Module discovery relies on `importlib.metadata`, which reads `entry_points.txt` from installed distribution metadata in `site-packages`. Entry points declared in a `pyproject.toml` with `package-mode = false` are **never registered** because that project is not installed as a distribution. Only packages installed via `pip install -e .` or `poetry install` (with `package-mode = true`) produce the `.dist-info` directory that makes their entry points discoverable.
 
-# Lifecycle Protocols
+An entry point may resolve to:
 
-A module class declares its capabilities by implementing one or more protocols from `ps.plugin.sdk.events`. Each protocol maps to a specific Poetry console lifecycle event:
+* **A class** — instance methods matching the pattern form one module; static/class methods with a suffix form additional modules grouped by suffix.
+* **A Python module (namespace)** — all classes and module-level functions inside it are scanned recursively.
+* **A plain function** — must have a suffix (e.g. `poetry_command_delivery`).
 
-* `ActivateProtocol` — `handle_activate(application) -> bool`. Called once during plugin activation. Returning `False` removes the module from all subsequent event listeners.
-* `ListenerCommandProtocol` — `handle_command(event, event_name, dispatcher)`. Called on every Poetry console command event.
-* `ListenerTerminateProtocol` — `handle_terminate(event, event_name, dispatcher)`. Called after a Poetry command finishes successfully.
-* `ListenerErrorProtocol` — `handle_error(event, event_name, dispatcher)`. Called when a Poetry command raises an unhandled error.
-* `ListenerSignalProtocol` — `handle_signal(event, event_name, dispatcher)`. Called on OS signal events received during command execution.
+## Module naming
 
-A single module class may implement any combination of these protocols.
+| Source | Name resolution |
+| --- | --- |
+| Class with `name` attribute | Value of `cls.name` |
+| Class without `name` attribute | `cls.__name__` |
+| Static/class method or global function | The suffix portion after `poetry_<event>_` |
+
+## Collision detection
+
+When two or more distributions expose a module with the same name, all conflicting modules are skipped and a warning is printed. Non-conflicting modules from all distributions remain available.
+
+When a `modules` list is present in configuration, only those modules are loaded (in the declared order). When the list is absent, no modules are loaded.
+
+# Function Naming Convention
+
+A module class declares its capabilities through method naming. Each function name maps to a specific Poetry console lifecycle event:
+
+* `poetry_activate(application) -> None | bool` — Called once during plugin activation. Returning `False` removes the module from all subsequent event listeners. Any other return value (including `None`) keeps the module active.
+* `poetry_command(event) -> None` — Called on every Poetry console command event.
+* `poetry_terminate(event) -> None` — Called after a Poetry command finishes.
+* `poetry_error(event) -> None` — Called when a Poetry command raises an unhandled error.
+* `poetry_signal(event) -> None` — Called on OS signal events during command execution.
+
+A single module class may define any combination of these methods. Optional typing protocols (`PoetryActivateProtocol`, `PoetryCommandProtocol`, etc.) are available in `ps.plugin.sdk.events` for IDE support but are not required.
 
 # Dependency Injection
 
-The plugin creates a `DI` instance (from the `ps-di` library) that is shared across all module instances. Constructor parameters of module classes are resolved automatically by type when the module is instantiated via `DI.spawn`. See the [ps-di README](../libraries/di/README.md) for the full documentation. The following types are pre-registered by the plugin host:
+Every handler function is invoked through the `DI.satisfy` wrapper, which inspects the function signature and injects registered types as keyword arguments automatically. Constructor parameters of class-based modules are resolved the same way via `DI.spawn`.
 
-* `IO` — The Cleo IO object for the current Poetry invocation.
-* `Application` — The active Poetry `Application` instance.
-* `Environment` — The resolved project environment, providing access to the host and workspace projects.
-* `PluginSettings` — The parsed `[tool.ps-plugin]` settings for the current project.
+The following types are pre-registered by the plugin host and can be used as function/constructor parameters:
 
-Use `DI.register` to bind additional types from within a module's `handle_activate` implementation and `DI.resolve` or `DI.resolve_many` to retrieve them in other modules or components.
+| Type | Import | Description |
+| --- | --- | --- |
+| `IO` | `from cleo.io.io import IO` | Cleo IO for the current Poetry invocation |
+| `Application` | `from poetry.console.application import Application` | The active Poetry application instance |
+| `Environment` | `from ps.plugin.sdk.environment import Environment` | Resolved project environment with host/workspace access |
+| `PluginSettings` | `from ps.plugin.sdk.settings import PluginSettings` | Parsed `[tool.ps-plugin]` settings |
+| `EventDispatcher` | `from cleo.events.event_dispatcher import EventDispatcher` | The Cleo event dispatcher |
+
+Inside event handlers (`poetry_command`, `poetry_error`, `poetry_terminate`, `poetry_signal`), additional types are registered in a scoped DI container:
+
+| Type | Import | Description |
+| --- | --- | --- |
+| `ConsoleCommandEvent` | `from cleo.events.console_command_event import ConsoleCommandEvent` | The current command event (for `poetry_command`) |
+| `ConsoleTerminateEvent` | `from cleo.events.console_terminate_event import ConsoleTerminateEvent` | The terminate event (for `poetry_terminate`) |
+| `ConsoleErrorEvent` | `from cleo.events.console_error_event import ConsoleErrorEvent` | The error event (for `poetry_error`) |
+| `ConsoleSignalEvent` | `from cleo.events.console_signal_event import ConsoleSignalEvent` | The signal event (for `poetry_signal`) |
+
+Use `DI.register` to bind additional types from within `poetry_activate` and `DI.resolve` or `DI.resolve_many` to retrieve them in other modules.

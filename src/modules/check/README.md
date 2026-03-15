@@ -90,3 +90,9 @@ Runs `pytest` on the collected source paths. This checker is only available when
 ## pyright
 
 Runs `pyright` on the collected source paths for static type checking. This checker is only available when `pyright` is installed and accessible in PATH. Auto-fixing is not supported.
+
+# Custom Checks
+
+`ICheck` is the abstract base class for implementing custom checkers. Subclasses implement `check(io, projects, fix)` to perform the check and return an optional exception on failure. The `can_check(projects)` method allows a checker to declare itself inapplicable to a given project list. Each subclass must declare a `name: ClassVar[str]` attribute that matches the name used in the `checks` configuration list.
+
+Register custom implementations with the DI container using `di.register(ICheck)` inside `poetry_activate` so the check module discovers them automatically via `di.resolve_many(ICheck)`.
