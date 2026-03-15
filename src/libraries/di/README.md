@@ -136,6 +136,31 @@ print(log_message(message="Low disk space", level="WARNING"))
 
 The returned callable accepts keyword arguments at invocation time. Any keyword argument passed at invocation time overrides the corresponding resolved value, including DI-resolved parameters.
 
+# Scopes
+
+`scope()` creates a child `DI` instance that inherits all registrations from the parent but maintains its own isolated registry. This is useful for per-request, per-session, or any other short-lived context that needs additional or overriding registrations without affecting the parent container.
+
+Resolution in a scoped container follows these rules:
+
+* `resolve` checks the scoped registry first; if nothing is registered, it falls through to the parent.
+* `resolve_many` returns scoped registrations followed by parent registrations, with scoped results first.
+* `spawn` and `satisfy` use the scoped resolver, so injected dependencies prefer scoped registrations.
+* A parameter typed as `DI` receives the scoped instance, not the parent.
+
+Scopes support the context manager protocol. Exiting the `with` block clears the scoped registry and releases all singleton instances held by the scope, enabling deterministic cleanup of resources such as database connections or file handles.
+
+```python
+with di.scope() as request_scope:
+    request_scope.register(RequestContext).factory(RequestContext, request_id)
+    handler = request_scope.spawn(RequestHandler)
+    handler.handle()
+# scoped singletons released here; parent container unaffected
+```
+
+[View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-di/scope_example.py)
+
+Scopes can be nested arbitrarily. Each level sees its own registrations plus all ancestor registrations, with closer scopes taking precedence.
+
 # Thread Safety
 
 All registration and resolution operations are protected by internal locks. Singleton creation uses double-checked locking so the factory is called exactly once even under concurrent access. Transient registrations produce independent instances per call with no shared mutable state.

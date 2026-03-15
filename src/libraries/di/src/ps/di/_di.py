@@ -1,6 +1,6 @@
 import inspect
 import threading
-from typing import Any, Callable, List, Optional, ParamSpec, Type, TypeVar, Union, cast, get_args, get_origin, get_type_hints
+from typing import Any, Callable, List, Optional, ParamSpec, Self, Type, TypeVar, Union, cast, get_args, get_origin, get_type_hints
 
 from ._enums import Lifetime, Priority
 from ._registration import _Registration, _Registrations
@@ -52,6 +52,15 @@ class DI:
     def register(self, cls: Type[T] | str, lifetime: Lifetime = Lifetime.SINGLETON, priority: Priority = Priority.LOW) -> Binding[T]:
         resolved_cls = cast(Type[T], self._resolve_type(cls)) if isinstance(cls, str) else cls
         return Binding(self, resolved_cls, lifetime=lifetime, priority=priority)
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        with self._lock_registry_access:
+            self._registry.clear()
+        self._signature_cache.clear()
+        self._type_name_cache.clear()
 
     def resolve(self, key: Type[T] | str) -> Optional[T]:
         resolved_key = self._resolve_type(key) if isinstance(key, str) else key
@@ -147,3 +156,38 @@ class DI:
             return fn(**resolved_kwargs | override)
 
         return wrapper
+
+    def scope(self) -> "DI":
+        return _ScopedDI(self)
+
+
+class _ScopedDI(DI):
+    def __init__(self, parent: DI) -> None:
+        super().__init__()
+        self._parent = parent
+
+    def _resolve_type(self, key: Type[T] | str) -> Type[T]:
+        if isinstance(key, str):
+            if key not in self._type_name_cache:
+                found = next((t for t in self._registry if t.__name__ == key), None)
+                if found is None:
+                    return self._parent._resolve_type(key)
+                self._type_name_cache[key] = found
+            return self._type_name_cache[key]
+        return key
+
+    def resolve(self, key: Type[T] | str) -> Optional[T]:
+        resolved_key = self._resolve_type(key) if isinstance(key, str) else key
+        with self._lock_registry_access:
+            registrations = self._registry.get(resolved_key)
+        if registrations is not None:
+            return cast(T, registrations.resolve_first())
+        return self._parent.resolve(key)
+
+    def resolve_many(self, key: Type[T] | str) -> List[T]:
+        resolved_key = self._resolve_type(key) if isinstance(key, str) else key
+        with self._lock_registry_access:
+            registrations = self._registry.get(resolved_key)
+        scoped_results: List[T] = registrations.resolve_all() if registrations is not None else []
+        parent_results: List[T] = self._parent.resolve_many(key)
+        return scoped_results + parent_results
