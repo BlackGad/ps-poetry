@@ -6,7 +6,16 @@ from ._enums import Lifetime, Priority
 from ._registration import _Registration, _Registrations
 
 T = TypeVar("T")
+R = TypeVar("R")
 P = ParamSpec("P")
+
+
+class _Sentinel:
+    def __repr__(self) -> str:
+        return "REQUIRED"
+
+
+REQUIRED: _Sentinel = _Sentinel()
 
 
 class Binding[T]:
@@ -27,17 +36,16 @@ class DI:
     def __init__(self) -> None:
         self._registry: dict[Type, _Registrations] = {}
         self._lock_registry_access = threading.Lock()
-        self._signature_cache: dict[Type, inspect.Signature] = {}
+        self._signature_cache: dict[Any, inspect.Signature] = {}
         self._type_name_cache: dict[str, Type] = {}
 
     def _resolve_type(self, key: Type[T] | str) -> Type[T]:
         if isinstance(key, str):
             if key not in self._type_name_cache:
-                for registered_type in self._registry:
-                    if registered_type.__name__ == key:
-                        self._type_name_cache[key] = registered_type
-                        return registered_type
-                raise ValueError(f"Cannot resolve type from string '{key}' - no matching type registered")
+                found = next((t for t in self._registry if t.__name__ == key), None)
+                if found is None:
+                    raise ValueError(f"Cannot resolve type from string '{key}' - no matching type registered")
+                self._type_name_cache[key] = found
             return self._type_name_cache[key]
         return key
 
@@ -66,25 +74,49 @@ class DI:
             registrations = self._registry.setdefault(cls, _Registrations())
         registrations.add_registration(registration)
 
-    def spawn(self, cls: Type[T], *args: Any, **kwargs: Any) -> T:  # noqa: C901
-        if cls not in self._signature_cache:
-            self._signature_cache[cls] = inspect.signature(cls.__init__)
-        sig = self._signature_cache[cls]
+    def _try_resolve_annotation(self, annotation: Any, has_default: bool, default: Any) -> tuple[bool, Any]:
+        if annotation is DI or (isinstance(annotation, type) and issubclass(annotation, DI)):
+            return True, self
 
+        origin = get_origin(annotation)
+
+        if origin is list:
+            type_args = get_args(annotation)
+            return True, self.resolve_many(type_args[0]) if type_args else []
+
+        if origin is Union:
+            type_args = get_args(annotation)
+            if type(None) in type_args:
+                non_none_type = next(t for t in type_args if t is not type(None))
+                resolved = self.resolve(non_none_type)
+                if resolved is not None:
+                    return True, resolved
+                return True, default if has_default else None
+
+        resolved = self.resolve(annotation)
+        if resolved is not None:
+            return True, resolved
+        if has_default:
+            return True, default
+        return False, None
+
+    def _resolve_kwargs(self, fn: Callable, skip_self: bool, explicit_kwargs: dict[str, Any]) -> dict[str, Any]:
+        if fn not in self._signature_cache:
+            self._signature_cache[fn] = inspect.signature(fn)
+        sig = self._signature_cache[fn]
+
+        hints_target = fn.__init__ if isinstance(fn, type) else fn
         try:
-            type_hints = get_type_hints(cls.__init__)
+            type_hints = get_type_hints(hints_target)
         except Exception:
             type_hints = {}
 
-        final_kwargs = dict(kwargs)
-        params_list = list(sig.parameters.values())[1:]  # Skip 'self'
+        required_params = {k for k, v in explicit_kwargs.items() if v is REQUIRED}
+        final_kwargs = {k: explicit_kwargs[k] for k in explicit_kwargs.keys() - required_params}
+        params = list(sig.parameters.values())[1 if skip_self else 0:]
 
-        for i, arg in enumerate(args):
-            if i < len(params_list):
-                final_kwargs[params_list[i].name] = arg
-
-        for param in params_list:
-            if param.name in final_kwargs:
+        for param in params:
+            if param.name in final_kwargs or param.name in required_params:
                 continue
 
             annotation = type_hints.get(param.name, param.annotation)
@@ -92,35 +124,26 @@ class DI:
                 continue
 
             has_default = param.default != inspect.Parameter.empty
-
-            if annotation is DI or (isinstance(annotation, type) and issubclass(annotation, DI)):
-                final_kwargs[param.name] = self
-                continue
-
-            origin = get_origin(annotation)
-            if origin is list:
-                type_args = get_args(annotation)
-                if type_args:
-                    final_kwargs[param.name] = self.resolve_many(type_args[0])
-                continue
-
-            if origin is Union:
-                type_args = get_args(annotation)
-                if type(None) in type_args:
-                    non_none_type = next(t for t in type_args if t is not type(None))
-                    resolved = self.resolve(non_none_type)
-                    if resolved is not None:
-                        final_kwargs[param.name] = resolved
-                    elif has_default:
-                        final_kwargs[param.name] = param.default
-                    continue
-
-            resolved = self.resolve(annotation)
-            if resolved is not None:
-                final_kwargs[param.name] = resolved
-            elif has_default:
-                final_kwargs[param.name] = param.default
-            else:
+            ok, value = self._try_resolve_annotation(annotation, has_default, param.default)
+            if not ok:
                 raise ValueError(f"Cannot resolve required dependency {annotation} for parameter {param.name}")
+            final_kwargs[param.name] = value
 
-        return cls(**final_kwargs)
+        return final_kwargs
+
+    def spawn(self, cls: Type[T], *args: Any, **kwargs: Any) -> T:
+        fn = cls.__init__
+        if args:
+            if fn not in self._signature_cache:
+                self._signature_cache[fn] = inspect.signature(fn)
+            params = list(self._signature_cache[fn].parameters.values())[1:]
+            kwargs = {p.name: v for p, v in zip(params, args, strict=False)} | kwargs
+        return cls(**self._resolve_kwargs(fn, skip_self=True, explicit_kwargs=kwargs))
+
+    def satisfy(self, fn: Callable[..., R], **kwargs: Any) -> Callable[..., R]:
+        resolved_kwargs = self._resolve_kwargs(fn, skip_self=False, explicit_kwargs=kwargs)
+
+        def wrapper(**override: Any) -> R:
+            return fn(**resolved_kwargs | override)
+
+        return wrapper

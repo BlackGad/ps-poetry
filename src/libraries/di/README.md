@@ -113,6 +113,29 @@ repo = di.spawn(UserRepository)                       # Logger injected from con
 repo = di.spawn(UserRepository, logger=custom_logger)  # explicit override
 ```
 
+# Satisfy Functions
+
+`satisfy` binds a callable to dependencies resolved from the container at the time of the call, returning a new callable that accepts any remaining parameters at invocation time.
+
+* Parameters with registered types are resolved from the container automatically.
+* Parameters with defaults fall back to their default values when no registration exists.
+* Parameters typed as `List[T]` receive all registered instances of `T`.
+* Parameters typed as `Optional[T]` receive `None` when no registration exists.
+* Parameters marked with `REQUIRED` are excluded from DI resolution and must be supplied by the caller.
+
+```python
+from ps.di import DI, REQUIRED
+
+log_message = di.satisfy(format_log, message=REQUIRED)
+
+print(log_message(message="Application started"))
+print(log_message(message="Low disk space", level="WARNING"))
+```
+
+[View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-di/satisfy_example.py)
+
+The returned callable accepts keyword arguments at invocation time. Any keyword argument passed at invocation time overrides the corresponding resolved value, including DI-resolved parameters.
+
 # Thread Safety
 
 All registration and resolution operations are protected by internal locks. Singleton creation uses double-checked locking so the factory is called exactly once even under concurrent access. Transient registrations produce independent instances per call with no shared mutable state.
