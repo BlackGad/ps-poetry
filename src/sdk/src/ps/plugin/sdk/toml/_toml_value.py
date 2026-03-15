@@ -1,3 +1,4 @@
+import re
 from typing import Any, List, Optional, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field
@@ -6,6 +7,10 @@ from tomlkit.items import AoT, Table
 
 
 Token = Tuple[str, Any]  # ("key", str) or ("index", int)
+
+
+def _split_dotted(dotted: str) -> List[str]:
+    return re.findall(r'"[^"]*"|[^.]+', dotted)
 
 
 def _parse_jsonpath(path: str) -> List[Token]:
@@ -17,12 +22,24 @@ def _parse_jsonpath(path: str) -> List[Token]:
     while i < len(path):
         if path[i] == ".":
             i += 1
-            if i >= len(path) or not (path[i].isalpha() or path[i] == "_"):
-                raise ValueError(f"Invalid key start at position {i} in JSONPath: {path!r}")
-            start = i
-            while i < len(path) and (path[i].isalnum() or path[i] in "_-"):
+            if i >= len(path):
+                raise ValueError(f"Unexpected end after '.' in JSONPath: {path!r}")
+            if path[i] == '"':
                 i += 1
-            tokens.append(("key", path[start:i]))
+                start = i
+                while i < len(path) and path[i] != '"':
+                    i += 1
+                if i >= len(path):
+                    raise ValueError(f"Unterminated quoted key in JSONPath: {path!r}")
+                tokens.append(("key", path[start:i]))
+                i += 1
+            else:
+                if not (path[i].isalpha() or path[i] == "_"):
+                    raise ValueError(f"Invalid key start at position {i} in JSONPath: {path!r}")
+                start = i
+                while i < len(path) and (path[i].isalnum() or path[i] in "_-"):
+                    i += 1
+                tokens.append(("key", path[start:i]))
         elif path[i] == "[":
             i += 1
             if i >= len(path) or not path[i].isdigit():
@@ -64,15 +81,18 @@ def _find_first_existing_jsonpath(document: Any, dotted: str) -> Optional[str]:
         if not parts:
             return path
         head, *tail = parts
+        lookup_key = head[1:-1] if head.startswith('"') and head.endswith('"') else head
+        needs_quote = not all(c.isalnum() or c in "_-" for c in lookup_key)
+        jp_segment = f'."{lookup_key}"' if needs_quote else f".{lookup_key}"
         if isinstance(node, (TOMLDocument, Table, dict)):
-            return rec(node[head], tail, f"{path}.{head}") if head in node else None
+            return rec(node[lookup_key], tail, f"{path}{jp_segment}") if lookup_key in node else None
         if isinstance(node, (AoT, list)):
             for i, item in enumerate(node):
                 if result := rec(item, parts, f"{path}[{i}]"):
                     return result
         return None
 
-    return rec(document, dotted.split("."), "$")
+    return rec(document, _split_dotted(dotted), "$")
 
 
 class TomlValue(BaseModel):
