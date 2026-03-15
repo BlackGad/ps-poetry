@@ -1,13 +1,12 @@
 import inspect
 import threading
-from typing import Any, Callable, List, Optional, ParamSpec, Self, Type, TypeVar, Union, cast, get_args, get_origin, get_type_hints
+from typing import Any, Callable, List, Optional, Self, Type, TypeVar, Union, cast, get_args, get_origin, get_type_hints
 
 from ._enums import Lifetime, Priority
 from ._registration import _Registration, _Registrations
 
 T = TypeVar("T")
 R = TypeVar("R")
-P = ParamSpec("P")
 
 
 class _Sentinel:
@@ -28,8 +27,13 @@ class Binding[T]:
     def implementation(self, impl: Type[T]) -> None:
         self._di._register(self._cls, _Registration(self._lifetime, self._priority, lambda: self._di.spawn(impl)))
 
-    def factory(self, factory: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> None:
-        self._di._register(self._cls, _Registration(self._lifetime, self._priority, lambda: factory(*args, **kwargs)))
+    def factory(self, factory: Callable[..., T], *args: Any, **kwargs: Any) -> None:
+        explicit: dict[str, Any] = dict(kwargs)
+        if args:
+            sig = inspect.signature(factory)
+            params = list(sig.parameters.values())
+            explicit = {p.name: v for p, v in zip(params, args, strict=False)} | explicit
+        self._di._register(self._cls, _Registration(self._lifetime, self._priority, self._di.satisfy(factory, **explicit)))
 
 
 class DI:

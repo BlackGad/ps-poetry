@@ -33,7 +33,7 @@ repo = di.resolve(UserRepository)
 
 The `register` method accepts a type (or string key), an optional `Lifetime`, and an optional `Priority`. It returns a `Binding` object that configures how the service is created.
 
-* `.factory(callable, *args, **kwargs)` — Registers a callable that produces the service. Positional and keyword arguments are forwarded to the callable on each resolution.
+* `.factory(callable, *args, **kwargs)` — Registers a callable that produces the service. Typed parameters not covered by explicit arguments are resolved from the container at registration time, using the same injection rules as `satisfy`. Explicit positional and keyword arguments take precedence over container resolution.
 * `.implementation(cls)` — Registers a class whose constructor is invoked via `spawn`, allowing the container to inject known dependencies automatically.
 
 ```python
@@ -158,6 +158,8 @@ with di.scope() as request_scope:
 ```
 
 [View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-di/scope_example.py)
+
+The root container supports the same context manager protocol. Exiting a `with di:` block clears all registrations and releases every singleton instance held by the container.
 
 Scopes can be nested arbitrarily. Each level sees its own registrations plus all ancestor registrations, with closer scopes taking precedence.
 
