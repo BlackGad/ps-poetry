@@ -99,6 +99,16 @@ poetry run --no-plugins pytest -v
 * Order: `stdlib → third-party → local`, separated by blank lines between groups
 * Do NOT use `from __future__ import annotations`
 * Do NOT use `TYPE_CHECKING` guards
+* When importing more than 3 names from a single module, use parenthesized multi-line syntax:
+
+  ```python
+  from some.module import (
+      NameOne,
+      NameTwo,
+      NameThree,
+      NameFour,
+  )
+  ```
 
 ### Type Hints
 
