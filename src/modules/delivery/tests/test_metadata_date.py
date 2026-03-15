@@ -6,6 +6,7 @@ from ps.version import Version
 from ps.plugin.module.delivery.token_resolvers._date_resolver import format_date
 
 from .conftest import make_io, make_project, resolve
+from ps.di import DI
 from ps.plugin.module.delivery.stages._metadata import resolve_environment_metadata
 
 
@@ -168,7 +169,7 @@ def test_date_now_shared_across_projects(tmp_path):
     fixed = datetime(2026, 3, 12, tzinfo=UTC)
     with patch("ps.plugin.module.delivery.stages._metadata.datetime") as mock_dt:
         mock_dt.now.return_value = fixed
-        result = resolve_environment_metadata(make_io(), None, host, [proj_a, proj_b])
+        result = resolve_environment_metadata(DI(), make_io(), None, host, [proj_a, proj_b])
 
     versions = list(result.projects.values())
     assert len(versions) == 2

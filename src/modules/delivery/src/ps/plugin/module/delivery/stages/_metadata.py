@@ -1,4 +1,3 @@
-import os
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -16,8 +15,11 @@ from ps.plugin.sdk.project import (
 
 from ps.plugin.sdk.toml import TomlValue
 
+from ps.di import DI
+from ps.plugin.sdk.delivery import IVersionTokenResolver
+
 from .._delivery_settings import DeliverySettings
-from ..token_resolvers import DateResolver, RandResolver, VersionResolver, collect_git_info
+from ..token_resolvers import DateResolver, EnvResolver, RandResolver, VersionResolver, collect_git_info
 
 _default_version_patterns: list[str] = [
     "[{in}] {in}",
@@ -179,6 +181,7 @@ def _resolve_project_dependencies(
 
 
 def resolve_environment_metadata(
+    di: DI,
     io: IO,
     input_version: Optional[Version],
     host_project: Project,
@@ -198,12 +201,14 @@ def resolve_environment_metadata(
     git_info = collect_git_info(host_project.path)
     shared_resolvers: list[tuple[str, Any]] = [
         ("in", input_version),
-        ("env", lambda arg: os.getenv(arg) if arg else None),
+        ("env", EnvResolver()),
         ("date", DateResolver(now)),
         ("rand", RandResolver()),
         ("v", VersionResolver()),
         ("git", git_info),
     ]
+
+    shared_resolvers.extend((r.name, r.get_resolver()) for r in di.resolve_many(IVersionTokenResolver))
 
     for project in projects:
         project_display_name = project.name.value or project.path.name

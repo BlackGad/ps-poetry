@@ -95,6 +95,7 @@ class DeliveryModule(
 
         input_version = Version.parse(_get_version_option(event.io.input))
         environment_metadata = resolve_environment_metadata(
+            self._di,
             event.io,
             input_version,
             environment.host_project,

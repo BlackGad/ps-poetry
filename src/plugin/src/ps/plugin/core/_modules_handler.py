@@ -42,16 +42,16 @@ def _load_module_class_types() -> Iterable[tuple[str, Type]]:
 
 
 class _ModulesHandler:
-    def __init__(self, di: DI) -> None:
+    def __init__(self, di: DI, io: IO, plugin_settings: PluginSettings) -> None:
         self._modules_instances: List[object] = []
         self._managed_protocols: dict[Type, List[object]] = {}
         self._di = di
+        self._io = io
+        self._plugin_settings = plugin_settings
 
     def instantiate_modules(self) -> None:
-        io = self._di.resolve(IO)
-        assert io is not None
-        plugin_settings = self._di.resolve(PluginSettings)
-        assert plugin_settings is not None
+        io = self._io
+        plugin_settings = self._plugin_settings
         specified_modules = plugin_settings.modules
         module_entries = _load_module_class_types()
         all_module_types_list = [(entry_spec, module_type) for entry_spec, module_type in module_entries]

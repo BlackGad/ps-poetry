@@ -130,6 +130,8 @@ The SDK re-exports the `DI` class and related types (`Binding`, `Lifetime`, `Pri
 
 The `ICheck` abstract class extends `NameAwareProtocol` and serves as the base for check implementations. Subclasses implement `check(io, projects, fix)` to perform a named check and return an optional exception on failure. The `can_check(projects)` method allows a check to declare itself inapplicable to a given project list.
 
+`IVersionTokenResolver` extends `NameAwareProtocol` and defines the interface for registering custom token resolvers with the delivery module. Subclasses declare a `name: ClassVar[str]` identifying the token source, and implement `get_resolver()` to return the resolver callable that the delivery module registers in its expression factory. Register implementations using `di.register(IVersionTokenResolver)` so the delivery module discovers them automatically via `di.resolve_many(IVersionTokenResolver)`.
+
 # Command Helpers
 
 The command helpers assist modules that extend Poetry commands with additional options or arguments.

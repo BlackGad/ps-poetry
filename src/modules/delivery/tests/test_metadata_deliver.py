@@ -3,6 +3,7 @@ from typing import Optional
 
 from ps.plugin.sdk.project import parse_project, Project
 
+from ps.di import DI
 from ps.plugin.module.delivery.stages._metadata import resolve_environment_metadata
 
 from .conftest import make_io, make_project
@@ -40,7 +41,7 @@ def _resolve_deliver(tmp_path: Path, package_mode: Optional[bool]) -> bool:
     assert host is not None
     assert project is not None
 
-    result = resolve_environment_metadata(make_io(), None, host, [project])
+    result = resolve_environment_metadata(DI(), make_io(), None, host, [project])
     meta = next(iter(result.projects.values()))
     return meta.deliver
 

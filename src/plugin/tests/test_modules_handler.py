@@ -44,7 +44,7 @@ _FAKE_ENTRIES = [
 
 def test_no_modules_loaded_when_modules_setting_is_absent():
     di = _make_di(modules=None)
-    handler = _ModulesHandler(di)
+    handler = di.spawn(_ModulesHandler)
 
     with patch("ps.plugin.core._modules_handler._load_module_class_types", return_value=_FAKE_ENTRIES):
         handler.instantiate_modules()
@@ -55,7 +55,7 @@ def test_no_modules_loaded_when_modules_setting_is_absent():
 
 def test_specified_modules_are_loaded():
     di = _make_di(modules=["activate-module"])
-    handler = _ModulesHandler(di)
+    handler = di.spawn(_ModulesHandler)
 
     with patch("ps.plugin.core._modules_handler._load_module_class_types", return_value=_FAKE_ENTRIES):
         handler.instantiate_modules()
@@ -70,7 +70,7 @@ def test_specified_modules_are_loaded():
 
 def test_unrecognised_module_names_are_ignored():
     di = _make_di(modules=["nonexistent-module"])
-    handler = _ModulesHandler(di)
+    handler = di.spawn(_ModulesHandler)
 
     with patch("ps.plugin.core._modules_handler._load_module_class_types", return_value=_FAKE_ENTRIES):
         handler.instantiate_modules()
@@ -81,7 +81,7 @@ def test_unrecognised_module_names_are_ignored():
 
 def test_modules_instantiated_in_declared_order():
     di = _make_di(modules=["command-module", "activate-module"])
-    handler = _ModulesHandler(di)
+    handler = di.spawn(_ModulesHandler)
 
     with patch("ps.plugin.core._modules_handler._load_module_class_types", return_value=_FAKE_ENTRIES):
         handler.instantiate_modules()

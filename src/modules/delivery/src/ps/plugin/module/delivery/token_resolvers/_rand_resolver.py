@@ -16,7 +16,7 @@ class RandResolver(BaseResolver):
         kind = args[0]
 
         if kind == "uuid":
-            return str(uuid.uuid4())
+            return uuid.uuid4().hex
 
         if kind == "hash":
             return uuid.uuid4().hex[:_DEFAULT_HASH_LENGTH]

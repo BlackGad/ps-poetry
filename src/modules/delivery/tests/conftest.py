@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 
 from cleo.io.io import IO
 
+from ps.di import DI
 from ps.version import Version
 from ps.plugin.sdk.project import Project, parse_project
 
@@ -65,4 +66,4 @@ def resolve(
     assert host is not None
     assert project is not None
 
-    return resolve_environment_metadata(io or make_io(), input_version, host, [project])
+    return resolve_environment_metadata(DI(), io or make_io(), input_version, host, [project])

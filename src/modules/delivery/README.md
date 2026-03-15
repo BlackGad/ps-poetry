@@ -45,7 +45,7 @@ poetry delivery
 
 # Configuration
 
-The module reads its settings from the `[tool.ps-plugin]` section of the host project's `pyproject.toml`.
+The module reads its settings from the `[tool.ps-plugin]` section of the host project's `pyproject.toml`. Individual projects may also define their own `[tool.ps-plugin]` section to override the host-level defaults for that specific project.
 
 ```toml
 [tool.ps-plugin]
@@ -103,10 +103,26 @@ Version patterns control how project versions are resolved during delivery. Each
 [CONDITION] EXPRESSION
 ```
 
-* The optional `[CONDITION]` is a token expression that must evaluate to a truthy value for the pattern to be considered.
-* The `EXPRESSION` is evaluated to produce the version string.
+* The optional `[CONDITION]` is a boolean expression that must evaluate to true for the pattern to be selected.
+* The `EXPRESSION` is a template string containing tokens in curly braces that is expanded to produce the version.
 
 Patterns are evaluated in order. The first pattern whose condition is satisfied and whose expression produces a valid parseable version is used. If no pattern matches, the project's existing version remains unchanged.
+
+## Pattern Syntax
+
+A pattern expression may contain one or more tokens:
+
+```txt
+{source}
+{source:accessor}
+{source:accessor<fallback>}
+```
+
+Multiple tokens may be combined to compose a version string:
+
+```txt
+{git:version:major}.{git:version:minor}.{git:distance}
+```
 
 ## Default Patterns
 
@@ -122,17 +138,213 @@ version-patterns = [
 
 This means: use the `--build-version` input if provided, otherwise check the `BUILD_VERSION` environment variable, otherwise fall back to the version declared in `pyproject.toml`.
 
+## Fallback Values
+
+Each token may declare a fallback value inside angle brackets. Fallbacks are applied when the source is absent, fails to parse, or the requested field does not exist:
+
+```txt
+{in:minor<0>}
+{env:VERSION<'1.0.0'>}
+{git:version:distance<0>}
+```
+
+When no fallback is specified, the following type-based defaults are used:
+
+| Type    | Default |
+| ------- | ------- |
+| Number  | `0`     |
+| String  | `""`    |
+| Boolean | `false` |
+
 ## Token Resolvers
 
 Patterns use the token expression syntax from `ps-token-expressions` with several built-in resolvers:
 
-* `{in}` — The input version passed via `--build-version`. Supports accessors: `{in:major}`, `{in:minor}`, `{in:patch}`.
-* `{spec}` — The project's version from its `pyproject.toml`.
+* `{in}` — The input version passed via `--build-version`. Supports all version accessors.
+* `{spec}` — The project's version from its `pyproject.toml`. Falls back to the host project version when the project version is `0.0.0`.
 * `{env:VAR_NAME}` — Value of the environment variable `VAR_NAME`.
-* `{git:ACCESSOR}` — Git repository metadata. Accessors include `version` (parsed from the latest tag), `sha` (short commit hash), `distance` (commits since last tag), `dirty` (uncommitted changes), `branch` (current branch), and `mainline` (whether the current branch is the main branch). The `version` accessor supports nested accessors like `{git:version:major}`.
-* `{v:VERSION:ACCESSOR}` — Parse a version string and extract components. Example: `{v:3.5.1:major}` produces `3`.
-* `{date:FORMAT}` — Current date/time. Supports `unix`, `ticks`, `sortable`, `iso`, and custom .NET-style format strings like `yyyy-MM-dd`.
-* `{rand:KIND}` — Random values. Kinds: `uuid`, `hash` (8-char hex), `num` (integer, optionally with `MIN..MAX` range).
+* `{git:ACCESSOR}` — Git repository metadata. See **Git Resolver** below.
+* `{v:VERSION:ACCESSOR}` — Parse a literal or computed version string and extract a component. See **Parse Version Resolver** below.
+* `{date:FORMAT}` — Current date and time formatted according to `FORMAT`. See **Date Formats** below.
+* `{rand:KIND}` — Random values. See **Random Values** below.
+
+### Version Accessors
+
+The following accessors apply to any version-bearing source (`in`, `spec`, `git:version`, `v:...`):
+
+| Accessor           | Meaning                                       |
+| ------------------ | --------------------------------------------- |
+| `major`            | First version number                          |
+| `minor`            | Second version number                         |
+| `patch`            | Third version number                          |
+| `rev`              | Fourth version number                         |
+| `core`             | All core numbers joined as a string           |
+| `pre`              | Full pre-release label                        |
+| `pre:name`         | Pre-release label name                        |
+| `pre:number`       | Pre-release label number                      |
+| `dev`              | PEP 440 dev segment number                    |
+| `post`             | PEP 440 post segment number                   |
+| `metadata`         | Full build metadata string                    |
+| `metadata:parts:N` | Nth part of build metadata (zero-indexed)     |
+| `standards`        | Set of detected format names (for conditions) |
+
+Examples:
+
+```txt
+{in:major}.{in:minor}.{in:patch}
+{spec:major}.{spec:pre:name}{spec:pre:number}
+{spec:metadata:parts:0}
+```
+
+### Git Resolver
+
+The `{git}` token provides access to Git repository state. Used without an accessor, it returns the version string parsed from the most recent annotated tag.
+
+| Accessor   | Meaning                                         |
+| ---------- | ----------------------------------------------- |
+| `version`  | Parsed version from the most recent tag         |
+| `sha`      | Short commit hash                               |
+| `distance` | Commits since the last tag                      |
+| `dirty`    | True when there are uncommitted changes         |
+| `branch`   | Current branch name                             |
+| `main`     | Default branch name resolved from `origin/HEAD` |
+| `mainline` | True when the current branch is the main branch |
+
+The `version` accessor supports all standard version accessors:
+
+```txt
+{git:version:major}.{git:version:minor}.{git:distance}
+{git:version:pre:name}{git:version:pre:number}
+```
+
+### Parse Version Resolver
+
+The `{v:VERSION:ACCESSOR}` token parses an arbitrary version string and extracts a single component. The `VERSION` argument may be a literal string or a nested token expression, making it possible to parse environment variables or other dynamic values and extract individual parts.
+
+```txt
+{v:3.5.1:major}               → 3
+{v:{env:BUILD_VERSION}:minor} → minor component of BUILD_VERSION
+{v:{in}:patch}                → patch component of the input version
+```
+
+### Date Formats
+
+The `{date:FORMAT}` token resolves to the current date and time. When no format is given, it returns the current Unix timestamp as an integer.
+
+**Standard named formats:**
+
+| Name        | Aliases  | Example output                     |
+| ----------- | -------- | ---------------------------------- |
+| `unix`      |          | `1741791909` (integer timestamp)   |
+| `ticks`     |          | `638780915090000000` (.NET ticks)  |
+| `iso`       |          | `2026-03-12T16:05:09+00:00`        |
+| `iso-round` | `o`, `O` | `2026-03-12T16:05:09.123456+00:00` |
+| `sortable`  | `s`      | `2026-03-12T16:05:09`              |
+| `universal` | `u`      | `2026-03-12 16:05:09Z`             |
+
+**C#-style custom tokens:**
+
+| Token  | Meaning         | Example |
+| ------ | --------------- | ------- |
+| `yyyy` | 4-digit year    | `2026`  |
+| `yy`   | 2-digit year    | `26`    |
+| `MM`   | 2-digit month   | `03`    |
+| `dd`   | 2-digit day     | `12`    |
+| `HH`   | 24-hour hour    | `14`    |
+| `mm`   | 2-digit minute  | `05`    |
+| `ss`   | 2-digit second  | `09`    |
+
+Python `strftime` directives (e.g., `%Y`, `%m`, `%H`) are also accepted and may be mixed with C#-style tokens in the same format string.
+
+Examples:
+
+```txt
+{date:yyyy.MM.dd}
+{date:yyyyMMdd}
+{date:yyyy-%m-dd}
+{date:iso}
+{date:sortable}
+{date:o}
+```
+
+### Random Values
+
+The `{rand}` resolver generates non-deterministic values. A kind argument is always required.
+
+| Token                 | Description                           |
+| --------------------- | ------------------------------------- |
+| `{rand:uuid}`         | UUID v4 as 32-character hex string    |
+| `{rand:hash}`         | 8-character lowercase hex string      |
+| `{rand:num}`          | Random non-negative integer           |
+| `{rand:num:MIN..MAX}` | Random integer in the inclusive range |
+
+Examples:
+
+```txt
+{rand:uuid}
+{rand:num:1..100}
+```
+
+### Custom Token Resolvers
+
+Additional token resolvers can be registered through the DI container. Implement `IVersionTokenResolver` from `ps.plugin.sdk.delivery`, declare a `name: ClassVar[str]` for the token source, and implement `get_resolver()` to return the resolver callable:
+
+```python
+from typing import Any, ClassVar, Optional
+from ps.plugin.sdk.delivery import IVersionTokenResolver
+from ps.token_expressions import BaseResolver
+from ps.token_expressions.token_resolvers._base_resolver import TokenValue
+
+
+class MyResolver(BaseResolver):
+    def __call__(self, args: list[str]) -> Optional[TokenValue]:
+        return args[0] if args else None
+
+
+class MyTokenResolver(IVersionTokenResolver):
+    name: ClassVar[str] = "my"
+
+    def get_resolver(self) -> Any:
+        return MyResolver()
+```
+
+Register the implementation through the DI container in a plugin module's `handle_activate` method:
+
+```python
+di.register(IVersionTokenResolver).implementation(MyTokenResolver)
+```
+
+Once registered, the token `{my:value}` becomes available in all version patterns.
+
+## Condition Syntax
+
+Conditions appear in the optional `[...]` block at the start of a pattern and evaluate to a boolean. A source token evaluates to true when the source exists and parses successfully. Conditions support boolean operators:
+
+```txt
+and   or   not   ( )
+```
+
+Condition examples:
+
+```txt
+[{in}]
+[{git} and not {git:dirty}]
+[{git:mainline} and {git:dirty}]
+[{env:BUILD_NUMBER} or {env:CI}]
+[not {git:dirty} and ({in} or {env:BUILD_VERSION})]
+```
+
+### Format Checks
+
+To verify that a source version conforms to a specific standard, use the `in` operator with the `standards` accessor:
+
+```txt
+['pep440' in {in:standards}] {in}
+['semver' in {git:version:standards}] {git:version}
+['nuget' in {env:VERSION:standards}] {env:VERSION}
+```
+
+Supported format names: `pep440`, `semver`, `nuget`, `calver`, `loose`.
 
 ## Example: Git-Based Versioning
 

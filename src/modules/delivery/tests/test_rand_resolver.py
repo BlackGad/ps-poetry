@@ -14,7 +14,7 @@ def test_rand_unknown_kind_returns_none():
 def test_rand_uuid_returns_valid_uuid():
     result = RandResolver()(["uuid"])
     assert isinstance(result, str)
-    assert re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}", result)
+    assert re.fullmatch(r"[0-9a-f]{32}", result)
 
 
 def test_rand_uuid_values_differ():

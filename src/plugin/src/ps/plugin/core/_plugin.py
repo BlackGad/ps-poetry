@@ -28,15 +28,18 @@ def _create_standard_io() -> IO:
     return IO(ArgvInput(), output, error_output)
 
 
-def _resolve_settings(di: DI) -> PluginSettings:
-    environment = di.resolve(Environment)
-    assert environment is not None
+def _resolve_settings(environment: Environment) -> PluginSettings:
     return environment.host_project.plugin_settings
 
 
 class Plugin(ApplicationPlugin):
+    def __init__(self) -> None:
+        super().__init__()
+        self._di = DI()
+
     def activate(self, application: Application) -> None:
         assert application.event_dispatcher is not None
+        event_dispatcher = application.event_dispatcher
 
         io = self._ensure_io(application)
         project_toml = application.poetry.pyproject.data
@@ -51,13 +54,14 @@ class Plugin(ApplicationPlugin):
 
         log_verbose(io, "<info>Starting activation</info>")
 
-        di = DI()
+        di = self._di
         di.register(IO).factory(lambda: io)
         di.register(Application).factory(lambda: application)
         di.register(Environment).factory(lambda path: Environment(path), application.poetry.pyproject_path)
-        di.register(PluginSettings).factory(_resolve_settings, di=di)
+        di.register(PluginSettings).factory(_resolve_settings)
+        di.register(EventDispatcher).factory(lambda: event_dispatcher)
 
-        modules_handler = _ModulesHandler(di)
+        modules_handler = di.spawn(_ModulesHandler)
         modules_handler.instantiate_modules()
 
         activate_handlers = modules_handler.acquire_protocol_handlers(ActivateProtocol)
@@ -87,8 +91,7 @@ class Plugin(ApplicationPlugin):
                 if handler not in disabled_handlers
             ]
             self._register_protocol_listener(
-                io,
-                application.event_dispatcher,
+                event_dispatcher,
                 protocol_type,
                 event_constant,
                 handlers)
@@ -98,12 +101,14 @@ class Plugin(ApplicationPlugin):
 
     def _register_protocol_listener(
         self,
-        io: IO,
         event_dispatcher: EventDispatcher,
         protocol_type: type,
         event_constant: str,
         handlers: list,
     ) -> None:
+        di = self._di
+        io = di.resolve(IO)
+        assert io is not None
         if not handlers:
             log_debug(io, f"No modules implement protocol <comment>{protocol_type.__name__}</comment>; skipping listener registration")
             return
@@ -117,14 +122,16 @@ class Plugin(ApplicationPlugin):
             raise RuntimeError(f"Protocol {protocol_type.__name__} has no handle_* method")
 
         def _listener(event: Event, event_name: str, dispatcher: EventDispatcher) -> None:
-            log_debug(io, f"Processing <comment>{event_name}</comment> event")
-            for handler in handlers:
-                log_verbose(io, f"<info>Module <comment>{get_module_verbal_name(handler)}</comment> handling {event_name} event</info>")
-                handle_method = getattr(handler, handle_method_name)
-                handle_method(event, event_name, dispatcher)
-                if isinstance(event, ConsoleCommandEvent) and not event.command_should_run():
-                    log_debug(io, f"Command execution handled by module <comment>{get_module_verbal_name(handler)}</comment>; stopping further processing")
-                    break
+            with di.scope() as scope:
+                scope.register(type(event)).factory(lambda: event)
+                log_debug(io, f"Processing <comment>{event_name}</comment> event")
+                for handler in handlers:
+                    log_verbose(io, f"<info>Module <comment>{get_module_verbal_name(handler)}</comment> handling {event_name} event</info>")
+                    handle_method = getattr(handler, handle_method_name)
+                    handle_method(event, event_name, dispatcher)
+                    if isinstance(event, ConsoleCommandEvent) and not event.command_should_run():
+                        log_debug(io, f"Command execution handled by module <comment>{get_module_verbal_name(handler)}</comment>; stopping further processing")
+                        break
 
         event_dispatcher.add_listener(event_constant, _listener)
 

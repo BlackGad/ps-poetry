@@ -23,10 +23,11 @@ class DeliveryCommand(Command):
 
         all_projects = list(environment.projects)
         environment_metadata = resolve_environment_metadata(
-            io=io,
-            input_version=None,
-            host_project=environment.host_project,
-            projects=all_projects,
+            self._di,
+            io,
+            None,
+            environment.host_project,
+            all_projects,
         )
 
         filtered = [
