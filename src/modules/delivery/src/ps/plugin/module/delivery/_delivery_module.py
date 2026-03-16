@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 from typing import ClassVar, Optional
 
@@ -6,6 +7,7 @@ from cleo.events.console_terminate_event import ConsoleTerminateEvent
 from cleo.io.inputs.argument import Argument
 from cleo.io.inputs.input import Input
 from cleo.io.inputs.option import Option
+from cleo.io.io import IO
 from poetry.console.application import Application
 from poetry.console.commands.build import BuildCommand
 from poetry.console.commands.publish import PublishCommand
@@ -14,8 +16,17 @@ from ps.di import DI
 from ps.plugin.sdk.events import ensure_argument, ensure_option
 from ps.plugin.sdk.project import Environment, filter_projects
 from ps.version import Version
+from ps.token_expressions import TokenResolverEntry
 
-from .stages import build_projects, patch_projects, publish_projects, resolve_environment_metadata, ResolvedProjectMetadata
+from .token_resolvers import DateResolver, EnvResolver, RandResolver, VersionResolver, collect_git_info
+from .stages import (
+    DeliverableType,
+    ResolvedProjectMetadata,
+    build_projects,
+    patch_projects,
+    publish_projects,
+    resolve_environment_metadata,
+)
 from .commands import DeliveryCommand
 
 
@@ -35,11 +46,16 @@ def _get_version_option(input: Input) -> Optional[str]:
 class DeliveryModule:
     name: ClassVar[str] = "ps-delivery"
 
-    def __init__(self, di: DI) -> None:
-        self._di = di
+    def __init__(self) -> None:
         self._exit_code: Optional[int] = None
 
-    def poetry_activate(self, application: Application) -> bool:
+    def poetry_activate(
+        self,
+        application: Application,
+        environment: Environment,
+        di: DI,
+        io: IO
+    ) -> bool:
         # Extend the BuildCommand with an optional "inputs" argument
         ensure_argument(BuildCommand, Argument(
             name=INPUTS_ARGUMENT,
@@ -66,18 +82,24 @@ class DeliveryModule:
             flag=False)
         )
 
-        application.add(DeliveryCommand(self._di))
+        application.add(di.spawn(DeliveryCommand))
 
+        di.register(TokenResolverEntry).factory(lambda: ("env", EnvResolver()))
+        di.register(TokenResolverEntry).factory(lambda: ("rand", RandResolver()))
+        di.register(TokenResolverEntry).factory(lambda: ("v", VersionResolver()))
+        di.register(TokenResolverEntry).factory(lambda: ("date", DateResolver(datetime.now())))
+        di.register(TokenResolverEntry).factory(lambda env: ("git", collect_git_info(env)), env=environment.host_project.path)
+        di.register(TokenResolverEntry).factory(lambda ver: ("in", ver), ver=Version.parse(_get_version_option(io.input)))
         return True
 
-    def poetry_command(self, event: ConsoleCommandEvent) -> None:
+    def poetry_command(self, event: ConsoleCommandEvent, di: DI) -> None:
         if not isinstance(event.command, (BuildCommand, PublishCommand)):
             return
 
         # Disable the original command execution
         event.disable_command()
 
-        environment = self._di.resolve(Environment)
+        environment = di.resolve(Environment)
         assert environment is not None
 
         # Filter projects based on inputs
@@ -85,17 +107,10 @@ class DeliveryModule:
         # In case no inputs are provided, and the entry project is different from the host project, add the entry project path as input
         if not inputs and environment.host_project != environment.entry_project:
             inputs.append(str(environment.entry_project.path))
-
-        input_version = Version.parse(_get_version_option(event.io.input))
-        environment_metadata = resolve_environment_metadata(
-            self._di,
-            event.io,
-            input_version,
-            environment.host_project,
-            environment.projects)
+        environment_metadata = di.satisfy(resolve_environment_metadata)()
 
         filtered_projects = filter_projects(inputs, environment.projects)
-        excluded = {id(p) for p in filtered_projects if not (environment_metadata.projects.get(p.path) or ResolvedProjectMetadata()).deliver}
+        excluded = {id(p) for p in filtered_projects if (environment_metadata.projects.get(p.path) or ResolvedProjectMetadata()).deliver != DeliverableType.ENABLED}
         event.io.write_line("<fg=magenta>Delivery scope:</>")
         for p in filtered_projects:
             name = p.name.value or p.path.name

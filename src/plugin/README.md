@@ -46,7 +46,7 @@ modules = ["delivery", "check"]
 
 Modules are discovered by scanning the `ps.module` entry-point group at runtime. The plugin inspects every loaded object for functions whose names match the pattern `poetry_<event>` or `poetry_<event>_<suffix>`, where `<event>` is one of: `activate`, `command`, `error`, `terminate`, `signal`.
 
-> **Note:** Module discovery relies on `importlib.metadata`, which reads `entry_points.txt` from installed distribution metadata in `site-packages`. Entry points declared in a `pyproject.toml` with `package-mode = false` are **never registered** because that project is not installed as a distribution. Only packages installed via `pip install -e .` or `poetry install` (with `package-mode = true`) produce the `.dist-info` directory that makes their entry points discoverable.
+> **Tip:** Entry points cannot be declared for projects with `package-mode = false` because non-package projects are not installed as distributions. To use a project as a plugin module host without publishing it, keep `package-mode = true` and install [`ps-plugin-module-delivery`](https://github.com/BlackGad/ps-poetry/blob/main/src/modules/delivery/README.md) — then set `deliver = false` in that project's `[tool.ps-plugin]` section to exclude it from delivery operations.
 
 An entry point may resolve to:
 
@@ -104,3 +104,46 @@ Inside event handlers (`poetry_command`, `poetry_error`, `poetry_terminate`, `po
 | `ConsoleSignalEvent` | `from cleo.events.console_signal_event import ConsoleSignalEvent` | The signal event (for `poetry_signal`) |
 
 Use `DI.register` to bind additional types from within `poetry_activate` and `DI.resolve` or `DI.resolve_many` to retrieve them in other modules.
+
+# Diagnostics
+
+The plugin writes diagnostic output to the Poetry console at three verbosity levels. Pass `-v`, `-vv`, or `-vvv` to any Poetry command to increase verbosity.
+
+## Standard output (no flags)
+
+No plugin output is produced at the default verbosity level. The plugin activates silently unless an error occurs during module activation, in which case an error message is written to stderr:
+
+```text
+[ERROR] Error during activation of module <name>: <reason>
+```
+
+## Verbose output (`-v`)
+
+At verbose level the plugin reports its activation lifecycle and any non-fatal discovery warnings. The following lines appear in order:
+
+* `Starting activation` — emitted once when the plugin begins activating.
+* `Warning: ps-plugin not enabled or disabled in configuration in <path>` — emitted instead of all subsequent lines when `enabled = false` is set or the `[tool.ps-plugin]` section is absent.
+* `Warning: failed to load entry point '<group>:<name>': <reason>` — emitted for each entry point that could not be imported.
+* `Warning: entry point '<group>:<name>' loaded unsupported type <type>, skipping.` — emitted when an entry point resolves to an object that is neither a class, module, nor function.
+* `Warning: module name collision: '<name>' found in [<dist-a>, <dist-b>]. None will be loaded.` — emitted when two or more distributions expose a module with the same name and different file paths; all conflicting modules are skipped.
+* `Selected modules:` — header for the numbered list of modules that will be activated, as specified by the `modules` setting. Each entry shows the module name and its source distribution in brackets.
+* `Discovered but not selected:` — header for the list of discovered modules not included in the active set. Each entry shows the module name and its source distribution.
+* `Activating <n> module(s)` — emitted before activation handlers are called.
+* `Registering <n> handler(s) for <event>` — emitted once per event type (`command`, `terminate`, `error`, `signal`) for which at least one handler was registered.
+* `Activation complete` — emitted once when the plugin finishes activating.
+
+## Debug output (`-vvv`)
+
+At debug level all verbose output is included, with the following additions printed in dark gray:
+
+* Full Python traceback following each `failed to load entry point` warning.
+* `Module '<name>' discovered via multiple entry points, using single instance` — emitted when the same module file is registered under more than one entry point name; this is treated as a harmless duplicate scan rather than a collision.
+* Per-distribution file paths listed under each collision warning entry.
+* Source file path for each entry in the `Selected modules` and `Discovered but not selected` lists.
+* `Instantiated module <name> (<module>.<class>)` — emitted after each class-based module is instantiated via the DI container.
+* `Module <name> handles: <event1>, <event2>` — emitted for each module listing its registered event types.
+* `No handlers for <event>; skipping listener` — emitted for event types that have no registered handlers.
+* `Executing activate for module <name>` — emitted before each module's `poetry_activate` handler is called.
+* `Module <name> disabled itself during activation` — emitted when `poetry_activate` returns `False`.
+* `Processing <event> event` — emitted each time an event listener fires during command execution.
+* `Command execution stopped after <event> handler` — emitted when a `command` handler cancels command execution.

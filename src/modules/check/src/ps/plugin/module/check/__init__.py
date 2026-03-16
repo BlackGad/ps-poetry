@@ -1,5 +1,5 @@
 from ._check_module import CheckModule
-from ._icheck import ICheck
+from ._check import ICheck
 
 __all__ = [
     "CheckModule",

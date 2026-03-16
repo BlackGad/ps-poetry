@@ -59,8 +59,9 @@ version-pinning = "compatible"
 
 * `version-patterns` — Ordered list of version expression patterns. Each pattern is evaluated in sequence; the first one whose condition matches and whose expression produces a valid version wins. See **Version Patterns** below.
 * `version-pinning` — Constraint mode applied when resolving inter-project dependency versions. Accepts `compatible`, `exact`, `minimum-only`, `range-next-major`, `range-next-minor`, or `range-next-patch`. Defaults to `compatible`.
+* `deliver` — Controls whether a project is included in the delivery scope. Set to `false` to exclude a project from all delivery operations. Defaults to `true` when not specified.
 
-Individual projects can opt out of delivery by setting `package-mode = false` in their `[tool.poetry]` section.
+Individual projects can also opt out of delivery by setting `package-mode = false` in their `[tool.poetry]` section. When `package-mode = false`, the project is excluded regardless of the `deliver` setting.
 
 # Command-Line Usage
 

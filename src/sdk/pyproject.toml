@@ -10,7 +10,6 @@ dependencies = [
 
 [tool.poetry.group.ps.dependencies]
 ps-version = { path = "../libraries/version", develop = true }
-ps-di      = { path = "../libraries/di", develop = true }
 
 [tool.poetry]
 packages = [ { include = "ps/plugin/sdk", from = "src" } ]

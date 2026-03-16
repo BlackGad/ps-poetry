@@ -3,7 +3,13 @@ from cleo.commands.command import Command
 from ps.plugin.sdk.project import Environment
 from ps.di import DI
 
-from ..stages import ResolvedProjectMetadata, resolve_environment_metadata, log_dependency_tree, log_publish_waves
+from ..stages import (
+    DeliverableType,
+    ResolvedProjectMetadata,
+    log_dependency_tree,
+    log_publish_waves,
+    resolve_environment_metadata,
+)
 
 
 class DeliveryCommand(Command):
@@ -21,18 +27,11 @@ class DeliveryCommand(Command):
         environment = self._di.resolve(Environment)
         assert environment is not None
 
+        environment_metadata = self._di.satisfy(resolve_environment_metadata)()
         all_projects = list(environment.projects)
-        environment_metadata = resolve_environment_metadata(
-            self._di,
-            io,
-            None,
-            environment.host_project,
-            all_projects,
-        )
-
         filtered = [
             p for p in all_projects
-            if (environment_metadata.projects.get(p.path) or ResolvedProjectMetadata()).deliver
+            if (environment_metadata.projects.get(p.path) or ResolvedProjectMetadata()).deliver == DeliverableType.ENABLED
         ]
 
         io.write_line("")

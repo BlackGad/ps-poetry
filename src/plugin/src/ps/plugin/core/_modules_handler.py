@@ -155,6 +155,12 @@ def _detect_collisions(modules: list[_ModuleInfo], io: IO) -> list[_ModuleInfo]:
     for name, group in name_groups.items():
         if len(group) == 1:
             result.append(group[0])
+            continue
+
+        paths = {m.path for m in group}
+        if len(paths) == 1 and None not in paths:
+            log_debug(io, f"<fg=dark_gray>Module '<fg=cyan>{name}</>' discovered via multiple entry points, using single instance</>")
+            result.append(group[0])
         else:
             dist_list = ", ".join(
                 f"<fg=yellow>{m.distribution or 'unknown'}</>" for m in group
@@ -228,10 +234,10 @@ class _ModulesHandler:
                         event_type: getattr(instance, _event_to_method_name(event_type, mod.name, cls))
                         for event_type, fn in handlers.items()
                     }
-                    log_debug(io, f"Instantiated module <comment>{mod.name}</comment> ({cls.__module__}.{cls.__name__})")
+                    log_debug(io, f"<fg=dark_gray>Instantiated module <comment>{mod.name}</comment> ({cls.__module__}.{cls.__name__})</>")
 
             event_types = ", ".join(sorted(mod.handlers.keys()))
-            log_debug(io, f"Module <comment>{mod.name}</comment> handles: {event_types}")
+            log_debug(io, f"<fg=dark_gray>Module <comment>{mod.name}</comment> handles: {event_types}</>")
 
         self._modules = modules
 
@@ -242,12 +248,12 @@ class _ModulesHandler:
 
         for mod in activate_modules:
             fn = mod.handlers["activate"]
-            log_debug(io, f"Executing activate for module <comment>{mod.name}</comment>")
+            log_debug(io, f"<fg=dark_gray>Executing activate for module <comment>{mod.name}</comment></>")
             try:
                 result = self._di.satisfy(fn)()
                 if result is False:
                     self._disabled.add(mod.name)
-                    log_debug(io, f"Module <comment>{mod.name}</comment> disabled itself during activation")
+                    log_debug(io, f"<fg=dark_gray>Module <comment>{mod.name}</comment> disabled itself during activation</>")
             except Exception as e:
                 io.write_error_line(f"<error>Error during activation of module {mod.name}: {e}</error>")
                 raise

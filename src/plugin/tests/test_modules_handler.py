@@ -118,6 +118,34 @@ def test_collision_removes_all_conflicting_and_warns():
     io.write_line.assert_called_once()
 
 
+def test_duplicate_scan_same_path_picks_first():
+    io = MagicMock(spec=IO)
+    io.is_verbose.return_value = False
+    io.is_debug.return_value = False
+    mod1 = _ModuleInfo(name="dup", handlers={}, distribution="dist-a", path="/some/module.py")
+    mod2 = _ModuleInfo(name="dup", handlers={}, distribution="dist-b", path="/some/module.py")
+    mod_safe = _ModuleInfo(name="safe", handlers={}, distribution="dist-c", path="/other/module.py")
+
+    result = _detect_collisions([mod1, mod2, mod_safe], io)
+
+    assert [m.name for m in result] == ["dup", "safe"]
+    assert result[0] is mod1
+    io.write_line.assert_not_called()
+
+
+def test_duplicate_scan_none_paths_treated_as_collision():
+    io = MagicMock(spec=IO)
+    io.is_verbose.return_value = True
+    io.is_debug.return_value = False
+    mod1 = _ModuleInfo(name="ambiguous", handlers={}, distribution="dist-a", path=None)
+    mod2 = _ModuleInfo(name="ambiguous", handlers={}, distribution="dist-b", path=None)
+
+    result = _detect_collisions([mod1, mod2], io)
+
+    assert result == []
+    io.write_line.assert_called_once()
+
+
 # --- activate ---
 
 

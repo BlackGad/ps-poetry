@@ -1,12 +1,12 @@
-from datetime import datetime, UTC
-from unittest.mock import patch
+from datetime import UTC, datetime
 
 from ps.version import Version
 
 from ps.plugin.module.delivery.token_resolvers._date_resolver import format_date
+from ps.plugin.module.delivery.token_resolvers import DateResolver
 
-from .conftest import make_io, make_project, resolve
-from ps.di import DI
+from .conftest import make_io, make_project, make_resolvers, resolve
+from ps.plugin.sdk.project import Environment
 from ps.plugin.module.delivery.stages._metadata import resolve_environment_metadata
 
 
@@ -125,27 +125,33 @@ def test_format_date_standard_universal_naive_datetime():
 
 def test_date_with_format_produces_version(tmp_path):
     fixed_now = datetime(2026, 3, 12, tzinfo=UTC)
-    with patch("ps.plugin.module.delivery.stages._metadata.datetime") as mock_dt:
-        mock_dt.now.return_value = fixed_now
-        result = resolve(tmp_path, project_patterns=["1.{date:yyyyMMdd}.0"])
+    result = resolve(
+        tmp_path,
+        project_patterns=["1.{date:yyyyMMdd}.0"],
+        extra_resolvers=[("date", DateResolver(fixed_now))],
+    )
     versions = list(result.projects.values())
     assert versions[0].version == Version.parse("1.20260312.0")
 
 
 def test_date_calver_format(tmp_path):
     fixed_now = datetime(2026, 3, 12, tzinfo=UTC)
-    with patch("ps.plugin.module.delivery.stages._metadata.datetime") as mock_dt:
-        mock_dt.now.return_value = fixed_now
-        result = resolve(tmp_path, project_patterns=["{date:yyyy}.{date:MM}.{date:dd}"])
+    result = resolve(
+        tmp_path,
+        project_patterns=["{date:yyyy}.{date:MM}.{date:dd}"],
+        extra_resolvers=[("date", DateResolver(fixed_now))],
+    )
     versions = list(result.projects.values())
     assert versions[0].version == Version.parse("2026.3.12")
 
 
 def test_date_with_time_components(tmp_path):
     fixed_now = datetime(2026, 3, 12, 14, 5, 9, tzinfo=UTC)
-    with patch("ps.plugin.module.delivery.stages._metadata.datetime") as mock_dt:
-        mock_dt.now.return_value = fixed_now
-        result = resolve(tmp_path, project_patterns=["1.0.{date:HHmmss}"])
+    result = resolve(
+        tmp_path,
+        project_patterns=["1.0.{date:HHmmss}"],
+        extra_resolvers=[("date", DateResolver(fixed_now))],
+    )
     versions = list(result.projects.values())
     assert versions[0].version == Version.parse("1.0.140509")
 
@@ -158,19 +164,18 @@ def test_date_now_shared_across_projects(tmp_path):
     proj_b_dir = tmp_path / "proj_b"
     proj_b_dir.mkdir()
 
-    host = make_project(host_dir, name="host", version="0.0.0")
-    proj_a = make_project(proj_a_dir, name="proj-a", version="0.0.1", patterns=["1.{date:yyyyMMdd}.0"])
-    proj_b = make_project(proj_b_dir, name="proj-b", version="0.0.2", patterns=["1.{date:yyyyMMdd}.0"])
-
-    assert host is not None
-    assert proj_a is not None
-    assert proj_b is not None
+    make_project(host_dir, name="host", version="0.0.0")
+    make_project(proj_a_dir, name="proj-a", version="0.0.1", patterns=["1.{date:yyyyMMdd}.0"])
+    make_project(proj_b_dir, name="proj-b", version="0.0.2", patterns=["1.{date:yyyyMMdd}.0"])
 
     fixed = datetime(2026, 3, 12, tzinfo=UTC)
-    with patch("ps.plugin.module.delivery.stages._metadata.datetime") as mock_dt:
-        mock_dt.now.return_value = fixed
-        result = resolve_environment_metadata(DI(), make_io(), None, host, [proj_a, proj_b])
+    environment = Environment(host_dir / "pyproject.toml")
+    environment.add_project(proj_a_dir / "pyproject.toml")
+    environment.add_project(proj_b_dir / "pyproject.toml")
+    resolvers = make_resolvers(extra_resolvers=[("date", DateResolver(fixed))])
+    result = resolve_environment_metadata(make_io(), environment, resolvers)
 
-    versions = list(result.projects.values())
-    assert len(versions) == 2
-    assert all(v.version == Version.parse("1.20260312.0") for v in versions)
+    proj_a_path = (proj_a_dir / "pyproject.toml").resolve()
+    proj_b_path = (proj_b_dir / "pyproject.toml").resolve()
+    assert result.projects[proj_a_path].version == Version.parse("1.20260312.0")
+    assert result.projects[proj_b_path].version == Version.parse("1.20260312.0")

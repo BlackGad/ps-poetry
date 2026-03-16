@@ -10,7 +10,7 @@ from poetry.console.application import Application
 from poetry.console.commands.check import CheckCommand
 
 from ps.di import DI
-from ps.plugin.module.check._icheck import ICheck
+from ps.plugin.module.check._check import ICheck
 from ps.plugin.sdk.events import ensure_argument, ensure_option
 from ps.plugin.sdk.project import Environment, Project, filter_projects
 

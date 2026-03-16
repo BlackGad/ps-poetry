@@ -5,7 +5,7 @@ from cleo.io.io import IO
 from poetry.console.commands.check import CheckCommand
 from poetry.factory import Factory
 
-from ps.plugin.module.check._icheck import ICheck
+from ps.plugin.module.check._check import ICheck
 from ps.plugin.sdk.project import Project
 
 

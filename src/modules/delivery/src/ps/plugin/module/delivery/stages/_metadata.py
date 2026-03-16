@@ -1,13 +1,14 @@
 from dataclasses import dataclass, field
-from datetime import datetime
+from enum import Enum
 from pathlib import Path
-from typing import Any, Iterable, Optional
+from typing import Iterable, Optional
 
 from cleo.io.io import IO
 from packaging.specifiers import SpecifierSet
 
+from ps.plugin.sdk.project._environment import Environment
 from ps.version import Version, VersionConstraint
-from ps.token_expressions import ExpressionFactory
+from ps.token_expressions import ExpressionFactory, TokenResolverEntry
 from ps.plugin.sdk.project import (
     Project,
     ProjectDependency,
@@ -16,10 +17,8 @@ from ps.plugin.sdk.project import (
 from ps.plugin.sdk.toml import TomlValue
 
 from ps.di import DI
-from ps.plugin.module.delivery._iversion_token_resolver import IVersionTokenResolver
 
 from .._delivery_settings import DeliverySettings
-from ..token_resolvers import DateResolver, EnvResolver, RandResolver, VersionResolver, collect_git_info
 
 _default_version_patterns: list[str] = [
     "[{in}] {in}",
@@ -27,6 +26,12 @@ _default_version_patterns: list[str] = [
     "{spec}"
 ]
 _default_version: Version = Version()
+
+
+class DeliverableType(Enum):
+    ENABLED = "Enabled"
+    DISABLED_BY_PACKAGE_MODE = "DisabledByPackageMode"
+    DISABLED_BY_DELIVERABLE_OPTION = "DisabledByDeliverableOption"
 
 
 @dataclass
@@ -41,7 +46,7 @@ class ResolvedProjectMetadata:
     version: Version = field(default_factory=Version)
     dependencies: list[ResolvedDependencyVersion] = field(default_factory=list)
     project_dependencies: list[Path] = field(default_factory=list)
-    deliver: bool = True
+    deliver: DeliverableType = DeliverableType.ENABLED
 
 
 @dataclass
@@ -180,14 +185,9 @@ def _resolve_project_dependencies(
     return resolved, project_dependency_paths
 
 
-def resolve_environment_metadata(
-    di: DI,
-    io: IO,
-    input_version: Optional[Version],
-    host_project: Project,
-    projects: Iterable[Project],
-) -> ResolvedEnvironmentMetadata:
-    resolved_projects: dict[Path, ResolvedProjectMetadata] = {}
+def resolve_environment_metadata(io: IO, environment: Environment, resolvers: list[TokenResolverEntry]) -> ResolvedEnvironmentMetadata:
+    host_project = environment.host_project
+
     host_project_delivery_settings = DeliverySettings.model_validate(host_project.plugin_settings.model_dump())
     host_project_version = Version.parse(host_project.version.value) or _default_version
     host_dependencies: dict[str, ProjectDependency] = {
@@ -196,32 +196,29 @@ def resolve_environment_metadata(
         if dep.name and dep.version_constraint
     }
 
-    projects = list(projects)
-    now = datetime.now()
-    git_info = collect_git_info(host_project.path)
-    shared_resolvers: list[tuple[str, Any]] = [
-        ("in", input_version),
-        ("env", EnvResolver()),
-        ("date", DateResolver(now)),
-        ("rand", RandResolver()),
-        ("v", VersionResolver()),
-        ("git", git_info),
-    ]
-
-    shared_resolvers.extend((r.name, r.get_resolver()) for r in di.resolve_many(IVersionTokenResolver))
-
-    for project in projects:
+    resolved_projects: dict[Path, ResolvedProjectMetadata] = {}
+    for project in environment.projects:
         project_display_name = project.name.value or project.path.name
         project_delivery_settings = DeliverySettings.model_validate(project.plugin_settings.model_dump())
         version_patterns = project_delivery_settings.version_patterns or host_project_delivery_settings.version_patterns or _default_version_patterns
         pinning_rule = project_delivery_settings.version_pinning or host_project_delivery_settings.version_pinning or VersionConstraint.COMPATIBLE
 
         package_mode = TomlValue.locate(project.document, ["tool.poetry.package-mode"]).value
-        deliver = package_mode is not False
+        if package_mode is False:
+            deliver = DeliverableType.DISABLED_BY_PACKAGE_MODE
+        elif project_delivery_settings.deliver is False:
+            deliver = DeliverableType.DISABLED_BY_DELIVERABLE_OPTION
+        else:
+            deliver = DeliverableType.ENABLED
 
         io.write_line(f"<fg=magenta>Resolving project:</> <fg=blue>{project_display_name}</> [<fg=dark_gray>{project.path}</>]")
 
-        deliver_label = "<fg=green>true</>" if deliver else "<fg=yellow>false</>"
+        if deliver == DeliverableType.ENABLED:
+            deliver_label = "<fg=green>Enabled</>"
+        elif deliver == DeliverableType.DISABLED_BY_PACKAGE_MODE:
+            deliver_label = "<fg=red>Disabled (package-mode)</>"
+        else:
+            deliver_label = "<fg=red>Disabled (deliver option)</>"
         io.write_line(f"  - Deliverable: {deliver_label}")
 
         if io.is_debug():
@@ -233,8 +230,8 @@ def resolve_environment_metadata(
             project_spec_version = host_project_version
 
         factory = ExpressionFactory(
-            token_resolvers=[*shared_resolvers, ("spec", project_spec_version)],
-            default_callback=lambda _key, _args: ""
+            token_resolvers=[*resolvers, ("spec", project_spec_version)],
+            default_callback=lambda _key, _args: "",
         )
 
         metadata = ResolvedProjectMetadata()

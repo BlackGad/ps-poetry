@@ -10,7 +10,6 @@ packages = [
     { include = "experiments", from = "." },
 ]
 version = "42.42.42"
-package-mode = false
 
 [tool.poetry.dependencies]
 poetry = "^2.3.1"
@@ -66,7 +65,7 @@ version-patterns = [
     "[{git:dirty}] {git:version:major}.{git:version:minor<0>}.{git:distance}+{git:branch}.{date:%Y%m%d%H%M}",
     "{git:version:major}.{git:version:minor<0>}.{git:distance}+{git:branch}"
 ]
-version-pinning = "compatible"
+deliver = false
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
