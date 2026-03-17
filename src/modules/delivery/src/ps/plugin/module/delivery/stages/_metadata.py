@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Optional
 
 from cleo.io.io import IO
 from packaging.specifiers import SpecifierSet
@@ -15,8 +15,6 @@ from ps.plugin.sdk.project import (
 )
 
 from ps.plugin.sdk.toml import TomlValue
-
-from ps.di import DI
 
 from .._delivery_settings import DeliverySettings
 
