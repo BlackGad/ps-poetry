@@ -12,12 +12,19 @@ from poetry.console.commands.check import CheckCommand
 from ps.di import DI
 from ps.plugin.module.check._check import ICheck
 from ps.plugin.sdk.events import ensure_argument, ensure_option
+from ps.plugin.sdk.mixins import NameAwareProtocol
 from ps.plugin.sdk.project import Environment, Project, filter_projects
 
-from ps.plugin.sdk.mixins import NameAwareProtocol
-
 from ._check_settings import CheckSettings
-from .checks import EnvironmentCheck, PoetryCheck, PylintCheck, PyrightCheck, PytestCheck, RuffCheck
+from .checks import (
+    EnvironmentCheck,
+    ImportsCheck,
+    PoetryCheck,
+    PylintCheck,
+    PyrightCheck,
+    PytestCheck,
+    RuffCheck,
+)
 
 
 def _filter_checkers[T: NameAwareProtocol](available_checkers: list[T], check_settings: CheckSettings, io: IO) -> list[T]:
@@ -41,8 +48,8 @@ def _filter_checkers[T: NameAwareProtocol](available_checkers: list[T], check_se
         for idx, checker in enumerate(specified_checkers, start=1):
             io.write_line(f"  {idx}. <fg=cyan>{checker.name}</>")
 
-    # Print available but not selected checkers only in debug mode
-    if io.is_debug() and available_not_specified:
+    # Print available but not selected checkers in verbose mode
+    if io.is_verbose() and available_not_specified:
         io.write_line("\n<fg=magenta>Available but not selected:</> ")
         for checker in available_not_specified:
             io.write_line(f"  - <fg=dark_gray>{checker.name}</>")
@@ -86,6 +93,7 @@ def _perform_checks(di: DI, projects: list[Project], checkers: list[ICheck], fix
 _builtin_checks: list[Type[ICheck]] = [
     PoetryCheck,
     EnvironmentCheck,
+    ImportsCheck,
     PytestCheck,
     PylintCheck,
     RuffCheck,

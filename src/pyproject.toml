@@ -54,6 +54,7 @@ checks = [
     "poetry", 
     "environment",
     "ruff", 
+    "imports",
     "pyright",
     "pytest"
 ]
