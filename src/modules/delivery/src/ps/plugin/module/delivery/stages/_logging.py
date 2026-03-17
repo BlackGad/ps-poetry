@@ -2,7 +2,7 @@ from pathlib import Path
 
 from cleo.io.io import IO
 
-from ps.plugin.sdk.project import Project
+from ps.plugin.sdk.project import Environment, Project
 
 from ._metadata import ResolvedEnvironmentMetadata
 
@@ -10,18 +10,14 @@ from ._metadata import ResolvedEnvironmentMetadata
 def log_dependency_tree(
     io: IO,
     projects: list[Project],
+    environment: Environment,
     metadata: ResolvedEnvironmentMetadata,
     title: str = "Dependency tree",
 ) -> None:
-    path_to_project = {p.path.parent.resolve(): p for p in projects}
-    filtered_paths = set(path_to_project.keys())
+    project_set = {p.path for p in projects}
 
     def get_deps(project: Project) -> list[Project]:
-        meta = metadata.projects.get(project.path)
-        if not meta:
-            return []
-        dep_paths = {dep.parent.resolve() for dep in meta.project_dependencies} & filtered_paths
-        return [path_to_project[p] for p in dep_paths]
+        return [dep for dep in environment.project_dependencies(project) if dep.path in project_set]
 
     all_dep_ids = {id(dep) for p in projects for dep in get_deps(p)}
     roots = [p for p in projects if id(p) not in all_dep_ids]
@@ -57,17 +53,15 @@ def log_dependency_tree(
 def log_publish_waves(
     io: IO,
     projects: list[Project],
+    environment: Environment,
     metadata: ResolvedEnvironmentMetadata,
     title: str = "Publish order",
 ) -> None:
-    path_to_project = {p.path.parent.resolve(): p for p in projects}
-    filtered_paths = set(path_to_project.keys())
+    path_to_project = {p.path: p for p in projects}
+    project_set = set(path_to_project.keys())
 
     def get_dep_paths(project: Project) -> set[Path]:
-        meta = metadata.projects.get(project.path)
-        if not meta:
-            return set()
-        return {dep.parent.resolve() for dep in meta.project_dependencies} & filtered_paths
+        return {dep.path for dep in environment.project_dependencies(project) if dep.path in project_set}
 
     remaining = {id(p) for p in projects}
     done: set[int] = set()

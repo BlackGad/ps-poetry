@@ -1,10 +1,6 @@
-# PS Token Expressions
+# Overview
 
-A flexible token-based expression resolution and materialization library for Python.
-
-This library enables dynamic string templating through token substitution and conditional evaluation. It supports multiple resolver types, nested access patterns, fallback values, and boolean expression matching.
-
-## Overview
+PS Token Expressions is a flexible token-based expression resolution and materialization library for Python. It enables dynamic string templating through token substitution and conditional evaluation, supporting multiple resolver types, nested access patterns, fallback values, and boolean expression matching.
 
 PS Token Expressions provides:
 
@@ -17,7 +13,7 @@ PS Token Expressions provides:
 * **Fallback values** — Provide defaults when tokens cannot be resolved
 * **Type-safe** — Returns strings, integers, booleans, or lists
 
-## Installation
+# Installation
 
 ```bash
 pip install ps-token-expressions
@@ -29,7 +25,7 @@ Or with Poetry:
 poetry add ps-token-expressions
 ```
 
-## Quick Start
+# Quick Start
 
 ```python
 import os
@@ -54,9 +50,9 @@ if factory.match("'production' in {tags}"):
 
 [View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-token-expressions/basic_usage_example.py)
 
-## Core Concepts
+# Core Concepts
 
-### Token Format
+## Token Format
 
 Tokens are enclosed in curly braces and follow this format:
 
@@ -70,7 +66,7 @@ Components:
 * **args** — Colon-separated arguments passed to the resolver
 * **fallback** — Optional default value when resolution fails
 
-### Materialization
+## Materialization
 
 Replace tokens in a string with resolved values:
 
@@ -80,7 +76,7 @@ result = factory.materialize("Application: {app:name}")
 # Output: "Application: MyApp"
 ```
 
-### Conditional Matching
+## Conditional Matching
 
 Evaluate boolean expressions containing tokens:
 
@@ -90,7 +86,7 @@ if factory.match("{flag} and 1"):
     print("Condition met")
 ```
 
-## Creating an ExpressionFactory
+# Creating an ExpressionFactory
 
 Create a factory with resolvers that provide values for tokens:
 
@@ -110,7 +106,7 @@ Each resolver is a `(key, source)` tuple where:
 * **key** identifies the resolver (used in `{key:...}`)
 * **source** can be a dict, function, list, or object
 
-### Default Callback
+## Default Callback
 
 Provide a callback for unresolved tokens (optional):
 
@@ -131,11 +127,11 @@ factory.materialize("{unknown}")  # "MISSING:unknown"
 factory.materialize("{missing<fallback>}")  # "fallback" (callback not called)
 ```
 
-## Resolver Types
+# Resolver Types
 
-Resolvers provide values for tokens. The library supports four types:
+Resolvers provide values for tokens. The library supports four built-in types and a base class for custom resolvers.
 
-### Dict Resolver
+## Dict Resolver
 
 Use dictionaries to provide configuration data:
 
@@ -147,7 +143,7 @@ factory.materialize("{config:version}")      # "1.2.3"
 factory.materialize("{config:app:name}")     # "MyApp" (nested access)
 ```
 
-### List Resolver
+## List Resolver
 
 Access list elements by index:
 
@@ -171,7 +167,7 @@ factory.match("6 not in {nums}")   # True
 
 Works with nested lists and lists containing dicts or objects.
 
-### Function Resolver
+## Function Resolver
 
 Call functions to generate values dynamically:
 
@@ -183,7 +179,7 @@ factory = ExpressionFactory([("env", get_env)])
 factory.materialize("{env:PATH}")   # Returns PATH value
 ```
 
-### Instance Resolver
+## Instance Resolver
 
 Access object attributes:
 
@@ -199,7 +195,7 @@ factory.materialize("{app:debug}")     # "True"
 
 Objects can be callable, have nested attributes, or contain dicts/lists.
 
-### Custom Resolver
+## Custom Resolver
 
 Implement a custom resolver by subclassing `BaseResolver`. The resolver receives the full `args` list from the token — for example, `{key:arg1:arg2}` passes `["arg1", "arg2"]`. Use `BaseResolver.pick_resolver()` to obtain a resolver for an intermediate value and delegate remaining args to it.
 
@@ -238,7 +234,7 @@ factory.materialize("{reg:config:host}")   # "prod.example.com"
 
 [View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-token-expressions/custom_resolver_example.py)
 
-## Fallback Values
+# Fallback Values
 
 Provide default values when tokens can't be resolved using `<fallback>` syntax:
 
@@ -265,7 +261,7 @@ factory.materialize("{app:missing<0.0.0>}")   # "0.0.0" (fallback)
 factory.materialize("{app:missing}")          # "{app:missing}" (no fallback)
 ```
 
-## Nested Access
+# Nested Access
 
 Navigate through nested data structures using colon-separated paths:
 
@@ -288,7 +284,7 @@ factory = ExpressionFactory([("srv", servers)])
 factory.materialize("{srv:0:name}")  # "prod"
 ```
 
-## Boolean Expressions
+# Boolean Expressions
 
 Evaluate boolean expressions with token substitution using `and`, `or`, `not`, `in`, and comparison operators. Values follow Python truthiness rules (empty strings and `0` are falsy).
 
@@ -300,7 +296,7 @@ factory.match("{config:enabled} and 1")                # True
 factory.match("{config:missing<0>} or 1")              # True
 ```
 
-### Comparison Operators
+## Comparison Operators
 
 Compare values using `==`, `!=`, `>`, `<`, `>=`, and `<=`. Operators work with or without surrounding spaces:
 
@@ -326,7 +322,7 @@ factory.match("2 > 1 and 3 > 2")         # True
 factory.match("(1 == 1) or (2 != 3)")    # True
 ```
 
-### Membership Testing with `in` Operator
+## Membership Testing
 
 Test if values are present in lists or strings:
 
@@ -355,7 +351,7 @@ factory.match("1 in {items} and 'h' in {text}")        # True
 factory.match("4 not in {items} or 2 in {items}")      # True
 ```
 
-## Recursive Token Resolution
+# Recursive Token Resolution
 
 Resolver output can contain tokens that will be resolved automatically up to `max_recursion_depth` (default: 10). Useful for configuration chains and template indirection.
 
@@ -381,7 +377,7 @@ result = factory.materialize("Connecting to: {config:{env}}")
 # Resolution: {env} -> "production" -> {db_host:production} -> "prod.db.com"
 ```
 
-## Nested Token Arguments
+# Nested Token Arguments
 
 A token can be used as an argument to another token by placing it inside the outer token's argument position: `{outer:{inner}}`. The innermost tokens are resolved first; their values are then substituted as arguments for the outer token.
 
@@ -450,7 +446,7 @@ factory = ExpressionFactory([("outer", lambda arg: f"got:{arg}")])
 factory.materialize("{outer:{missing}}")   # "{outer:{missing}}"
 ```
 
-## Token Validation
+# Token Validation
 
 Check template validity before using them with `validate_materialize()`. Returns a `ValidationResult` with a `success` property, an `errors` list, and a `warnings` list — without raising exceptions.
 
@@ -480,7 +476,7 @@ Passing `threat_fallback_as_failure=True` treats fallback usage as an error inst
 
 Error types: `MissingResolverError` (no resolver registered), `UnresolvedTokenError` (resolver returned `None`), `FallbackTokenError` (fallback used when `threat_fallback_as_failure=True`), `ExpressionSyntaxError` (invalid boolean expression syntax).
 
-## Type Conversion
+# Type Conversion
 
 Resolved values are automatically converted to strings during materialization (numbers, booleans, etc.). Lists of primitive values (strings, integers, booleans) are formatted as Python list literals for use in conditional expressions with the `in` operator.
 
@@ -496,9 +492,9 @@ factory.match("1 in {items}")                          # True
 factory.materialize("{items}")                         # "[1, 2, 3]"
 ```
 
-## Advanced Features
+# Advanced Features
 
-Custom default callbacks handle unresolved tokens (useful for logging or converting unknown tokens to environment-style references):
+Custom `default_callback` functions handle unresolved tokens, enabling logging of missing tokens or converting them to environment-style references:
 
 ```python
 def env_callback(key: str, args: list[str]) -> str:
@@ -507,19 +503,19 @@ def env_callback(key: str, args: list[str]) -> str:
     return f"{{{key}}}"
 
 factory = ExpressionFactory([], env_callback)
-factory.materialize("{env:PATH}")              # "$ENV:PATH"
-factory.materialize("{unknown}")               # "{unknown}"
+factory.materialize("{env:PATH}")    # "$ENV:PATH"
+factory.materialize("{unknown}")     # "{unknown}"
 ```
 
-## Complete Example
+# Complete Example
 
 A complete working example combining instance resolvers, function resolvers, token materialization, fallback values, membership testing, and boolean conditions.
 
 [View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-token-expressions/basic_usage_example.py)
 
-## Error Handling
+# Error Handling
 
-Errors are handled gracefully - unresolved tokens return original text, resolver exceptions are caught and treated as `None`, triggering fallback values if provided.
+Errors are handled gracefully — unresolved tokens return the original token text, resolver exceptions are caught and treated as `None`, triggering fallback values if provided.
 
 ```python
 factory = ExpressionFactory([])
@@ -527,20 +523,20 @@ result = factory.materialize("{missing:token<fallback>}")
 # Output: "fallback"
 ```
 
-## Best Practices
+# Best Practices
 
-* Use meaningful resolver keys
-* Provide fallbacks for critical values
-* Keep resolver functions simple
-* Use type hints for maintainability
+* Use meaningful resolver keys that reflect the data source they represent
+* Provide fallbacks for tokens whose sources may be absent at runtime
+* Keep resolver functions focused and side-effect free
+* Use `validate_materialize()` to detect resolution issues before executing
 
-## API Reference
+# API Reference
 
-### ExpressionFactory
+## ExpressionFactory
 
 ```python
 ExpressionFactory(
-    token_resolvers: Sequence[Tuple[str, Any]],
+    token_resolvers: Sequence[tuple[str, Any]],
     default_callback: Optional[Callable[[str, list[str]], TokenValue]] = None,
     max_recursion_depth: int = 10
 )
@@ -548,94 +544,41 @@ ExpressionFactory(
 
 Methods:
 
-* `materialize(value: str) -> str` - Replace tokens with resolved values
-* `match(condition: str) -> bool` - Evaluate boolean expression
-* `validate_materialize(value: str, threat_fallback_as_failure: bool = False) -> ValidationResult` - Validate tokens without exceptions
-* `validate_match(condition: str, threat_fallback_as_failure: bool = False) -> ValidationResult` - Validate boolean expression and tokens
+* `materialize(value: str) -> str` — Replace tokens with resolved values
+* `match(condition: str) -> bool` — Evaluate boolean expression
+* `validate_materialize(value: str, threat_fallback_as_failure: bool = False) -> ValidationResult` — Validate tokens without raising exceptions
+* `validate_match(condition: str, threat_fallback_as_failure: bool = False) -> ValidationResult` — Validate boolean expression and tokens
 
-### BaseResolver
+## BaseResolver
 
-Abstract base class for implementing custom token resolvers.
-
-```python
-class BaseResolver(ABC):
-    def __call__(self, args: list[str]) -> Optional[TokenValue]: ...
-
-    @staticmethod
-    def resolve_factory(source: Any) -> Optional[TokenResolver]: ...
-
-    @classmethod
-    def register_resolvers(cls, factories: Iterable[ResolverFactory]) -> None: ...
-
-    @classmethod
-    def pick_resolver(cls, source: Any) -> TokenResolver: ...
-```
-
-Subclass `BaseResolver` and implement `__call__` to receive the full `args` list from the token. Call `BaseResolver.pick_resolver(value)` to obtain a resolver for an intermediate value and delegate remaining args to it.
+Abstract base class for implementing custom token resolvers. Subclass it and implement `__call__` to receive the full `args` list from the token. Call `BaseResolver.pick_resolver(value)` to obtain a resolver for an intermediate value and delegate remaining args to it.
 
 To register custom resolver factories, call `BaseResolver.register_resolvers(factories)` with an iterable of `ResolverFactory` callables. Each factory receives a source value and returns a `TokenResolver` or `None` if it cannot handle that source type. Registered factories are consulted in registration order.
 
-### ValidationResult
+## ValidationResult
 
-```python
-@dataclass(frozen=True)
-class ValidationResult:
-    errors: tuple[TokenError, ...]
-    warnings: tuple[ValidationWarning, ...]
-```
+`ValidationResult` is returned by `validate_materialize()` and `validate_match()`. It has a `success` property (true when `errors` is empty), an `errors` tuple, and a `warnings` tuple.
 
-### Error Types
+Error types in `errors`:
 
-```python
-@dataclass(frozen=True)
-class TokenError:
-    token: str
-    position: int
+* `MissingResolverError` — No resolver registered for the token key
+* `UnresolvedTokenError` — Resolver returned `None` and no fallback exists
+* `FallbackTokenError` — Fallback was used when `threat_fallback_as_failure=True`
+* `ExpressionSyntaxError` — Boolean expression could not be parsed
 
-@dataclass(frozen=True)
-class MissingResolverError(TokenError):
-    key: str
+Warning types in `warnings`:
 
-@dataclass(frozen=True)
-class UnresolvedTokenError(TokenError):
-    key: str
-    args: list[str]
+* `FallbackUsedWarning` — A fallback value was used; the `error` field contains the underlying error and `fallback` contains the substituted value
 
-@dataclass(frozen=True)
-class FallbackTokenError(TokenError):
-    key: str
-    args: list[str]
-    fallback: str
+## Type Signatures
 
-@dataclass(frozen=True)
-class ExpressionSyntaxError(TokenError):
-    message: str
-```
+Function resolver: `(arg: str) -> Optional[str | int | bool | list[str | int | bool]]`
 
-### Warning Types
+Default callback: `(key: str, args: list[str]) -> str | int | bool | list[str | int | bool]`
 
-```python
-@dataclass(frozen=True)
-class ValidationWarning:
-    pass
+Resolvers may return lists of primitive values for use with the `in` operator in conditional expressions.
 
-@dataclass(frozen=True)
-class FallbackUsedWarning(ValidationWarning):
-    error: TokenError
-    fallback: str
-```
-
-`FallbackUsedWarning` is added to `ValidationResult.warnings` whenever a token cannot be resolved but a fallback value is present and `threat_fallback_as_failure=False`. The `error` field contains the underlying `MissingResolverError` or `UnresolvedTokenError` that would have been raised otherwise.
-
-### Type Signatures
-
-Function resolver signature: `(arg: str) -> Optional[str | int | bool | list[str | int | bool]]`
-
-Default callback signature: `(key: str, args: list[str]) -> str | int | bool | list[str | int | bool]`
-
-**Note:** Resolvers can return lists of primitive values (strings, integers, booleans) for use with the `in` operator in conditional expressions.
-
-## Summary
+# Summary
 
 PS Token Expressions is a lightweight library for dynamic string templating with token substitution.
 
@@ -652,7 +595,7 @@ PS Token Expressions is a lightweight library for dynamic string templating with
 
 * **Simple** — No template language to learn, just `{token}` syntax
 * **Flexible** — Works with dicts, functions, objects, and lists
-* **Safe** — Validates templates without exceptions
+* **Safe** — Validates templates without raising exceptions
 * **Extensible** — Create custom resolvers easily
 
 **Perfect for:**

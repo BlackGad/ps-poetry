@@ -142,6 +142,7 @@ class DeliveryModule:
                 self._exit_code = publish_projects(
                     event.io,
                     filtered_projects,
+                    environment,
                     environment_metadata,
                     repository=opts.get("repository"),
                     username=opts.get("username"),

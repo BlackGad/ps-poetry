@@ -35,13 +35,13 @@ class DeliveryCommand(Command):
         ]
 
         io.write_line("")
-        log_dependency_tree(io, all_projects, environment_metadata)
+        log_dependency_tree(io, all_projects, environment, environment_metadata)
 
         if not filtered:
             io.write_line("<comment>No deliverable projects.</comment>")
             return 0
 
         io.write_line("")
-        log_publish_waves(io, filtered, environment_metadata)
+        log_publish_waves(io, filtered, environment, environment_metadata)
 
         return 0

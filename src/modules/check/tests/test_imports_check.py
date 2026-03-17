@@ -23,6 +23,7 @@ def make_io() -> MagicMock:
 def make_environment(projects: list[Project]) -> Environment:
     env = MagicMock(spec=Environment)
     env.projects = projects
+    env.sorted_projects.side_effect = list
     return env
 
 

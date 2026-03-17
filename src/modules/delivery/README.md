@@ -257,6 +257,8 @@ The `{date:FORMAT}` token resolves to the current date and time. When no format 
 
 Python `strftime` directives (e.g., `%Y`, `%m`, `%H`) are also accepted and may be mixed with C#-style tokens in the same format string.
 
+The `{date:from:VALUE}` token parses `VALUE` as a date string or Unix timestamp and returns an integer Unix timestamp. `VALUE` may contain nested token expressions, enabling comparisons against dates from environment variables or other sources.
+
 Examples:
 
 ```txt
@@ -266,6 +268,8 @@ Examples:
 {date:iso}
 {date:sortable}
 {date:o}
+{date:from:{env:BUILD_DATE}}
+{date:from:2026-03-12}
 ```
 
 ### Random Values
@@ -288,34 +292,52 @@ Examples:
 
 ### Custom Token Resolvers
 
-Additional token resolvers can be registered through the DI container. Implement `IVersionTokenResolver` from `ps.plugin.module.delivery`, declare a `name: ClassVar[str]` for the token source, and implement `get_resolver()` to return the resolver callable:
+Additional token resolvers can be registered through the DI container. Implement a `BaseResolver` subclass from `ps.token_expressions`, then register a `TokenResolverEntry` tuple with the desired token source name. The delivery module collects all registered entries and passes them to the expression factory.
+
+**Returning a string value** — the simplest resolver returns a string directly:
 
 ```python
-from typing import Any, ClassVar, Optional
-from ps.plugin.module.delivery import IVersionTokenResolver
-from ps.token_expressions import BaseResolver
-from ps.token_expressions.token_resolvers._base_resolver import TokenValue
-
-
 class MyResolver(BaseResolver):
-    def __call__(self, args: list[str]) -> Optional[TokenValue]:
+    def __call__(self, args: list[str]) -> Optional[str]:
         return args[0] if args else None
-
-
-class MyTokenResolver(IVersionTokenResolver):
-    name: ClassVar[str] = "my"
-
-    def get_resolver(self) -> Any:
-        return MyResolver()
 ```
 
-Register the implementation through the DI container in a plugin module's `handle_activate` method:
-
-```python
-di.register(IVersionTokenResolver).implementation(MyTokenResolver)
-```
+[View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-plugin-module-delivery/custom_resolver_example.py)
 
 Once registered, the token `{my:value}` becomes available in all version patterns.
+
+**Returning a dictionary** — register the dict directly as the resolver value. The token expression engine routes accessor args through it automatically, enabling `{token:key}` syntax:
+
+```python
+def poetry_activate(di: DI) -> bool:
+    di.register(TokenResolverEntry).factory(lambda: ("meta", {"channel": "stable", "environment": "production"}))
+    return True
+```
+
+[View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-plugin-module-delivery/dict_resolver_example.py)
+
+With this registration, `{meta:channel}` resolves to `stable`.
+
+**Returning an object** — register an object instance directly. The engine walks attributes via `getattr`, enabling `{token:attr}` syntax. Implement `__str__` to control what `{token}` (with no accessor) resolves to:
+
+```python
+@dataclass
+class BuildContext:
+    author: str
+    revision: int
+
+    def __str__(self) -> str:
+        return f"{self.author}@{self.revision}"
+
+
+def poetry_activate(di: DI) -> bool:
+    di.register(TokenResolverEntry).factory(lambda: ("build", BuildContext(author="Alice", revision=7)))
+    return True
+```
+
+[View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-plugin-module-delivery/object_resolver_example.py)
+
+With this registration, `{build}` resolves to `Alice@7`, `{build:author}` to `Alice`, and `{build:revision}` to `7`.
 
 ## Condition Syntax
 

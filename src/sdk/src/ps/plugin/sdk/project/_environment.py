@@ -30,6 +30,33 @@ class Environment:
     def projects(self) -> Iterable[Project]:
         return self._projects.values()
 
+    def project_dependencies(self, project: Project) -> list[Project]:
+        result: list[Project] = []
+        for dep in project.dependencies:
+            resolved = dep.resolved_project_path
+            if resolved and resolved in self._projects:
+                result.append(self._projects[resolved])
+        return result
+
+    def sorted_projects(self, projects: Iterable[Project]) -> list[Project]:
+        project_list = list(projects)
+        project_set = {p.path for p in project_list}
+        result: list[Project] = []
+        visited: set[Path] = set()
+
+        def _visit(p: Project) -> None:
+            if p.path in visited:
+                return
+            visited.add(p.path)
+            for dep in self.project_dependencies(p):
+                if dep.path in project_set:
+                    _visit(dep)
+            result.append(p)
+
+        for p in project_list:
+            _visit(p)
+        return result
+
     def add_project(self, project_path: Path, is_host: bool = False) -> Project:
         project_path = project_path.resolve()
         if project_path.is_dir():

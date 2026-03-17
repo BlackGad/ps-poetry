@@ -173,7 +173,7 @@ class ImportsCheck(ICheck):
 
         total_errors = 0
 
-        for project in projects:
+        for project in self._environment.sorted_projects(projects):
             imports_map = {
                 module: locations
                 for module, locations in _collect_imports(project.source_dirs).items()
@@ -210,6 +210,7 @@ class ImportsCheck(ICheck):
 
             if fix:
                 self._apply_fix(io, project, missing, dep_names, project_lookup, project_by_dist)
+                self._dep_cache.clear()
             else:
                 total_errors += len(missing)
                 for providers_key, locations in sorted(missing.items()):
