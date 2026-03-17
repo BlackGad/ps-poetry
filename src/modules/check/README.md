@@ -1,6 +1,6 @@
 # Overview
 
-The `ps-plugin-module-check` module extends Poetry's built-in `check` command with a configurable sequence of quality checks across all projects in a monorepo. It provides six built-in checkers — `poetry`, `environment`, `ruff`, `pylint`, `pytest`, and `pyright` — with support for automatic fixing and per-project configuration.
+The `ps-plugin-module-check` module extends Poetry's built-in `check` command with a configurable sequence of quality checks across all projects in a monorepo. It provides seven built-in checkers — `poetry`, `environment`, `imports`, `ruff`, `pylint`, `pytest`, and `pyright` — with support for automatic fixing and per-project configuration.
 
 The module is registered as a `ps.module` entry point and activates when included in the host project's `[tool.ps-plugin]` configuration.
 
@@ -57,7 +57,7 @@ poetry check [INPUTS...] [--fix] [--continue-on-error]
 ```
 
 * `INPUTS` — Optional list of project names or paths to check. When omitted, all discovered projects are checked. When running from a sub-project that differs from the host project, the sub-project is selected automatically.
-* `--fix` / `-f` — Enable automatic fixing in checkers that support it (currently only `ruff`).
+* `--fix` / `-f` — Enable automatic fixing in checkers that support it (`ruff` and `imports`).
 * `--continue-on-error` / `-c` — Continue checking remaining projects and checkers after a failure instead of stopping on the first error.
 
 # Available Checks
@@ -74,6 +74,14 @@ Validates consistency of package sources across all target projects. Detects two
 * **Priority conflicts** — The same source name is declared with different priority levels across projects.
 
 This checker is validation-only and does not support automatic fixing.
+
+## imports
+
+Walks each project's source directories and collects all non-stdlib, non-relative imports using AST analysis. For each import, the checker verifies that the providing distribution is declared as a dependency of the project, either directly or transitively through local path dependencies.
+
+Stdlib modules, `__future__` imports, and modules belonging to the project's own package are silently skipped. When a required distribution is not declared, the checker reports the missing dependency together with the file paths and line numbers where the import appears.
+
+When the `--fix` flag is provided, the checker adds each missing dependency automatically. Local monorepo packages are preferred over PyPI packages and are added as development dependencies with a path reference. PyPI packages are added as regular dependencies with an unconstrained version specifier. Projects are greedily consolidated so that adding a single dependency covers as many missing imports as possible through its transitive closure.
 
 ## ruff
 
