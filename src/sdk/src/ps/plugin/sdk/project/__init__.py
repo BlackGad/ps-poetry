@@ -7,6 +7,7 @@ from ._parsers import (
     parse_version_from_document,
     parse_project,
     parse_sources_from_document,
+    parse_source_dirs_from_document,
 )
 
 __all__ = [
@@ -23,4 +24,5 @@ __all__ = [
     "parse_version_from_document",
     "parse_project",
     "parse_sources_from_document",
+    "parse_source_dirs_from_document",
 ]

@@ -182,24 +182,24 @@ def test_add_dependency_pypi_default_wildcard_when_no_constraint(tmp_path):
     assert saved["requests"] == "*"
 
 
-def test_add_dependency_local_path_uses_relative(tmp_path):
+def test_add_development_dependency_local_path_uses_relative(tmp_path):
     project = _make_poetry_project(tmp_path)
     dep_dir = tmp_path / "lib"
     dep_dir.mkdir()
-    project.add_dependency("my-lib", path=dep_dir, develop=True)
+    project.add_development_dependency("my-lib", dep_dir)
     doc: Any = project.document
     saved = doc["tool"]["poetry"]["dependencies"]["my-lib"]
     assert saved["path"] == "lib"
     assert saved["develop"] is True
 
 
-def test_add_dependency_local_path_sibling_uses_relative(tmp_path):
+def test_add_development_dependency_sibling_uses_relative(tmp_path):
     project_dir = tmp_path / "project_a"
     project_dir.mkdir()
     project = _make_poetry_project(project_dir)
     dep_dir = tmp_path / "project_b"
     dep_dir.mkdir()
-    project.add_dependency("my-lib", path=dep_dir, develop=True)
+    project.add_development_dependency("my-lib", dep_dir)
     doc: Any = project.document
     saved = doc["tool"]["poetry"]["dependencies"]["my-lib"]
     assert saved["path"] == "../project_b"

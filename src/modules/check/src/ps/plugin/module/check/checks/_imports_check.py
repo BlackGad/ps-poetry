@@ -264,7 +264,7 @@ class ImportsCheck(ICheck):
 
             local_dep = project_by_dist.get(normalize_dist_name(chosen))
             if local_dep:
-                project.add_dependency(chosen, path=local_dep.path.parent, develop=True)
+                project.add_development_dependency(chosen, local_dep.path.parent)
                 io.write_line(f"    <info>added (local): {chosen!r}</info>")
             else:
                 project.add_dependency(chosen, constraint="*")

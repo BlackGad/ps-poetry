@@ -117,6 +117,21 @@ def parse_sources_from_document(document: TOMLDocument) -> list[ProjectFeedSourc
     return result
 
 
+def parse_source_dirs_from_document(document: TOMLDocument, project_path: Path) -> list[Path]:
+    project_dir = project_path.parent
+    dirs: list[Path] = []
+    packages = TomlValue.locate(document, ["tool.poetry.packages"]).value or []
+    for entry in packages:
+        if not isinstance(entry, dict):
+            continue
+        include = entry.get("include")
+        if not include:
+            continue
+        base = project_dir / entry["from"] if entry.get("from") else project_dir
+        dirs.append((base / include).resolve())
+    return dirs or [project_dir]
+
+
 def parse_project(project_path: Path) -> Optional[Project]:
     project_path = project_path.resolve()
     if project_path.is_dir():
@@ -134,5 +149,6 @@ def parse_project(project_path: Path) -> Optional[Project]:
         document=data,
         dependencies=parse_dependencies_from_document(data, project_path),
         sources=parse_sources_from_document(data),
+        source_dirs=parse_source_dirs_from_document(data, project_path),
         plugin_settings=parse_plugin_settings_from_document(data),
     )

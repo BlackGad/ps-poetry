@@ -176,22 +176,8 @@ class Project(BaseModel):
     document: TOMLDocument = Field(exclude=True)
     dependencies: list[ProjectDependency]
     sources: list[ProjectFeedSource]
+    source_dirs: list[Path]
     plugin_settings: PluginSettings
-
-    @property
-    def source_dirs(self) -> list[Path]:
-        project_dir = self.path.parent
-        dirs: list[Path] = []
-        packages = TomlValue.locate(self.document, ["tool.poetry.packages"]).value or []
-        for entry in packages:
-            if not isinstance(entry, dict):
-                continue
-            include = entry.get("include")
-            if not include:
-                continue
-            base = project_dir / entry["from"] if entry.get("from") else project_dir
-            dirs.append((base / include).resolve())
-        return dirs or [project_dir]
 
     def save(self) -> None:
         with open(self.path, "w") as f:
@@ -201,23 +187,32 @@ class Project(BaseModel):
         self,
         name: str,
         constraint: Optional[str] = None,
-        path: Optional[Path] = None,
-        develop: Optional[bool] = None,
+        group: Optional[str] = None,
+    ) -> "ProjectDependency":
+        entry: Any = constraint if constraint is not None else "*"
+        return self._write_dependency(name, entry, resolved_path=None, develop=None, group=group)
+
+    def add_development_dependency(
+        self,
+        name: str,
+        path: Path,
         group: Optional[str] = None,
     ) -> "ProjectDependency":
         project_dir = self.path.parent
+        entry: Any = inline_table()
+        rel = Path(os.path.relpath(path, project_dir))
+        entry.append("path", str(rel).replace("\\", "/"))
+        entry.append("develop", True)
+        return self._write_dependency(name, entry, resolved_path=path.resolve(), develop=True, group=group)
 
-        if path is not None:
-            entry: Any = inline_table()
-            rel = Path(os.path.relpath(path, project_dir))
-            entry.append("path", str(rel).replace("\\", "/"))
-            if develop is not None:
-                entry.append("develop", develop)
-            resolved_path: Optional[Path] = path.resolve()
-        else:
-            entry = constraint if constraint is not None else "*"
-            resolved_path = None
-
+    def _write_dependency(
+        self,
+        name: str,
+        entry: Any,
+        resolved_path: Optional[Path],
+        develop: Optional[bool],
+        group: Optional[str],
+    ) -> "ProjectDependency":
         if group is None:
             dep_section = "tool.poetry.dependencies"
             deps_table = self._get_or_create_table("tool", "poetry", "dependencies")
