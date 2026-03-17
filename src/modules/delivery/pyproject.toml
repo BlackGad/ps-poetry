@@ -12,6 +12,10 @@ ps-version              = { path = "../../libraries/version", develop = true }
 ps-token-expressions    = { path = "../../libraries/token_expressions", develop = true }
 ps-plugin-sdk           = { path = "../../sdk", develop = true }
 
+
+[tool.poetry.dependencies]
+ps-di = {path = "../../libraries/di", develop = true}
+
 [tool.poetry]
 packages = [ { include = "ps/plugin/module/delivery", from = "src" } ]
 

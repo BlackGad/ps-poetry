@@ -33,10 +33,9 @@ def _patch_project_dependencies(
         if dependency.path is None:
             continue
 
-        dependency_project_path = dependency.path
-        if dependency_project_path.suffix != ".toml":
-            dependency_project_path = dependency_project_path / "pyproject.toml"
-        dependency_project_path = dependency_project_path.resolve()
+        dependency_project_path = dependency.resolved_project_path
+        if dependency_project_path is None:
+            continue
 
         dep_metadata = projects_metadata.projects.get(dependency_project_path)
         if not dep_metadata:

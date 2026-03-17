@@ -11,40 +11,13 @@ from typing import ClassVar, Optional
 from cleo.io.io import IO
 
 from ps.plugin.module.check._check import ICheck
-from ps.plugin.sdk.project import Environment, Project
+from ps.plugin.sdk.project import Environment, Project, normalize_dist_name, dist_name_variants
 from ps.plugin.sdk.toml import TomlValue
-
-
-def _normalize(name: str) -> str:
-    return name.lower().replace("-", "_").replace(".", "_")
-
-
-def _name_variants(name: str) -> set[str]:
-    lower = name.lower()
-    return {
-        lower,
-        lower.replace("-", "_").replace(".", "_"),
-        lower.replace("_", "-"),
-    }
 
 
 def _package_entries(project: Project) -> list[dict]:
     value = TomlValue.locate(project.document, ["tool.poetry.packages"]).value
     return [entry for entry in value or [] if isinstance(entry, dict)]
-
-
-def _get_package_source_dirs(project: Project) -> list[Path]:
-    project_dir = project.path.parent
-    source_dirs = []
-
-    for entry in _package_entries(project):
-        include = entry.get("include")
-        if not include:
-            continue
-        base = project_dir / entry["from"] if entry.get("from") else project_dir
-        source_dirs.append((base / include).resolve())
-
-    return source_dirs or [project_dir]
 
 
 def _collect_imports(source_dirs: list[Path]) -> dict[str, set[tuple[Path, int]]]:
@@ -109,7 +82,7 @@ def _collect_pypi_transitive_deps(
     cache: dict[str, set[str]],
     in_progress: set[str],
 ) -> set[str]:
-    key = _normalize(package_name)
+    key = normalize_dist_name(package_name)
     if key in cache:
         return cache[key]
     if key in in_progress:
@@ -129,7 +102,7 @@ def _collect_pypi_transitive_deps(
         dep_name = re.split(r"[\s\(\[;><=!]", req_str, maxsplit=1)[0].strip()
         if not dep_name:
             continue
-        names.update(_name_variants(dep_name))
+        names.update(dist_name_variants(dep_name))
         names.update(_collect_pypi_transitive_deps(dep_name, cache, in_progress))
 
     cache[key] = names
@@ -157,11 +130,12 @@ def _collect_all_dep_names(
 
     for dep in root_project.dependencies:
         if dep.name:
-            names.update(_name_variants(dep.name))
+            names.update(dist_name_variants(dep.name))
             if not dep.path:
                 names.update(_collect_pypi_transitive_deps(dep.name, pypi_cache, pypi_in_progress))
 
-        if dep.path and (transient := project_lookup.get(dep.path) or project_lookup.get(dep.path / "pyproject.toml")):
+        resolved = dep.resolved_project_path
+        if dep.path and resolved and (transient := project_lookup.get(resolved)):
             names.update(
                 _collect_all_dep_names(
                     transient,
@@ -186,24 +160,27 @@ class ImportsCheck(ICheck):
         self._pypi_cache: dict[str, set[str]] = {}
 
     def check(self, io: IO, projects: list[Project], fix: bool) -> Optional[Exception]:
-        del fix
-
         dist_map = packages_distributions()
         stdlib_modules = frozenset(sys.stdlib_module_names)  # type: ignore[attr-defined]
         all_projects = list(self._environment.projects)
         local_map = _build_local_module_map(all_projects)
         project_lookup = _build_project_lookup(all_projects)
+        project_by_dist: dict[str, Project] = {
+            normalize_dist_name(str(p.name.value)): p
+            for p in all_projects
+            if p.name.value
+        }
 
         total_errors = 0
 
         for project in projects:
             imports_map = {
                 module: locations
-                for module, locations in _collect_imports(_get_package_source_dirs(project)).items()
+                for module, locations in _collect_imports(project.source_dirs).items()
                 if module.split(".")[0] not in stdlib_modules and module.split(".")[0] != "__future__"
             }
 
-            project_own_names = _name_variants(str(project.name.value)) | {_normalize(str(project.name.value))}
+            project_own_names = dist_name_variants(str(project.name.value)) | {normalize_dist_name(str(project.name.value))}
             dep_names = _collect_all_dep_names(
                 project,
                 project_lookup=project_lookup,
@@ -211,34 +188,85 @@ class ImportsCheck(ICheck):
                 pypi_cache=self._pypi_cache,
             )
 
-            missing: dict[str, set[tuple[Path, int]]] = defaultdict(set)
+            missing: dict[tuple[str, ...], set[tuple[Path, int]]] = defaultdict(set)
 
             for module, locations in sorted(imports_map.items()):
                 providers = _find_providers(module, local_map, dist_map)
                 if not providers:
                     continue
 
-                normalized_providers = {_normalize(name) for name in providers}
+                normalized_providers = {normalize_dist_name(name) for name in providers}
                 if normalized_providers & project_own_names:
                     continue
                 if normalized_providers & dep_names:
                     continue
 
-                label = providers[0] if len(providers) == 1 else repr(providers)
-                missing[label].update(locations)
+                missing[tuple(providers)].update(locations)
 
             if not missing:
                 continue
 
-            total_errors += len(missing)
             io.write_line(f"  <fg=blue>{project.path}</> <fg=dark_gray>({project.name.value})</>")
-            for dist_name, locations in sorted(missing.items()):
-                io.write_line(f"    <error>missing: {dist_name!r}</error>")
-                for py_file, line in sorted(locations):
-                    io.write_line(f"      <fg=dark_gray>{py_file}:{line}</>")
+
+            if fix:
+                self._apply_fix(io, project, missing, dep_names, project_lookup, project_by_dist)
+            else:
+                total_errors += len(missing)
+                for providers_key, locations in sorted(missing.items()):
+                    label = providers_key[0] if len(providers_key) == 1 else " | ".join(providers_key)
+                    io.write_line(f"    <error>missing: {label!r}</error>")
+                    for py_file, line in sorted(locations):
+                        io.write_line(f"      <fg=dark_gray>{py_file}:{line}</>")
 
         if total_errors == 0:
             io.write_line("Imports check passed with no errors")
             return None
 
+        io.write_line("<comment>Run with --fix to add missing dependencies automatically.</comment>")
         return Exception(f"Imports check failed with {total_errors} missing distribution(s)")
+
+    def _apply_fix(
+        self,
+        io: IO,
+        project: Project,
+        missing: dict[tuple[str, ...], set[tuple[Path, int]]],
+        dep_names: set[str],
+        project_lookup: dict[Path, Project],
+        project_by_dist: dict[str, Project],
+    ) -> None:
+        choices: list[tuple[tuple[str, ...], str, set[str]]] = []
+        for providers_key in missing:
+            local_provider = next(
+                (p for p in providers_key if project_by_dist.get(normalize_dist_name(p))),
+                None,
+            )
+            chosen = local_provider or providers_key[0]
+            local_dep = project_by_dist.get(normalize_dist_name(chosen))
+            if local_dep:
+                coverage = dist_name_variants(chosen) | _collect_all_dep_names(
+                    local_dep, project_lookup, self._dep_cache, self._pypi_cache
+                )
+            else:
+                coverage = dist_name_variants(chosen) | _collect_pypi_transitive_deps(
+                    chosen, self._pypi_cache, set()
+                )
+            choices.append((providers_key, chosen, coverage))
+
+        choices.sort(key=lambda x: len(x[2]), reverse=True)
+
+        newly_covered: set[str] = set()
+        for providers_key, chosen, coverage in choices:
+            norm = {normalize_dist_name(p) for p in providers_key}
+            if norm & (dep_names | newly_covered):
+                continue
+
+            newly_covered.update(coverage)
+
+            local_dep = project_by_dist.get(normalize_dist_name(chosen))
+            if local_dep:
+                project.add_dependency(chosen, path=local_dep.path.parent, develop=True)
+                io.write_line(f"    <info>added (local): {chosen!r}</info>")
+            else:
+                project.add_dependency(chosen, constraint="*")
+                io.write_line(f"    <info>added: {chosen!r}</info>")
+        project.save()

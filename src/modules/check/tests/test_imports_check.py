@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from cleo.io.io import IO
@@ -7,11 +8,11 @@ from ps.plugin.sdk.project import Environment, parse_project, Project
 from ps.plugin.module.check.checks._imports_check import (
     ImportsCheck,
     _build_local_module_map,
+    _build_project_lookup,
     _collect_all_dep_names,
     _collect_imports,
     _collect_pypi_transitive_deps,
     _find_providers,
-    _get_package_source_dirs,
 )
 
 
@@ -43,12 +44,12 @@ def write_py(directory: Path, filename: str, content: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# _get_package_source_dirs
+# Project.source_dirs
 # ---------------------------------------------------------------------------
 
 def test_get_package_source_dirs_no_packages_returns_project_dir(tmp_path):
     project = make_project(tmp_path, "my-pkg")
-    result = _get_package_source_dirs(project)
+    result = project.source_dirs
     assert result == [project.path.parent]
 
 
@@ -63,7 +64,7 @@ def test_get_package_source_dirs_with_packages_from_src(tmp_path):
     )
     project = parse_project(pyproject)
     assert project is not None
-    result = _get_package_source_dirs(project)
+    result = project.source_dirs
     assert result == [(project_dir / "src" / "my" / "module").resolve()]
 
 
@@ -78,7 +79,7 @@ def test_get_package_source_dirs_include_without_from(tmp_path):
     )
     project = parse_project(pyproject)
     assert project is not None
-    result = _get_package_source_dirs(project)
+    result = project.source_dirs
     assert result == [(project_dir / "my_module").resolve()]
 
 
@@ -302,7 +303,7 @@ def test_find_providers_not_found_returns_none():
 
 def test_collect_all_dep_names_no_deps(tmp_path):
     project = make_project(tmp_path, "proj")
-    result = _collect_all_dep_names([], project)
+    result = _collect_all_dep_names(project, {}, {}, {})
     assert result == set()
 
 
@@ -312,7 +313,7 @@ def test_collect_all_dep_names_simple_dep(tmp_path):
         "proj",
         '[tool.poetry.dependencies]\nrequests = "^2.0"',
     )
-    result = _collect_all_dep_names([], project)
+    result = _collect_all_dep_names(project, {}, {}, {})
     assert "requests" in result
 
 
@@ -322,7 +323,7 @@ def test_collect_all_dep_names_normalizes_hyphens(tmp_path):
         "proj",
         '[tool.poetry.dependencies]\nmy-lib = "^1.0"',
     )
-    result = _collect_all_dep_names([], project)
+    result = _collect_all_dep_names(project, {}, {}, {})
     assert "my_lib" in result
 
 
@@ -347,7 +348,7 @@ def test_collect_all_dep_names_transient_path_dep(tmp_path):
     )
     project = parse_project(project_dir / "pyproject.toml")
     assert project is not None
-    result = _collect_all_dep_names([dep_project], project)
+    result = _collect_all_dep_names(project, _build_project_lookup([dep_project]), {}, {})
     assert "transit_lib" in result
 
 
@@ -408,7 +409,7 @@ def test_collect_all_dep_names_includes_pypi_transitive(tmp_path):
         "ps.plugin.module.check.checks._imports_check.metadata_requires",
         return_value=["cleo (>=2.1.0)"],
     ):
-        result = _collect_all_dep_names([], project)
+        result = _collect_all_dep_names(project, {}, {}, {})
     assert "cleo" in result
 
 
@@ -427,8 +428,8 @@ def test_collect_all_dep_names_pypi_cache_shared_across_projects(tmp_path):
         "ps.plugin.module.check.checks._imports_check.metadata_requires",
         side_effect=fake_requires,
     ):
-        _collect_all_dep_names([], proj_a, _pypi_cache=pypi_cache)
-        _collect_all_dep_names([], proj_b, _pypi_cache=pypi_cache)
+        _collect_all_dep_names(proj_a, {}, {}, pypi_cache)
+        _collect_all_dep_names(proj_b, {}, {}, pypi_cache)
 
     assert call_count == 2  # poetry + cleo, not repeated for second project
 
@@ -647,3 +648,183 @@ def test_check_uses_packages_source_dirs(tmp_path):
     assert result is not None
     assert "requests" in written
     assert "flask" not in written
+
+
+# ---------------------------------------------------------------------------
+# ImportsCheck.check — fix=True
+# ---------------------------------------------------------------------------
+
+def test_check_fix_adds_pypi_dep_to_document(tmp_path):
+    project_dir = tmp_path / "proj"
+    pyproject = project_dir / "pyproject.toml"
+    pyproject.parent.mkdir(parents=True, exist_ok=True)
+    pyproject.write_text(
+        '[tool.poetry]\nname = "proj"\nversion = "1.0.0"\n\n[tool.poetry.dependencies]\npython = "^3.10"\n',
+        encoding="utf-8",
+    )
+    write_py(project_dir, "mod.py", "import requests\n")
+    project = parse_project(pyproject)
+    assert project is not None
+    check = ImportsCheck(make_environment([project]))
+    with patch(
+        "ps.plugin.module.check.checks._imports_check.packages_distributions",
+        return_value={"requests": ["requests"]},
+    ):
+        result = check.check(make_io(), [project], fix=True)
+    assert result is None
+    doc: Any = project.document
+    deps = doc["tool"]["poetry"]["dependencies"]
+    assert "requests" in deps
+
+
+def test_check_fix_adds_local_dep_as_path(tmp_path):
+    dep_dir = tmp_path / "ps-version"
+    dep_dir.mkdir(parents=True, exist_ok=True)
+    (dep_dir / "pyproject.toml").write_text(
+        '[tool.poetry]\nname = "ps-version"\nversion = "1.0.0"\n\n'
+        '[[tool.poetry.packages]]\ninclude = "ps/version"\nfrom = "src"\n',
+        encoding="utf-8",
+    )
+    ps_version_project = parse_project(dep_dir / "pyproject.toml")
+    assert ps_version_project is not None
+
+    project_dir = tmp_path / "proj"
+    pyproject = project_dir / "pyproject.toml"
+    pyproject.parent.mkdir(parents=True, exist_ok=True)
+    pyproject.write_text(
+        '[tool.poetry]\nname = "proj"\nversion = "1.0.0"\n\n[tool.poetry.dependencies]\npython = "^3.10"\n',
+        encoding="utf-8",
+    )
+    write_py(project_dir, "mod.py", "from ps.version import Version\n")
+    project = parse_project(pyproject)
+    assert project is not None
+
+    local_map = {"ps.version": ["ps-version"]}
+    check = ImportsCheck(make_environment([project, ps_version_project]))
+    with patch(
+        "ps.plugin.module.check.checks._imports_check.packages_distributions",
+        return_value={},
+    ), patch(
+        "ps.plugin.module.check.checks._imports_check._build_local_module_map",
+        return_value=local_map,
+    ):
+        result = check.check(make_io(), [project], fix=True)
+    assert result is None
+    dep = next((d for d in project.dependencies if d.name == "ps-version"), None)
+    assert dep is not None
+    assert dep.path is not None
+    assert dep.develop is True
+
+
+def test_check_fix_saves_project(tmp_path):
+    project_dir = tmp_path / "proj"
+    pyproject = project_dir / "pyproject.toml"
+    pyproject.parent.mkdir(parents=True, exist_ok=True)
+    pyproject.write_text(
+        '[tool.poetry]\nname = "proj"\nversion = "1.0.0"\n\n[tool.poetry.dependencies]\npython = "^3.10"\n',
+        encoding="utf-8",
+    )
+    write_py(project_dir, "mod.py", "import requests\n")
+    project = parse_project(pyproject)
+    assert project is not None
+    check = ImportsCheck(make_environment([project]))
+    with patch(
+        "ps.plugin.module.check.checks._imports_check.packages_distributions",
+        return_value={"requests": ["requests"]},
+    ):
+        check.check(make_io(), [project], fix=True)
+    content = pyproject.read_text(encoding="utf-8")
+    assert "requests" in content
+
+
+def test_check_fix_returns_none_when_all_fixed(tmp_path):
+    project_dir = tmp_path / "proj"
+    pyproject = project_dir / "pyproject.toml"
+    pyproject.parent.mkdir(parents=True, exist_ok=True)
+    pyproject.write_text(
+        '[tool.poetry]\nname = "proj"\nversion = "1.0.0"\n\n[tool.poetry.dependencies]\npython = "^3.10"\n',
+        encoding="utf-8",
+    )
+    write_py(project_dir, "mod.py", "import requests\n")
+    project = parse_project(pyproject)
+    assert project is not None
+    check = ImportsCheck(make_environment([project]))
+    with patch(
+        "ps.plugin.module.check.checks._imports_check.packages_distributions",
+        return_value={"requests": ["requests"]},
+    ):
+        result = check.check(make_io(), [project], fix=True)
+    assert result is None
+
+
+def test_check_fix_outputs_added_message(tmp_path):
+    project_dir = tmp_path / "proj"
+    pyproject = project_dir / "pyproject.toml"
+    pyproject.parent.mkdir(parents=True, exist_ok=True)
+    pyproject.write_text(
+        '[tool.poetry]\nname = "proj"\nversion = "1.0.0"\n\n[tool.poetry.dependencies]\npython = "^3.10"\n',
+        encoding="utf-8",
+    )
+    write_py(project_dir, "mod.py", "import requests\n")
+    project = parse_project(pyproject)
+    assert project is not None
+    io = make_io()
+    check = ImportsCheck(make_environment([project]))
+    with patch(
+        "ps.plugin.module.check.checks._imports_check.packages_distributions",
+        return_value={"requests": ["requests"]},
+    ):
+        check.check(io, [project], fix=True)
+    written = "\n".join(call.args[0] for call in io.write_line.call_args_list)
+    assert "added" in written
+    assert "requests" in written
+
+
+def test_check_fix_multiple_providers_picks_first(tmp_path):
+    project_dir = tmp_path / "proj"
+    pyproject = project_dir / "pyproject.toml"
+    pyproject.parent.mkdir(parents=True, exist_ok=True)
+    pyproject.write_text(
+        '[tool.poetry]\nname = "proj"\nversion = "1.0.0"\n\n[tool.poetry.dependencies]\npython = "^3.10"\n',
+        encoding="utf-8",
+    )
+    write_py(project_dir, "mod.py", "import yaml\n")
+    project = parse_project(pyproject)
+    assert project is not None
+    check = ImportsCheck(make_environment([project]))
+    with patch(
+        "ps.plugin.module.check.checks._imports_check.packages_distributions",
+        return_value={"yaml": ["PyYAML", "ruamel.yaml"]},
+    ):
+        result = check.check(make_io(), [project], fix=True)
+    assert result is None
+    dep_names_added = [d.name for d in project.dependencies]
+    assert "PyYAML" in dep_names_added
+    assert "ruamel.yaml" not in dep_names_added
+    assert not any(name and "[" in name for name in dep_names_added)
+
+
+def test_check_fix_skips_transitive_dep_of_newly_added(tmp_path):
+    project_dir = tmp_path / "proj"
+    pyproject = project_dir / "pyproject.toml"
+    pyproject.parent.mkdir(parents=True, exist_ok=True)
+    pyproject.write_text(
+        '[tool.poetry]\nname = "proj"\nversion = "1.0.0"\n\n[tool.poetry.dependencies]\npython = "^3.10"\n',
+        encoding="utf-8",
+    )
+    write_py(project_dir, "mod.py", "import poetry\nimport cleo\n")
+    project = parse_project(pyproject)
+    assert project is not None
+    check = ImportsCheck(make_environment([project]))
+    with patch(
+        "ps.plugin.module.check.checks._imports_check.packages_distributions",
+        return_value={"poetry": ["poetry"], "cleo": ["cleo"]},
+    ), patch(
+        "ps.plugin.module.check.checks._imports_check._collect_pypi_transitive_deps",
+        side_effect=lambda name, _cache, _in_progress: {"cleo"} if name == "poetry" else set(),
+    ):
+        result = check.check(make_io(), [project], fix=True)
+    assert result is None
+    dep_names_added = [d.name for d in project.dependencies]
+    assert "poetry" in dep_names_added
+    assert "cleo" not in dep_names_added

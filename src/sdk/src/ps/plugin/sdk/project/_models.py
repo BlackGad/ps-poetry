@@ -1,8 +1,9 @@
+import os
 from enum import StrEnum
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 from pydantic import BaseModel, ConfigDict, Field
-from tomlkit import TOMLDocument
+from tomlkit import TOMLDocument, inline_table, table as toml_table
 from packaging.requirements import Requirement
 from packaging.specifiers import SpecifierSet
 
@@ -10,6 +11,19 @@ from ps.version import Version, VersionConstraint
 
 from ..settings._settings import PluginSettings
 from ..toml._toml_value import TomlValue
+
+
+def normalize_dist_name(name: str) -> str:
+    return name.lower().replace("-", "_").replace(".", "_")
+
+
+def dist_name_variants(name: str) -> set[str]:
+    lower = name.lower()
+    return {
+        lower,
+        lower.replace("-", "_").replace(".", "_"),
+        lower.replace("_", "-"),
+    }
 
 
 class SourcePriority(StrEnum):
@@ -144,6 +158,14 @@ class ProjectDependency(BaseModel):
             # Fallback: just set the version string
             self.location.set(version_constraint)
 
+    @property
+    def resolved_project_path(self) -> Optional[Path]:
+        if self.path is None:
+            return None
+        if self.path.suffix == ".toml":
+            return self.path.resolve()
+        return (self.path / "pyproject.toml").resolve()
+
 
 class Project(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -156,6 +178,73 @@ class Project(BaseModel):
     sources: list[ProjectFeedSource]
     plugin_settings: PluginSettings
 
+    @property
+    def source_dirs(self) -> list[Path]:
+        project_dir = self.path.parent
+        dirs: list[Path] = []
+        packages = TomlValue.locate(self.document, ["tool.poetry.packages"]).value or []
+        for entry in packages:
+            if not isinstance(entry, dict):
+                continue
+            include = entry.get("include")
+            if not include:
+                continue
+            base = project_dir / entry["from"] if entry.get("from") else project_dir
+            dirs.append((base / include).resolve())
+        return dirs or [project_dir]
+
     def save(self) -> None:
         with open(self.path, "w") as f:
             f.write(self.document.as_string())
+
+    def add_dependency(
+        self,
+        name: str,
+        constraint: Optional[str] = None,
+        path: Optional[Path] = None,
+        develop: Optional[bool] = None,
+        group: Optional[str] = None,
+    ) -> "ProjectDependency":
+        project_dir = self.path.parent
+
+        if path is not None:
+            entry: Any = inline_table()
+            rel = Path(os.path.relpath(path, project_dir))
+            entry.append("path", str(rel).replace("\\", "/"))
+            if develop is not None:
+                entry.append("develop", develop)
+            resolved_path: Optional[Path] = path.resolve()
+        else:
+            entry = constraint if constraint is not None else "*"
+            resolved_path = None
+
+        if group is None:
+            dep_section = "tool.poetry.dependencies"
+            deps_table = self._get_or_create_table("tool", "poetry", "dependencies")
+        else:
+            dep_section = f"tool.poetry.group.{group}.dependencies"
+            group_table = self._get_or_create_table("tool", "poetry", "group", group)
+            if "dependencies" not in group_table:
+                group_table["dependencies"] = toml_table()
+            deps_table = group_table["dependencies"]
+
+        deps_table[name] = entry
+        location = TomlValue.locate(self.document, [f"{dep_section}.{name}"])
+
+        dep = ProjectDependency(
+            location=location,
+            name=name,
+            group=group,
+            path=resolved_path,
+            develop=develop,
+        )
+        self.dependencies.append(dep)
+        return dep
+
+    def _get_or_create_table(self, *keys: str) -> Any:
+        current: Any = self.document
+        for key in keys:
+            if key not in current:
+                current[key] = toml_table()
+            current = current[key]
+        return current
