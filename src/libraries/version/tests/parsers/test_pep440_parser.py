@@ -89,3 +89,25 @@ def test_reject_invalid():
     parser = PEP440Parser()
     result = parser.parse("invalid")
     assert result is None
+
+
+def test_reject_metadata_with_hyphen():
+    parser = PEP440Parser()
+    result = parser.parse("1.0.343rc1+some-feature.3dc7e2a")
+    assert result is None
+
+
+def test_reject_metadata_with_underscore():
+    parser = PEP440Parser()
+    result = parser.parse("1.0.343rc1+some_feature")
+    assert result is None
+
+
+def test_parse_valid_metadata_with_dots():
+    parser = PEP440Parser()
+    result = parser.parse("1.0.343rc1+some.feature.3dc7e2a")
+    assert result is not None
+    assert result.pre is not None
+    assert result.pre.name == "rc"
+    assert result.pre.number == 1
+    assert str(result.metadata) == "some.feature.3dc7e2a"

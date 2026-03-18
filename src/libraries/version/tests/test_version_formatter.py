@@ -45,6 +45,36 @@ def test_call_pep440_complex():
     assert version.format(VersionStandard.PEP440) == "1.2.3.post4+g1234567.dirty"
 
 
+def test_call_pep440_normalizes_alpha():
+    version = Version(major=1, minor=2, patch=3, pre=VersionPreRelease(name="alpha", number=1))
+    assert version.format(VersionStandard.PEP440) == "1.2.3a1"
+
+
+def test_call_pep440_normalizes_beta():
+    version = Version(major=1, minor=2, patch=3, pre=VersionPreRelease(name="beta", number=2))
+    assert version.format(VersionStandard.PEP440) == "1.2.3b2"
+
+
+def test_call_pep440_normalizes_preview_to_rc():
+    version = Version(major=1, minor=2, patch=3, pre=VersionPreRelease(name="preview", number=1))
+    assert version.format(VersionStandard.PEP440) == "1.2.3rc1"
+
+
+def test_call_pep440_normalizes_pre_to_rc():
+    version = Version(major=1, minor=2, patch=3, pre=VersionPreRelease(name="pre", number=1))
+    assert version.format(VersionStandard.PEP440) == "1.2.3rc1"
+
+
+def test_call_pep440_normalizes_c_to_rc():
+    version = Version(major=1, minor=2, patch=3, pre=VersionPreRelease(name="c", number=3))
+    assert version.format(VersionStandard.PEP440) == "1.2.3rc3"
+
+
+def test_call_pep440_preserves_canonical_rc():
+    version = Version(major=1, minor=2, patch=3, pre=VersionPreRelease(name="rc", number=1))
+    assert version.format(VersionStandard.PEP440) == "1.2.3rc1"
+
+
 # ---------------------------------------------------------------------------
 # __call__ — semver
 # ---------------------------------------------------------------------------

@@ -9,6 +9,15 @@ from ._version_constraint import VersionConstraint
 from ._version_standard import VersionStandard
 
 
+_PEP440_CANONICAL_LABELS: dict[str, str] = {
+    "alpha": "a",
+    "beta": "b",
+    "c": "rc",
+    "pre": "rc",
+    "preview": "rc",
+}
+
+
 @lru_cache
 def _get_parsers() -> list:
     from .parsers import CalVerParser, LooseParser, NuGetParser, PEP440Parser, SemVerParser
@@ -221,7 +230,9 @@ class VersionFormatter:
         if standard == VersionStandard.PEP440:
             parts = [self.version.core]
             if self.version.pre:
-                parts.append(str(self.version.pre))
+                canonical = _PEP440_CANONICAL_LABELS.get(self.version.pre.name.casefold(), self.version.pre.name)
+                num = str(self.version.pre.number) if self.version.pre.number is not None else ""
+                parts.append(f"{canonical}{num}")
             if self.version.post is not None:
                 parts.append(f".post{self.version.post}")
             if self.version.dev is not None:

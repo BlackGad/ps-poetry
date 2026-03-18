@@ -14,7 +14,7 @@ class PEP440Parser(BaseParser):
         r"(?:(?P<pre_label>a|alpha|b|beta|rc|c|pre|preview)(?P<pre_num>\d+))?"
         r"(?:\.post(?P<post>\d+))?"
         r"(?:\.dev(?P<dev>\d+))?"
-        r"(?:\+(?P<meta>.+))?$",
+        r"(?:\+(?P<meta>[a-zA-Z0-9]+(?:\.[a-zA-Z0-9]+)*))?$",
         re.IGNORECASE,
     )
 

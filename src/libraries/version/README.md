@@ -30,7 +30,7 @@ v1 = Version.parse("1.2.3")
 v2 = Version.parse("1.2.4")
 print(v1 < v2)   # True
 
-print(version.format(VersionStandard.PEP440))  # 1.2.3a1 (for a PEP440 pre-release)
+print(version.format(VersionStandard.PEP440))  # 1.2.3a1+build.42  (canonical PEP 440 form; 'alpha' is also accepted but 'a' is canonical)
 ```
 
 [View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-version/basic_usage_example.py)
@@ -47,7 +47,7 @@ if version is None:
     print("Could not parse version")
 ```
 
-The parser tries formats in this order: PEP 440, SemVer, NuGet, CalVer, Loose. The first successful match is returned.
+The parser tries formats in this order: PEP 440, SemVer, NuGet, CalVer, Loose. The first successful match is returned. Because several versioning standards overlap syntactically, the parser order determines which format interpretation is selected.
 
 # Version Components
 
@@ -66,7 +66,7 @@ print(version.dev)      # 1  (PEP 440 dev release)
 print(version.core)     # "1.2.3.4"  (numeric components as string)
 ```
 
-The `core` property omits a trailing revision of zero.
+The `core` property represents the numeric portion of the version and omits a trailing revision of zero as a convenience representation. This is a library-specific behavior, not a rule from any versioning specification.
 
 ## Pre-release
 
@@ -91,7 +91,7 @@ print(version.metadata.parts[1])   # dirty
 
 # Comparing Versions
 
-`Version` supports all standard comparison operators (`<`, `<=`, `==`, `!=`, `>=`, `>`). Comparison follows PEP 440 ordering rules: dev releases come before the base release, pre-releases come before the final release, and post releases come after.
+`Version` supports all standard comparison operators (`<`, `<=`, `==`, `!=`, `>=`, `>`). Version comparison uses PEP 440 precedence rules as the canonical ordering model across all supported version formats: dev releases come before the base release, pre-releases come before the final release, and post releases come after.
 
 ```python
 from ps.version import Version
@@ -105,13 +105,13 @@ print(v1 < v2 < v3)  # True
 
 # Formatting Versions
 
-Use `Version.format(standard)` to produce a version string in a specific format. `str(version)` automatically selects the first compatible standard.
+Use `Version.format(standard)` to produce a version string in a specific format. `str(version)` formats the version using the first compatible standard from the version's detected compatibility list.
 
 ```python
 from ps.version import Version, VersionStandard
 
 version = Version.parse("1.2.3-alpha.1")
-print(version.format(VersionStandard.PEP440))  # 1.2.3alpha1
+print(version.format(VersionStandard.PEP440))  # 1.2.3a1
 print(version.format(VersionStandard.SEMVER))  # 1.2.3-alpha.1
 print(version.format(VersionStandard.NUGET))   # 1.2.3-alpha.1
 ```
