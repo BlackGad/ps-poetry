@@ -1,3 +1,5 @@
+import os
+import site
 import sys
 
 import cleo.events.console_events
@@ -10,6 +12,7 @@ from cleo.io.outputs.output import Verbosity
 from cleo.io.outputs.stream_output import StreamOutput
 from poetry.console.application import Application
 from poetry.plugins.application_plugin import ApplicationPlugin
+from poetry.utils.env import EnvManager
 
 from ps.di import DI
 from ps.plugin.sdk.logging import log_debug, log_verbose
@@ -30,6 +33,43 @@ def _create_standard_io() -> IO:
     output = StreamOutput(sys.stdout, verbosity=Verbosity.DEBUG)  # type: ignore
     error_output = StreamOutput(sys.stderr, verbosity=Verbosity.DEBUG)  # type: ignore
     return IO(ArgvInput(), output, error_output)
+
+
+def _activate_project_venv(application: Application, io: IO) -> None:
+    env_prefix = os.environ.get("VIRTUAL_ENV", os.environ.get("CONDA_PREFIX"))
+    conda_env_name = os.environ.get("CONDA_DEFAULT_ENV")
+    if env_prefix is not None and conda_env_name != "base":
+        log_debug(io, f"Already in virtual environment <comment>{env_prefix}</comment>, skipping venv activation")
+        return
+
+    try:
+        env = EnvManager(application.poetry).get()
+        venv_path = env.path
+    except Exception as e:
+        log_debug(io, f"Could not resolve project environment: <comment>{e}</comment>, skipping venv activation")
+        return
+
+    if not venv_path.exists():
+        log_debug(io, "Project environment does not exist, skipping venv activation")
+        return
+
+    if sys.platform == "win32":
+        site_pkgs = venv_path / "Lib" / "site-packages"
+    else:
+        py_ver = f"python{sys.version_info.major}.{sys.version_info.minor}"
+        site_pkgs = venv_path / "lib" / py_ver / "site-packages"
+
+    if not site_pkgs.exists():
+        log_debug(io, f"Site-packages not found at <comment>{site_pkgs}</comment>, skipping venv activation")
+        return
+
+    site.addsitedir(str(site_pkgs))
+
+    bin_dir = venv_path / ("Scripts" if sys.platform == "win32" else "bin")
+    if bin_dir.exists():
+        os.environ["PATH"] = str(bin_dir) + os.pathsep + os.environ.get("PATH", "")
+
+    log_verbose(io, f"Activated project venv from <comment>{venv_path}</comment>")
 
 
 def _resolve_settings(environment: Environment) -> PluginSettings:
@@ -57,6 +97,8 @@ class Plugin(ApplicationPlugin):
             return
 
         log_verbose(io, "<info>Starting activation</info>")
+
+        _activate_project_venv(application, io)
 
         di = self._di
         di.register(IO).factory(lambda: io)

@@ -6,5 +6,6 @@ class ModuleInHost:
         self._io = io
 
     def poetry_activate(self) -> bool:
-        self._io.write_line("Module in host global setup executed")
+        if self._io.is_debug():
+            self._io.write_line("Module in host poetry_activate executed")
         return True
