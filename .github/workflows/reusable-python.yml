@@ -25,7 +25,7 @@ jobs:
     name: Python
     runs-on: ubuntu-latest
     env:
-      POETRY_VERSION: "2.3.1"
+      POETRY_VERSION: "2.3.2"
       LOCK_PATH: ${{ format('{0}/poetry.lock', inputs.working_directory) }}
       PROJECT_PATH: ${{ format('{0}/pyproject.toml', inputs.working_directory) }}
     steps:
@@ -84,7 +84,7 @@ jobs:
 
       - name: Test packages
         working-directory: ${{ inputs.working_directory }}
-        run: poetry check
+        run: poetry check -vvv
 
       - name: Publish Test Results
         uses: dorny/test-reporter@v1
