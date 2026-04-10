@@ -63,7 +63,7 @@
 				"type": "debugpy",
 				"request": "launch",
 				"program": "${workspaceFolder}/launcher.py",
-				"preLaunchTask": "Debugging",
+				"preLaunchTask": "Workspace: Debugging",
 				"console": "integratedTerminal",
 				"justMyCode": false,
 				"envFile": "${workspaceFolder}/debug.env",
@@ -91,23 +91,36 @@
 	"tasks": {
 		"version": "2.0.0",
 		"tasks": [ 
-		 {
-            "label": "Debugging",
-            "type": "shell",
-            "command": "powershell",
-            "args": [
-              "-NoProfile",
-              "-File",
-              "${workspaceFolder}/launcher.ps1",
-              "DEBUG_PROJECT_PATH=${input:targetProjectPath}",
-              "DEBUG_COMMAND_LINE=${input:targetCommandLine}"
-            ],
-            "group": "build",
-            "options": {
-              "cwd": "${workspaceFolder}"
-            },
-            "problemMatcher": []
-          }
+			{
+				"label": "Workspace: Debugging",
+				"type": "shell",
+				"command": "powershell",
+				"args": [
+					"-NoProfile",
+					"-File",
+					"${workspaceFolder}/launcher.ps1",
+					"DEBUG_PROJECT_PATH=${input:targetProjectPath}",
+					"DEBUG_COMMAND_LINE=${input:targetCommandLine}"
+				],
+				"group": "build",
+				"options": {
+					"cwd": "${workspaceFolder}"
+				},
+				"problemMatcher": []
+			},
+			{
+				"label": "Workspace: Check",
+				"type": "shell",
+				"command": "powershell",
+				"args": [
+					"-NoProfile",
+					"-ExecutionPolicy",
+					"Bypass",
+					"-Command",
+					"poetry check"
+				],
+				"problemMatcher": []
+			},
 		],
 		"inputs": [
           {

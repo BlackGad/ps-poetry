@@ -1,0 +1,22 @@
+name: PUBLISH
+
+on:
+  # push:
+  #   branches:
+  #     - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  checks: write
+
+jobs:
+  publish:
+    name: Build and Publish Python Project
+    uses: ./.github/workflows/reusable-python.yml
+    with:
+      working_directory: src
+      publish: true
+    secrets:
+      PYPI_PAT: ${{ secrets.PYPI_PAT }}

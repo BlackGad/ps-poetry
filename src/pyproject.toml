@@ -41,6 +41,7 @@ ps-plugin-module-monorepo   = { path = "modules/monorepo", develop = true }
 ps-plugin-core  = {path = "plugin", develop = true }
 ps-plugin-sdk   = {path = "sdk", develop = true }
 ps-di           = {path = "libraries/di", develop = true }
+ps-version      = {path = "libraries/version", develop = true }
 
 [tool.ps-plugin]
 modules = [
