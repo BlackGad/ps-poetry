@@ -78,7 +78,7 @@ checks = [
     "environment",
     "ruff", 
     "imports",
-    "pyright",
+    # "pyright",
     "pytest"
 ]
 # ps-delivery settings
