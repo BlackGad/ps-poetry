@@ -23,6 +23,7 @@ from .stages import (
     DeliverableType,
     ResolvedProjectMetadata,
     build_projects,
+    log_resolution,
     patch_projects,
     publish_projects,
     resolve_environment_metadata,
@@ -108,6 +109,8 @@ class DeliveryModule:
         if not inputs and environment.host_project != environment.entry_project:
             inputs.append(str(environment.entry_project.path))
         environment_metadata = di.satisfy(resolve_environment_metadata)()
+
+        log_resolution(event.io, environment_metadata)
 
         filtered_projects = filter_projects(inputs, environment.projects)
         excluded = {id(p) for p in filtered_projects if (environment_metadata.projects.get(p.path) or ResolvedProjectMetadata()).deliver != DeliverableType.ENABLED}

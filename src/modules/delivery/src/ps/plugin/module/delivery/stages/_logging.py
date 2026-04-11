@@ -87,6 +87,15 @@ def log_dependency_tree(
     renderer.render_dependency_tree(title, nodes)
 
 
+def log_resolution(
+    io: IO,
+    metadata: ResolvedEnvironmentMetadata,
+    title: str = "Version resolution",
+) -> None:
+    renderer = FormattedDeliveryRenderer(io)
+    renderer.render_resolution(title, metadata.resolutions)
+
+
 def log_publish_waves(
     io: IO,
     projects: list[Project],

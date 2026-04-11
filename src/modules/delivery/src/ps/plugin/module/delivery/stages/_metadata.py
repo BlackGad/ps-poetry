@@ -96,7 +96,7 @@ def _resolve_project_version(
 ) -> tuple[Optional[Version], str, list[VersionPatternResult]]:
     pattern_results: list[VersionPatternResult] = []
     matched_pattern = ""
-    for pattern in version_patterns:
+    for idx, pattern in enumerate(version_patterns):
         condition_pattern, version_pattern = _split_version_pattern(pattern)
 
         result = VersionPatternResult(pattern=pattern)
@@ -116,6 +116,8 @@ def _resolve_project_version(
             version, matched_pattern = resolved
             result.matched = True
             pattern_results.append(result)
+            for remaining in version_patterns[idx + 1:]:
+                pattern_results.append(VersionPatternResult(pattern=remaining))
             return version, matched_pattern, pattern_results
 
         pattern_results.append(result)

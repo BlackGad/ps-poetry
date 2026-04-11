@@ -22,24 +22,20 @@ class FormattedDeliveryRenderer(DeliveryRenderer):
                 deliver_label = "<fg=red>Disabled (deliver option)</>"
             self._io.write_line(f"  - Deliverable: {deliver_label}")
 
-            if self._io.is_debug():
+            if self._io.is_verbose():
                 for i, pr in enumerate(r.pattern_results, 1):
-                    self._io.write_line(f"  <fg=dark_gray>- Version pattern [{i}]: '<fg=cyan>{pr.pattern}</>'</>")
-                    if pr.condition and pr.condition_matched is not None:
-                        if pr.errors:
-                            self._io.write_line(f"  <fg=dark_gray>- Version: Condition '<fg=cyan>{pr.condition}</> did not match (validation failed).</>")
-                            for error in pr.errors:
-                                self._io.write_line(f"    <fg=dark_gray>- <fg=red>{error}</></>")
-                        elif not pr.condition_matched:
-                            self._io.write_line(f"  <fg=dark_gray>- Version: Condition '<fg=cyan>{pr.condition}</> evaluated to false.</>")
-                        else:
-                            self._io.write_line(f"  <fg=dark_gray>- Version: Condition '<fg=cyan>{pr.condition}</> evaluated to true.</>")
-                    if not pr.matched and pr.resolved_raw:
-                        self._io.write_line(f"  <fg=dark_gray>- Version pattern '<fg=cyan>{pr.pattern}</> resolved to '<fg=yellow>{pr.resolved_raw}</> but is not a valid version.</>")
-                    elif not pr.matched and pr.errors and not pr.condition:
-                        self._io.write_line(f"  <fg=dark_gray>- Version pattern '<fg=cyan>{pr.pattern}</> is invalid.</>")
-                        for error in pr.errors:
-                            self._io.write_line(f"    <fg=dark_gray>- <fg=red>{error}</></>")
+                    if pr.matched:
+                        self._io.write_line(f"  <fg=dark_gray>[{i}]</> <fg=green>matched</> '<fg=cyan>{pr.pattern}</>' -> <fg=green>{pr.resolved_raw}</>")
+                    elif pr.condition and pr.errors:
+                        self._io.write_line(f"  <fg=dark_gray>[{i}]</> <fg=red>error</>   '<fg=cyan>{pr.pattern}</>' condition invalid: {'; '.join(pr.errors)}")
+                    elif pr.condition and not pr.condition_matched:
+                        self._io.write_line(f"  <fg=dark_gray>[{i}]</> <fg=yellow>skipped</> '<fg=cyan>{pr.pattern}</>' condition '<fg=dark_gray>{pr.condition}</>'")
+                    elif pr.errors and not pr.condition:
+                        self._io.write_line(f"  <fg=dark_gray>[{i}]</> <fg=red>error</>   '<fg=cyan>{pr.pattern}</>' invalid: {'; '.join(pr.errors)}")
+                    elif pr.resolved_raw:
+                        self._io.write_line(f"  <fg=dark_gray>[{i}]</> <fg=yellow>failed</>  '<fg=cyan>{pr.pattern}</>' -> '<fg=yellow>{pr.resolved_raw}</>' not a valid version")
+                    else:
+                        self._io.write_line(f"  <fg=dark_gray>[{i}]</> <fg=dark_gray>ignored</> '<fg=cyan>{pr.pattern}</>'")
 
             if r.version:
                 if self._io.is_verbose():

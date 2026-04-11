@@ -4,6 +4,7 @@ from ._logging import (
     build_publish_waves,
     log_dependency_tree,
     log_publish_waves,
+    log_resolution,
 )
 from ._metadata import DeliverableType, ResolvedEnvironmentMetadata, ResolvedProjectMetadata, resolve_environment_metadata
 from ._patch import patch_projects
@@ -19,6 +20,7 @@ __all__ = [
     "build_publish_waves",
     "log_dependency_tree",
     "log_publish_waves",
+    "log_resolution",
     "patch_projects",
     "publish_projects",
 ]

@@ -110,43 +110,43 @@ def test_render_resolution_version_verbose_shows_pattern_and_pinning():
 
 
 # ---------------------------------------------------------------------------
-# render_resolution — debug pattern details
+# render_resolution — verbose pattern details
 # ---------------------------------------------------------------------------
 
-def test_render_resolution_debug_shows_pattern_list():
-    io = _make_io(debug=True)
+def test_render_resolution_verbose_shows_pattern_list():
+    io = _make_io(verbose=True)
     renderer = FormattedDeliveryRenderer(io)
     renderer.render_resolution("P", [
         ProjectResolution(
             name="a", path="/p", version="1.0.0", deliver="Enabled",
             pattern_results=[
                 VersionPatternResult(pattern="{in}", matched=False),
-                VersionPatternResult(pattern="{spec}", matched=True),
+                VersionPatternResult(pattern="{spec}", matched=True, resolved_raw="1.0.0"),
             ],
         ),
     ])
     lines = _collect_lines(io)
-    assert _any_line(lines, "Version pattern [1]", "{in}")
-    assert _any_line(lines, "Version pattern [2]", "{spec}")
+    assert _any_line(lines, "[1]", "{in}")
+    assert _any_line(lines, "[2]", "{spec}")
 
 
-def test_render_resolution_debug_condition_true():
-    io = _make_io(debug=True)
+def test_render_resolution_verbose_condition_true():
+    io = _make_io(verbose=True)
     renderer = FormattedDeliveryRenderer(io)
     renderer.render_resolution("P", [
         ProjectResolution(
             name="a", path="/p", version="1.0.0", deliver="Enabled",
             pattern_results=[
-                VersionPatternResult(pattern="[{in}] {in}", condition="{in}", condition_matched=True, matched=True),
+                VersionPatternResult(pattern="[{in}] {in}", condition="{in}", condition_matched=True, matched=True, resolved_raw="1.0.0"),
             ],
         ),
     ])
     lines = _collect_lines(io)
-    assert _any_line(lines, "evaluated to true")
+    assert _any_line(lines, "matched")
 
 
-def test_render_resolution_debug_condition_false():
-    io = _make_io(debug=True)
+def test_render_resolution_verbose_condition_false():
+    io = _make_io(verbose=True)
     renderer = FormattedDeliveryRenderer(io)
     renderer.render_resolution("P", [
         ProjectResolution(
@@ -157,11 +157,11 @@ def test_render_resolution_debug_condition_false():
         ),
     ])
     lines = _collect_lines(io)
-    assert _any_line(lines, "evaluated to false")
+    assert _any_line(lines, "skipped", "condition")
 
 
-def test_render_resolution_debug_condition_validation_failed():
-    io = _make_io(debug=True)
+def test_render_resolution_verbose_condition_validation_failed():
+    io = _make_io(verbose=True)
     renderer = FormattedDeliveryRenderer(io)
     renderer.render_resolution("P", [
         ProjectResolution(
@@ -176,8 +176,7 @@ def test_render_resolution_debug_condition_validation_failed():
         ),
     ])
     lines = _collect_lines(io)
-    assert _any_line(lines, "validation failed")
-    assert _any_line(lines, "some error")
+    assert _any_line(lines, "error", "some error")
 
 
 def test_render_resolution_debug_patterns_not_shown_in_normal_mode():
@@ -187,12 +186,12 @@ def test_render_resolution_debug_patterns_not_shown_in_normal_mode():
         ProjectResolution(
             name="a", path="/p", version="1.0.0", deliver="Enabled",
             pattern_results=[
-                VersionPatternResult(pattern="{spec}", matched=True),
+                VersionPatternResult(pattern="{spec}", matched=True, resolved_raw="1.0.0"),
             ],
         ),
     ])
     lines = _collect_lines(io)
-    assert _no_line(lines, "Version pattern [")
+    assert _no_line(lines, "[1]")
 
 
 # ---------------------------------------------------------------------------
