@@ -2,15 +2,31 @@
 name        = "ps-token-expressions"
 description = "Flexible token-based expression resolution and materialization library for Python"
 readme      = "README.md"
+license     = {text = "MIT"}
 requires-python = ">=3.10,<3.14"
 version = "0.0.0"
 authors = [
     { name = "ztBlackGad" },
 ]
+keywords = ["token", "expressions", "templating", "string-interpolation", "resolver"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Text Processing :: General",
+]
 
 [project.urls]
 Homepage   = "https://github.com/BlackGad/ps-poetry"
 Repository = "https://github.com/BlackGad/ps-poetry"
+Issues     = "https://github.com/BlackGad/ps-poetry/issues"
+Examples   = "https://github.com/BlackGad/ps-poetry-examples"
 
 [tool.poetry]
 packages = [ { include = "ps/token_expressions", from = "src" } ]

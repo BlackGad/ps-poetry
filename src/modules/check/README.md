@@ -1,8 +1,14 @@
 # Overview
 
+[![PyPI](https://img.shields.io/pypi/v/ps-plugin-module-check)](https://pypi.org/project/ps-plugin-module-check/)
+[![Python](https://img.shields.io/pypi/pyversions/ps-plugin-module-check)](https://pypi.org/project/ps-plugin-module-check/)
+[![License](https://img.shields.io/pypi/l/ps-plugin-module-check)](https://pypi.org/project/ps-plugin-module-check/)
+
 The `ps-plugin-module-check` module extends Poetry's built-in `check` command with a configurable sequence of quality checks across all projects in a monorepo. It provides seven built-in checkers — `poetry`, `environment`, `imports`, `ruff`, `pylint`, `pytest`, and `pyright` — with support for automatic fixing and per-project configuration.
 
-The module is registered as a `ps.module` entry point and activates when included in the host project's `[tool.ps-plugin]` configuration.
+The module is registered as a `ps.module` entry point and activates when included in the host project's `[tool.ps-plugin]` configuration. Requires [`ps-plugin-core`](https://pypi.org/project/ps-plugin-core/) as the plugin host.
+
+For working project examples, see the [ps-poetry-examples](https://github.com/BlackGad/ps-poetry-examples) repository.
 
 # Installation
 

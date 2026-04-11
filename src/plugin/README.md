@@ -1,6 +1,12 @@
 # Overview
 
+[![PyPI](https://img.shields.io/pypi/v/ps-plugin-core)](https://pypi.org/project/ps-plugin-core/)
+[![Python](https://img.shields.io/pypi/pyversions/ps-plugin-core)](https://pypi.org/project/ps-plugin-core/)
+[![License](https://img.shields.io/pypi/l/ps-plugin-core)](https://pypi.org/project/ps-plugin-core/)
+
 The `ps-plugin-core` package is the core Poetry application plugin. It registers itself as a `poetry.application.plugin` entry point and acts as the host for any number of plugin modules. On activation, the plugin reads the project's `[tool.ps-plugin]` configuration, discovers installed modules via the `ps.module` entry-point group, instantiates them through a built-in dependency injection container, and dispatches lifecycle events to each active module.
+
+For working project examples, see the [ps-poetry-examples](https://github.com/BlackGad/ps-poetry-examples) repository.
 
 # Installation
 

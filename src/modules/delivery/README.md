@@ -1,8 +1,14 @@
 # Overview
 
+[![PyPI](https://img.shields.io/pypi/v/ps-plugin-module-delivery)](https://pypi.org/project/ps-plugin-module-delivery/)
+[![Python](https://img.shields.io/pypi/pyversions/ps-plugin-module-delivery)](https://pypi.org/project/ps-plugin-module-delivery/)
+[![License](https://img.shields.io/pypi/l/ps-plugin-module-delivery)](https://pypi.org/project/ps-plugin-module-delivery/)
+
 The `ps-plugin-module-delivery` module automates building and publishing packages across a monorepo. It extends Poetry's `build` and `publish` commands with unified version stamping, dependency constraint resolution, and topologically-ordered publish waves. A standalone `delivery` command displays the planned build and publish dependency tree without executing it.
 
-The module is registered as a `ps.module` entry point and activates when included in the host project's `[tool.ps-plugin]` configuration.
+The module is registered as a `ps.module` entry point and activates when included in the host project's `[tool.ps-plugin]` configuration. Requires [`ps-plugin-core`](https://pypi.org/project/ps-plugin-core/) as the plugin host.
+
+For working project examples, see the [ps-poetry-examples](https://github.com/BlackGad/ps-poetry-examples) repository.
 
 # Installation
 

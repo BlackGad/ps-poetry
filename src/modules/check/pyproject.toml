@@ -2,15 +2,31 @@
 name        = "ps-plugin-module-check"
 description = "Check module for ps-poetry: configurable quality checks including ruff, pyright, pytest, and more"
 readme      = "README.md"
+license     = {text = "MIT"}
 requires-python = ">=3.10,<3.14"
 version = "0.0.0"
 authors = [
     { name = "ztBlackGad" },
 ]
+keywords = ["poetry", "plugin", "linting", "ruff", "pyright", "pytest", "quality"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+]
 
 [project.urls]
 Homepage   = "https://github.com/BlackGad/ps-poetry"
 Repository = "https://github.com/BlackGad/ps-poetry"
+Issues     = "https://github.com/BlackGad/ps-poetry/issues"
+Examples   = "https://github.com/BlackGad/ps-poetry-examples"
 
 [project.entry-points."ps.module"]
 module_entry = "ps.plugin.module.check"

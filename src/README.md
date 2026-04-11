@@ -1,5 +1,18 @@
 # Overview
 
+[![License](https://img.shields.io/pypi/l/ps-plugin-core)](https://pypi.org/project/ps-plugin-core/)
+[![Python](https://img.shields.io/pypi/pyversions/ps-plugin-core)](https://pypi.org/project/ps-plugin-core/)
+
+| Package | Version |
+| --- | --- |
+| ps-plugin-core | [![PyPI](https://img.shields.io/pypi/v/ps-plugin-core)](https://pypi.org/project/ps-plugin-core/) |
+| ps-plugin-sdk | [![PyPI](https://img.shields.io/pypi/v/ps-plugin-sdk)](https://pypi.org/project/ps-plugin-sdk/) |
+| ps-plugin-module-check | [![PyPI](https://img.shields.io/pypi/v/ps-plugin-module-check)](https://pypi.org/project/ps-plugin-module-check/) |
+| ps-plugin-module-delivery | [![PyPI](https://img.shields.io/pypi/v/ps-plugin-module-delivery)](https://pypi.org/project/ps-plugin-module-delivery/) |
+| ps-dependency-injection | [![PyPI](https://img.shields.io/pypi/v/ps-dependency-injection)](https://pypi.org/project/ps-dependency-injection/) |
+| ps-version | [![PyPI](https://img.shields.io/pypi/v/ps-version)](https://pypi.org/project/ps-version/) |
+| ps-token-expressions | [![PyPI](https://img.shields.io/pypi/v/ps-token-expressions)](https://pypi.org/project/ps-token-expressions/) |
+
 This repository contains the `ps-poetry` Poetry plugin and its ecosystem. The plugin extends Poetry with a modular architecture: a lightweight core host discovers and loads independently packaged modules at runtime, dispatching lifecycle events to each active module. Two modules are provided — `check` and `delivery` — and three support libraries are available for use by modules and other consumers.
 
 # Plugin
@@ -47,3 +60,7 @@ The `ps-plugin-module-delivery` module automates building and publishing package
 The `ps-plugin-sdk` package provides the shared abstractions, models, protocols, and helpers for building Poetry plugin modules. It defines data structures for representing projects and their dependencies, protocols for plugin lifecycle events, and utility functions for reading `pyproject.toml` documents. Plugin modules depend on this package to interact with the Poetry plugin host without coupling to the internal plugin implementation.
 
 [View ps-plugin-sdk documentation](https://github.com/BlackGad/ps-poetry/blob/main/src/sdk/README.md)
+
+# Examples
+
+A dedicated repository with working project examples demonstrating plugin and module usage is available at [ps-poetry-examples](https://github.com/BlackGad/ps-poetry-examples).

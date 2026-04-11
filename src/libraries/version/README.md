@@ -1,8 +1,14 @@
 # Overview
 
+[![PyPI](https://img.shields.io/pypi/v/ps-version)](https://pypi.org/project/ps-version/)
+[![Python](https://img.shields.io/pypi/pyversions/ps-version)](https://pypi.org/project/ps-version/)
+[![License](https://img.shields.io/pypi/l/ps-version)](https://pypi.org/project/ps-version/)
+
 PS Version is a Python library for parsing, comparing, and formatting version numbers across multiple versioning standards. It provides a unified `Version` dataclass that automatically detects the version format, parses version strings into a consistent internal representation, and supports standard comparison operators and cross-format output.
 
 The library supports PEP 440, SemVer, NuGet, CalVer, and loose version formats without requiring the caller to specify the format explicitly.
+
+For working project examples, see the [ps-poetry-examples](https://github.com/BlackGad/ps-poetry-examples) repository.
 
 # Installation
 

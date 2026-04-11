@@ -1,5 +1,9 @@
 # Overview
 
+[![PyPI](https://img.shields.io/pypi/v/ps-token-expressions)](https://pypi.org/project/ps-token-expressions/)
+[![Python](https://img.shields.io/pypi/pyversions/ps-token-expressions)](https://pypi.org/project/ps-token-expressions/)
+[![License](https://img.shields.io/pypi/l/ps-token-expressions)](https://pypi.org/project/ps-token-expressions/)
+
 PS Token Expressions is a flexible token-based expression resolution and materialization library for Python. It enables dynamic string templating through token substitution and conditional evaluation, supporting multiple resolver types, nested access patterns, fallback values, and boolean expression matching.
 
 PS Token Expressions provides:
@@ -12,6 +16,8 @@ PS Token Expressions provides:
 * **Nested access** — Navigate through nested data structures
 * **Fallback values** — Provide defaults when tokens cannot be resolved
 * **Type-safe** — Returns strings, integers, booleans, or lists
+
+For working project examples, see the [ps-poetry-examples](https://github.com/BlackGad/ps-poetry-examples) repository.
 
 # Installation
 

@@ -1,6 +1,12 @@
 # Overview
 
+[![PyPI](https://img.shields.io/pypi/v/ps-dependency-injection)](https://pypi.org/project/ps-dependency-injection/)
+[![Python](https://img.shields.io/pypi/pyversions/ps-dependency-injection)](https://pypi.org/project/ps-dependency-injection/)
+[![License](https://img.shields.io/pypi/l/ps-dependency-injection)](https://pypi.org/project/ps-dependency-injection/)
+
 PS DI is a lightweight, thread-safe dependency injection container for Python. It provides a `DI` class that manages service registration, resolution, and automatic constructor injection. Registrations support singleton and transient lifetimes, priority-based ordering, and resolution by type or string name.
+
+For working project examples, see the [ps-poetry-examples](https://github.com/BlackGad/ps-poetry-examples) repository.
 
 # Installation
 
