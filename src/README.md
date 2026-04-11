@@ -1,10 +1,10 @@
 # Overview
 
-This repository contains the `ps-poetry` Poetry plugin and its ecosystem. The plugin extends Poetry with a modular architecture: a lightweight core host discovers and loads independently packaged modules at runtime, dispatching lifecycle events to each active module. Three modules are provided — `check`, `delivery`, and `monorepo` — and two support libraries are available for use by modules and other consumers.
+This repository contains the `ps-poetry` Poetry plugin and its ecosystem. The plugin extends Poetry with a modular architecture: a lightweight core host discovers and loads independently packaged modules at runtime, dispatching lifecycle events to each active module. Two modules are provided — `check` and `delivery` — and three support libraries are available for use by modules and other consumers.
 
 # Plugin
 
-The `ps-plugin-core` package is the Poetry application plugin host. It activates when a `[tool.ps-plugin]` section is present in `pyproject.toml`, discovers all installed modules registered under the `ps.module` entry-point group, and manages their lifecycle through a built-in dependency injection container.
+The `ps-plugin-core` package is the core Poetry application plugin host. It registers itself as a `poetry.application.plugin` entry point, reads the project's `[tool.ps-plugin]` configuration, discovers installed modules via the `ps.module` entry-point group, instantiates them through a built-in dependency injection container, and dispatches lifecycle events to each active module.
 
 [View ps-plugin-core documentation](https://github.com/BlackGad/ps-poetry/blob/main/src/plugin/README.md)
 
@@ -12,27 +12,21 @@ The `ps-plugin-core` package is the Poetry application plugin host. It activates
 
 ## Check
 
-The `ps-plugin-module-check` module extends Poetry's built-in `check` command with a configurable sequence of quality checks across all projects in a monorepo. Available checkers include `poetry` (pyproject.toml validation), `ruff` (linting), `pylint`, `pytest` (test execution), and environment tool availability. The module supports `--fix` and `--continue-on-error` flags, and which checkers run for a given project is controlled by its `[tool.ps-plugin]` settings.
+The `ps-plugin-module-check` module extends Poetry's built-in `check` command with a configurable sequence of quality checks across all projects in a monorepo. It provides seven built-in checkers — `poetry`, `environment`, `imports`, `ruff`, `pylint`, `pytest`, and `pyright` — with support for automatic fixing and per-project configuration.
 
 [View ps-plugin-module-check documentation](https://github.com/BlackGad/ps-poetry/blob/main/src/modules/check/README.md)
 
 ## Delivery
 
-The `ps-plugin-module-delivery` module automates building and publishing packages across a monorepo. It intercepts Poetry's `build` and `publish` commands, applies a unified build version via `--build-version`, resolves inter-project dependency ordering, and batches projects into sequenced publish waves. A standalone `delivery` command displays the planned build and publish dependency tree without executing it. Typical invocations are `poetry build -b 1.2.3` or `poetry publish -b 1.2.3`.
+The `ps-plugin-module-delivery` module automates building and publishing packages across a monorepo. It extends Poetry's `build` and `publish` commands with unified version stamping, dependency constraint resolution, and topologically-ordered publish waves. A standalone `delivery` command displays the planned build and publish dependency tree without executing it.
 
 [View ps-plugin-module-delivery documentation](https://github.com/BlackGad/ps-poetry/blob/main/src/modules/delivery/README.md)
-
-## Monorepo
-
-The `ps-plugin-module-monorepo` module makes standard Poetry commands (`install`, `lock`, `update`, `add`, `remove`) work correctly when run from a sub-package directory inside a monorepo. When invoked in a sub-project context, it transparently redirects the command to the monorepo root, ensuring the shared lockfile and virtual environment remain consistent regardless of the working directory.
-
-[View ps-plugin-module-monorepo documentation](https://github.com/BlackGad/ps-poetry/blob/main/src/modules/monorepo/README.md)
 
 # Libraries
 
 ## ps-di
 
-`ps-di` is a lightweight, thread-safe dependency injection container. It supports singleton and transient lifetimes, priority-based registration ordering, automatic constructor injection via `spawn`, and resolution by type or string name. The plugin host and all modules use `ps-di` to wire their services.
+`ps-di` is a lightweight, thread-safe dependency injection container for Python. It provides a `DI` class that manages service registration, resolution, and automatic constructor injection. Registrations support singleton and transient lifetimes, priority-based ordering, and resolution by type or string name. The plugin host and all modules use `ps-di` to wire their services.
 
 [View ps-di documentation](https://github.com/BlackGad/ps-poetry/blob/main/src/libraries/di/README.md)
 
@@ -50,6 +44,6 @@ The `ps-plugin-module-monorepo` module makes standard Poetry commands (`install`
 
 # SDK
 
-The `ps-plugin-sdk` package provides the shared abstractions, models, protocols, and helpers for building plugin modules. It defines the `ActivateProtocol` and listener protocols that modules implement to participate in plugin lifecycle events, TOML parsing helpers for reading `pyproject.toml` documents, the `Environment` and `Project` models for navigating a multi-project workspace, and the `ICheck` base class for check implementations.
+The `ps-plugin-sdk` package provides the shared abstractions, models, protocols, and helpers for building Poetry plugin modules. It defines data structures for representing projects and their dependencies, protocols for plugin lifecycle events, and utility functions for reading `pyproject.toml` documents. Plugin modules depend on this package to interact with the Poetry plugin host without coupling to the internal plugin implementation.
 
 [View ps-plugin-sdk documentation](https://github.com/BlackGad/ps-poetry/blob/main/src/sdk/README.md)
