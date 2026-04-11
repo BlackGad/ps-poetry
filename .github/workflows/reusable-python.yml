@@ -52,7 +52,7 @@ jobs:
 
       - name: Cache pipx Poetry install
         id: cache-pipx
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ steps.pipx-env.outputs.cache_path }}
           key: pipx-${{ runner.os }}-py${{ steps.setup_python.outputs.python-version }}-poetry-${{ env.POETRY_VERSION }}
@@ -66,7 +66,7 @@ jobs:
 
       - name: Cache Poetry dependencies & venv
         id: cache-deps
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ${{ inputs.working_directory }}/.venv
@@ -84,7 +84,7 @@ jobs:
         run: poetry check -vvv
 
       - name: Publish Test Results
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@v2
         with:
           name: Test Results
           path: '${{ inputs.working_directory }}/report.xml'
@@ -96,7 +96,7 @@ jobs:
         env:
           POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_PAT }}
         run: |
-          poetry build
+          poetry build -v
           poetry publish --skip-existing --dry-run
 
       - name: Print published versions

@@ -38,6 +38,32 @@ def _run_git(args: list[str], cwd: Path) -> Optional[str]:
         return None
 
 
+def _resolve_branch(cwd: Path) -> Optional[str]:
+    branch = _run_git(["rev-parse", "--abbrev-ref", "HEAD"], cwd)
+    if branch != "HEAD":
+        return branch
+
+    # Detached HEAD (e.g. CI checkout) — find a remote branch pointing at HEAD
+    refs = _run_git(["branch", "-r", "--points-at", "HEAD", "--format", "%(refname:short)"], cwd)
+    if refs:
+        for ref in refs.splitlines():
+            if ref.startswith("origin/") and ref != "origin/HEAD":
+                return ref.removeprefix("origin/")
+    return None
+
+
+def _resolve_default_branch(cwd: Path) -> Optional[str]:
+    raw = _run_git(["rev-parse", "--abbrev-ref", "origin/HEAD"], cwd)
+    if raw is not None:
+        return raw.removeprefix("origin/")
+
+    # origin/HEAD not set (e.g. CI checkout) — probe common defaults
+    for candidate in ("main", "master"):
+        if _run_git(["rev-parse", "--verify", f"origin/{candidate}"], cwd) is not None:
+            return candidate
+    return None
+
+
 def collect_git_info(path: Path) -> Optional[GitInfo]:
     cwd = path if path.is_dir() else path.parent
 
@@ -67,9 +93,7 @@ def collect_git_info(path: Path) -> Optional[GitInfo]:
             with contextlib.suppress(ValueError):
                 distance = int(count)
 
-    branch = _run_git(["rev-parse", "--abbrev-ref", "HEAD"], cwd)
-    main = _run_git(["rev-parse", "--abbrev-ref", "origin/HEAD"], cwd)
-    if main is not None and main.startswith("origin/"):
-        main = main[len("origin/"):]
+    branch = _resolve_branch(cwd)
+    main = _resolve_default_branch(cwd)
 
     return GitInfo(version=version, sha=commit_hash, distance=distance, dirty=dirty, branch=branch, main=main)

@@ -299,12 +299,13 @@ def test_collect_git_info_branch_without_origin_head(tmp_path: Path):
             ("v1.0.0-0-gabc1234", 0),
             ("feature/my-branch", 0),  # rev-parse --abbrev-ref HEAD
             ("", 128),                 # rev-parse --abbrev-ref origin/HEAD fails
+            ("abc1234", 0),            # rev-parse --verify origin/main succeeds
         )
         info = collect_git_info(tmp_path)
 
     assert info is not None
     assert info.branch == "feature/my-branch"
-    assert info.main is None
+    assert info.main == "main"
 
 
 def test_collect_git_info_main_strips_origin_prefix(tmp_path: Path):
