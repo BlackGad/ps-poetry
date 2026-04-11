@@ -30,6 +30,9 @@ jobs:
       PROJECT_PATH: ${{ format('{0}/pyproject.toml', inputs.working_directory) }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Set up Python
         id: setup_python
@@ -94,7 +97,7 @@ jobs:
           POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_PAT }}
         run: |
           poetry build
-          poetry publish --skip-existing
+          poetry publish --skip-existing --dry-run
 
       - name: Print published versions
         if: ${{ inputs.publish }}
