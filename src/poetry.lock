@@ -1222,6 +1222,9 @@ groups = ["ps"]
 files = []
 develop = true
 
+[package.dependencies]
+ps-di = {path = "../../libraries/di", develop = true}
+
 [package.source]
 type = "directory"
 url = "modules/check"
@@ -1236,23 +1239,12 @@ groups = ["ps"]
 files = []
 develop = true
 
+[package.dependencies]
+ps-di = {path = "../../libraries/di", develop = true}
+
 [package.source]
 type = "directory"
 url = "modules/delivery"
-
-[[package]]
-name = "ps-plugin-module-monorepo"
-version = "0.0.0"
-description = ""
-optional = false
-python-versions = ">=3.10,<3.14"
-groups = ["ps"]
-files = []
-develop = true
-
-[package.source]
-type = "directory"
-url = "modules/monorepo"
 
 [[package]]
 name = "ps-plugin-sdk"
@@ -2167,4 +2159,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.14"
-content-hash = "547a9e811d13ea5357f2f92213c8780ca01b61c6a94542f1eff2384fb9ffaf46"
+content-hash = "1b5378f28c94aba758ff96a1c0cfd5fd5c636f08e2eed6ecbbfd7cf9262dee8d"

@@ -24,7 +24,6 @@ The workspace is a monorepo containing the ps-poetry Poetry plugin and its compo
 * **`sdk/tests/`** — SDK unit tests
 * **`modules/check/`** — Check module (`ps-plugin-module-check`)
 * **`modules/delivery/`** — Delivery module (`ps-plugin-module-delivery`)
-* **`modules/monorepo/`** — Monorepo module (`ps-plugin-module-monorepo`)
 * **`modules/<name>/src/`** — Module source code
 * **`modules/<name>/tests/`** — Module unit tests
 * **`libraries/version/`** — Version parsing library (`ps-version`)

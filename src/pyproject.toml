@@ -9,7 +9,7 @@ packages = [
     { include = "src", from = "plugin" },
     { include = "experiments", from = "." },
 ]
-version = "42.42.42"
+version = "0.0.0"
 
 [tool.poetry.dependencies]
 poetry = "^2.3.1"
@@ -35,7 +35,6 @@ ps-plugin-sdk               = { path = "sdk", develop = true }
 ps-plugin-core              = { path = "plugin", develop = true }
 ps-plugin-module-check      = { path = "modules/check", develop = true }
 ps-plugin-module-delivery   = { path = "modules/delivery", develop = true }
-ps-plugin-module-monorepo   = { path = "modules/monorepo", develop = true }
 
 [tool.poetry.requires-plugins]
 ps-plugin-core  = {path = "plugin", develop = true }
@@ -48,7 +47,6 @@ modules = [
     "ModuleInHost",
     "ps-check",
     "ps-delivery",
-    # "ps-monorepo"
 ]
 # ps-check settings
 checks = [
