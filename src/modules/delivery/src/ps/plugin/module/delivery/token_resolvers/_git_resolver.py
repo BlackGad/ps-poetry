@@ -71,7 +71,7 @@ def collect_git_info(path: Path) -> Optional[GitInfo]:
     if not commit_hash:
         return None
 
-    dirty_output = _run_git(["status", "--porcelain"], cwd)
+    dirty_output = _run_git(["status", "--porcelain", "--untracked-files=no"], cwd)
     dirty = bool(dirty_output)
 
     version = Version()
