@@ -52,7 +52,7 @@ No exceptions.
 
 ## Ruff Execution Rules
 
-* ALWAYS run ruff from the **workspace root directory** (`src/`)
+* ALWAYS run ruff from the **workspace root directory**
 * ALWAYS use the workspace `ruff.toml` configuration
 * Make only the specific code changes required to resolve each reported error
 * Do not restructure or refactor code beyond what is necessary to fix the linting issue
@@ -60,7 +60,7 @@ No exceptions.
 
 ## Running Ruff Linter
 
-All ruff commands must be executed from the workspace root (`src/`) using Poetry.
+All ruff commands must be executed from the workspace root using Poetry.
 
 ### Check Entire Codebase
 

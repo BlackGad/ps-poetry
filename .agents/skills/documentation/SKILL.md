@@ -25,7 +25,7 @@ Before marking work complete, verify ALL of these:
 * [ ] `# Quick Start` section present after Installation with minimal working example
 * [ ] Every code example has a corresponding file in `examples/<package_name>/`
 * [ ] Every example file is referenced in documentation (unreferenced files deleted)
-* [ ] Each example includes GitHub link: `https://github.com/BlackGad/ps-poetry/blob/main/src/examples/<package_name>/<file>.py`
+* [ ] Each example includes GitHub link: `https://github.com/BlackGad/ps-poetry/blob/main/examples/<package_name>/<file>.py`
 * [ ] All example files are self-contained (no imports from other example files)
 * [ ] All example files pass ruff linting (zero errors)
 * [ ] All example files have zero Pylance errors
@@ -77,7 +77,7 @@ if __name__ == "__main__":
 **Required format**: Include this link for every example
 
 ```markdown
-[View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/<package_name>/<file>.py)
+[View full example](https://github.com/BlackGad/ps-poetry/blob/main/examples/<package_name>/<file>.py)
 ```
 
 **Presentation strategy**:

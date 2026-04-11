@@ -6,7 +6,7 @@
 
 The `ps-plugin-module-delivery` module automates building and publishing packages across a monorepo. It extends Poetry's `build` and `publish` commands with unified version stamping, dependency constraint resolution, and topologically-ordered publish waves. A standalone `delivery` command displays the planned build and publish dependency tree without executing it.
 
-The module is registered as a `ps.module` entry point and activates when included in the host project's `[tool.ps-plugin]` configuration. Requires [`ps-plugin-core`](https://github.com/BlackGad/ps-poetry/blob/main/src/plugin/README.md) as the plugin host.
+The module is registered as a `ps.module` entry point and activates when included in the host project's `[tool.ps-plugin]` configuration. Requires [`ps-plugin-core`](https://github.com/BlackGad/ps-poetry/blob/main/plugin/README.md) as the plugin host.
 
 For working project examples, see the [ps-poetry-examples](https://github.com/BlackGad/ps-poetry-examples) repository.
 
@@ -180,7 +180,7 @@ When no fallback is specified, the following type-based defaults are used:
 
 ## Token Resolvers
 
-Patterns use the token expression syntax from [`ps-token-expressions`](https://github.com/BlackGad/ps-poetry/blob/main/src/libraries/token_expressions/README.md) with several built-in resolvers:
+Patterns use the token expression syntax from [`ps-token-expressions`](https://github.com/BlackGad/ps-poetry/blob/main/libraries/token_expressions/README.md) with several built-in resolvers:
 
 * `{in}` — The input version passed via `--build-version`. Supports all version accessors.
 * `{spec}` — The project's version from its `pyproject.toml`. Falls back to the host project version when the project version is `0.0.0`.
@@ -192,7 +192,7 @@ Patterns use the token expression syntax from [`ps-token-expressions`](https://g
 
 ### Version Accessors
 
-The following accessors apply to any version-bearing source (`in`, `spec`, `git:version`, `v:...`). These correspond to the fields of the [`Version`](https://github.com/BlackGad/ps-poetry/blob/main/src/libraries/version/README.md) model from `ps-version`:
+The following accessors apply to any version-bearing source (`in`, `spec`, `git:version`, `v:...`). These correspond to the fields of the [`Version`](https://github.com/BlackGad/ps-poetry/blob/main/libraries/version/README.md) model from `ps-version`:
 
 | Accessor           | Meaning                                       |
 | ------------------ | --------------------------------------------- |
@@ -313,7 +313,7 @@ Examples:
 
 ### Custom Token Resolvers
 
-Additional token resolvers can be registered through the DI container. Implement a [`BaseResolver`](https://github.com/BlackGad/ps-poetry/blob/main/src/libraries/token_expressions/README.md) subclass from `ps.token_expressions`, then register a `TokenResolverEntry` tuple with the desired token source name. The delivery module collects all registered entries and passes them to the expression factory.
+Additional token resolvers can be registered through the DI container. Implement a [`BaseResolver`](https://github.com/BlackGad/ps-poetry/blob/main/libraries/token_expressions/README.md) subclass from `ps.token_expressions`, then register a `TokenResolverEntry` tuple with the desired token source name. The delivery module collects all registered entries and passes them to the expression factory.
 
 **Returning a string value** — the simplest resolver returns a string directly:
 
@@ -323,7 +323,7 @@ class MyResolver(BaseResolver):
         return args[0] if args else None
 ```
 
-[View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-plugin-module-delivery/custom_resolver_example.py)
+[View full example](https://github.com/BlackGad/ps-poetry/blob/main/examples/ps-plugin-module-delivery/custom_resolver_example.py)
 
 Once registered, the token `{my:value}` becomes available in all version patterns.
 
@@ -335,7 +335,7 @@ def poetry_activate(di: DI) -> bool:
     return True
 ```
 
-[View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-plugin-module-delivery/dict_resolver_example.py)
+[View full example](https://github.com/BlackGad/ps-poetry/blob/main/examples/ps-plugin-module-delivery/dict_resolver_example.py)
 
 With this registration, `{meta:channel}` resolves to `stable`.
 
@@ -356,7 +356,7 @@ def poetry_activate(di: DI) -> bool:
     return True
 ```
 
-[View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-plugin-module-delivery/object_resolver_example.py)
+[View full example](https://github.com/BlackGad/ps-poetry/blob/main/examples/ps-plugin-module-delivery/object_resolver_example.py)
 
 With this registration, `{build}` resolves to `Alice@7`, `{build:author}` to `Alice`, and `{build:revision}` to `7`.
 

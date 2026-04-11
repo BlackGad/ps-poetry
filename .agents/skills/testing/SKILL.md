@@ -32,7 +32,7 @@ description: 'Create, update, review, or fix unit test files in tests/ directori
 
 ## Running Tests
 
-All test commands must be executed from the workspace root (`src/`) using Poetry.
+All test commands must be executed from the workspace root using Poetry.
 
 ### Run All Tests
 

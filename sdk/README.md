@@ -6,7 +6,7 @@
 
 The `ps-plugin-sdk` package provides the shared abstractions, models, protocols, and helpers for building Poetry plugin modules. It defines data structures for representing projects and their dependencies, protocols for plugin lifecycle events, a dependency injection interface, and utility functions for reading `pyproject.toml` documents.
 
-Plugin modules depend on this package to interact with the [Poetry plugin host](https://github.com/BlackGad/ps-poetry/blob/main/src/plugin/README.md) without coupling to the internal plugin implementation.
+Plugin modules depend on this package to interact with the [Poetry plugin host](https://github.com/BlackGad/ps-poetry/blob/main/plugin/README.md) without coupling to the internal plugin implementation.
 
 For working project examples, see the [ps-poetry-examples](https://github.com/BlackGad/ps-poetry-examples) repository.
 
@@ -37,7 +37,7 @@ print(parse_name_from_document(document).value)
 print(parse_version_from_document(document).value)
 ```
 
-[View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-plugin-sdk/basic_usage_example.py)
+[View full example](https://github.com/BlackGad/ps-poetry/blob/main/examples/ps-plugin-sdk/basic_usage_example.py)
 
 # Parse TOML Documents
 
@@ -56,7 +56,7 @@ Use `parse_dependencies_from_document(document, project_path)` to extract all de
 
 Each returned `ProjectDependency` exposes attributes common to both formats: `name`, `group`, `optional`, `python`, `markers`, `extras`, `source`, `path`, `git`, `url`, `branch`, `tag`, `rev`, and `develop`. The `version` property retrieves the raw version constraint string, `version_constraint` converts it to a `packaging.specifiers.SpecifierSet`, and `resolved_project_path` resolves the `path` field to the absolute path of the dependency's `pyproject.toml` file, returning `None` when `path` is not set. Call `update_version(constraint)` to overwrite the constraint directly in the backing `TOMLDocument`.
 
-[View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-plugin-sdk/parse_dependencies_example.py)
+[View full example](https://github.com/BlackGad/ps-poetry/blob/main/examples/ps-plugin-sdk/parse_dependencies_example.py)
 
 # Project Model
 

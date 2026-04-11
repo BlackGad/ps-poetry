@@ -35,7 +35,7 @@ The workspace is a monorepo containing the ps-poetry Poetry plugin and its compo
 
 ## Running Tools
 
-All commands must be executed from the workspace root (`src/`) using Poetry.
+All commands must be executed from the workspace root using Poetry.
 
 ### Linting
 

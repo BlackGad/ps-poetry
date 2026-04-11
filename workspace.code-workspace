@@ -68,7 +68,7 @@
 				"justMyCode": false,
 				"envFile": "${workspaceFolder}/debug.env",
 				"env": {
-					"PYTHONPATH": "${workspaceFolder}/src",
+					"PYTHONPATH": "${workspaceFolder}",
 					"BUILD_VERSION1": "0.0.421"
 				}
 			},

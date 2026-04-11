@@ -4,7 +4,7 @@
 [![Python](https://img.shields.io/pypi/pyversions/ps-plugin-core)](https://pypi.org/project/ps-plugin-core/)
 [![License](https://img.shields.io/pypi/l/ps-plugin-core)](https://pypi.org/project/ps-plugin-core/)
 
-The `ps-plugin-core` package is the core Poetry application plugin. It registers itself as a `poetry.application.plugin` entry point and acts as the host for any number of plugin modules. On activation, the plugin reads the project's `[tool.ps-plugin]` configuration, discovers installed modules via the `ps.module` entry-point group, instantiates them through a built-in [dependency injection](https://github.com/BlackGad/ps-poetry/blob/main/src/libraries/di/README.md) container, and dispatches lifecycle events to each active module.
+The `ps-plugin-core` package is the core Poetry application plugin. It registers itself as a `poetry.application.plugin` entry point and acts as the host for any number of plugin modules. On activation, the plugin reads the project's `[tool.ps-plugin]` configuration, discovers installed modules via the `ps.module` entry-point group, instantiates them through a built-in [dependency injection](https://github.com/BlackGad/ps-poetry/blob/main/libraries/di/README.md) container, and dispatches lifecycle events to each active module.
 
 For working project examples, see the [ps-poetry-examples](https://github.com/BlackGad/ps-poetry-examples) repository.
 
@@ -52,7 +52,7 @@ modules = ["delivery", "check"]
 
 Modules are discovered by scanning the `ps.module` entry-point group at runtime. The plugin inspects every loaded object for functions whose names match the pattern `poetry_<event>` or `poetry_<event>_<suffix>`, where `<event>` is one of: `activate`, `command`, `error`, `terminate`, `signal`.
 
-> **Tip:** Entry points cannot be declared for projects with `package-mode = false` because non-package projects are not installed as distributions. To use a project as a plugin module host without publishing it, keep `package-mode = true` and install [`ps-plugin-module-delivery`](https://github.com/BlackGad/ps-poetry/blob/main/src/modules/delivery/README.md) — then set `deliver = false` in that project's `[tool.ps-plugin]` section to exclude it from delivery operations.
+> **Tip:** Entry points cannot be declared for projects with `package-mode = false` because non-package projects are not installed as distributions. To use a project as a plugin module host without publishing it, keep `package-mode = true` and install [`ps-plugin-module-delivery`](https://github.com/BlackGad/ps-poetry/blob/main/modules/delivery/README.md) — then set `deliver = false` in that project's `[tool.ps-plugin]` section to exclude it from delivery operations.
 
 An entry point may resolve to:
 
@@ -84,11 +84,11 @@ A module class declares its capabilities through method naming. Each function na
 * `poetry_error(event) -> None` — Called when a Poetry command raises an unhandled error.
 * `poetry_signal(event) -> None` — Called on OS signal events during command execution.
 
-A single module class may define any combination of these methods. Optional typing protocols (`PoetryActivateProtocol`, `PoetryCommandProtocol`, etc.) are available in [`ps.plugin.sdk.events`](https://github.com/BlackGad/ps-poetry/blob/main/src/sdk/README.md) for IDE support but are not required.
+A single module class may define any combination of these methods. Optional typing protocols (`PoetryActivateProtocol`, `PoetryCommandProtocol`, etc.) are available in [`ps.plugin.sdk.events`](https://github.com/BlackGad/ps-poetry/blob/main/sdk/README.md) for IDE support but are not required.
 
 # Dependency Injection
 
-Every handler function is invoked through the [`DI.satisfy`](https://github.com/BlackGad/ps-poetry/blob/main/src/libraries/di/README.md) wrapper, which inspects the function signature and injects registered types as keyword arguments automatically. Constructor parameters of class-based modules are resolved the same way via `DI.spawn`.
+Every handler function is invoked through the [`DI.satisfy`](https://github.com/BlackGad/ps-poetry/blob/main/libraries/di/README.md) wrapper, which inspects the function signature and injects registered types as keyword arguments automatically. Constructor parameters of class-based modules are resolved the same way via `DI.spawn`.
 
 The following types are pre-registered by the plugin host and can be used as function/constructor parameters:
 
@@ -96,8 +96,8 @@ The following types are pre-registered by the plugin host and can be used as fun
 | --- | --- | --- |
 | `IO` | `from cleo.io.io import IO` | Cleo IO for the current Poetry invocation |
 | `Application` | `from poetry.console.application import Application` | The active Poetry application instance |
-| `Environment` | `from ps.plugin.sdk.project import Environment` | Resolved project [environment](https://github.com/BlackGad/ps-poetry/blob/main/src/sdk/README.md) with host/workspace access |
-| `PluginSettings` | `from ps.plugin.sdk.settings import PluginSettings` | Parsed [`[tool.ps-plugin]` settings](https://github.com/BlackGad/ps-poetry/blob/main/src/sdk/README.md) |
+| `Environment` | `from ps.plugin.sdk.project import Environment` | Resolved project [environment](https://github.com/BlackGad/ps-poetry/blob/main/sdk/README.md) with host/workspace access |
+| `PluginSettings` | `from ps.plugin.sdk.settings import PluginSettings` | Parsed [`[tool.ps-plugin]` settings](https://github.com/BlackGad/ps-poetry/blob/main/sdk/README.md) |
 | `EventDispatcher` | `from cleo.events.event_dispatcher import EventDispatcher` | The Cleo event dispatcher |
 
 Inside event handlers (`poetry_command`, `poetry_error`, `poetry_terminate`, `poetry_signal`), additional types are registered in a scoped DI container:
@@ -109,7 +109,7 @@ Inside event handlers (`poetry_command`, `poetry_error`, `poetry_terminate`, `po
 | `ConsoleErrorEvent` | `from cleo.events.console_error_event import ConsoleErrorEvent` | The error event (for `poetry_error`) |
 | `ConsoleSignalEvent` | `from cleo.events.console_signal_event import ConsoleSignalEvent` | The signal event (for `poetry_signal`) |
 
-Use [`DI.register`](https://github.com/BlackGad/ps-poetry/blob/main/src/libraries/di/README.md) to bind additional types from within `poetry_activate` and `DI.resolve` or `DI.resolve_many` to retrieve them in other modules.
+Use [`DI.register`](https://github.com/BlackGad/ps-poetry/blob/main/libraries/di/README.md) to bind additional types from within `poetry_activate` and `DI.resolve` or `DI.resolve_many` to retrieve them in other modules.
 
 # Diagnostics
 

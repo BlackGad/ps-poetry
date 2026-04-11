@@ -21,7 +21,7 @@ jobs:
     name: Build and Publish Python Project
     uses: ./.github/workflows/reusable-python.yml
     with:
-      working_directory: src
+      working_directory: .
       publish: true
       dry_run: ${{ inputs.dry_run }}
     secrets:

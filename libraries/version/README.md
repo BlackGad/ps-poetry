@@ -39,7 +39,7 @@ print(v1 < v2)   # True
 print(version.format(VersionStandard.PEP440))  # 1.2.3a1+build.42  (canonical PEP 440 form; 'alpha' is also accepted but 'a' is canonical)
 ```
 
-[View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-version/basic_usage_example.py)
+[View full example](https://github.com/BlackGad/ps-poetry/blob/main/examples/ps-version/basic_usage_example.py)
 
 # Parsing Version Strings
 
@@ -148,7 +148,7 @@ print(version.get_constraint(VersionConstraint.RANGE_NEXT_PATCH)) # >=1.2.3,<1.2
 print(version.get_constraint(VersionConstraint.COMPATIBLE))       # >=1.2.3,<2.0.0
 ```
 
-[View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-version/version_constraint_example.py)
+[View full example](https://github.com/BlackGad/ps-poetry/blob/main/examples/ps-version/version_constraint_example.py)
 
 The `COMPATIBLE` mode pins to the next breaking boundary: next major when `major > 0`, next minor when `minor > 0`, otherwise next patch.
 

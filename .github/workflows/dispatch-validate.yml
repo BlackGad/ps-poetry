@@ -16,6 +16,6 @@ jobs:
     name: Validate Python Project
     uses: ./.github/workflows/reusable-python.yml
     with:
-      working_directory: src
+      working_directory: .
 
     

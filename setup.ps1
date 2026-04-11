@@ -5,7 +5,7 @@ Write-Host "Cleaning workspace..." -ForegroundColor Cyan
 
 # Remove all folders starting with '.' except .agents and .vscode
 Write-Host "Removing folders starting with '.'..." -ForegroundColor Yellow
-$excludedDotFolders = @(".agents", ".vscode")
+$excludedDotFolders = @(".agents", ".git", ".github", ".vscode")
 Get-ChildItem -Path $WorkspaceRoot -Directory -Recurse -Force -Filter ".*" -ErrorAction SilentlyContinue | Where-Object { $excludedDotFolders -notcontains $_.Name } | ForEach-Object {
     Write-Host "  Removing: $($_.FullName)" -ForegroundColor Gray
     Remove-Item -Path $_.FullName -Recurse -Force -ErrorAction SilentlyContinue

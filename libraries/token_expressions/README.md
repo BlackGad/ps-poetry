@@ -54,7 +54,7 @@ if factory.match("'production' in {tags}"):
     print("Production release detected")
 ```
 
-[View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-token-expressions/basic_usage_example.py)
+[View full example](https://github.com/BlackGad/ps-poetry/blob/main/examples/ps-token-expressions/basic_usage_example.py)
 
 # Core Concepts
 
@@ -238,7 +238,7 @@ factory.materialize("{reg:version}")       # "2.5.0"
 factory.materialize("{reg:config:host}")   # "prod.example.com"
 ```
 
-[View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-token-expressions/custom_resolver_example.py)
+[View full example](https://github.com/BlackGad/ps-poetry/blob/main/examples/ps-token-expressions/custom_resolver_example.py)
 
 # Fallback Values
 
@@ -517,7 +517,7 @@ factory.materialize("{unknown}")     # "{unknown}"
 
 A complete working example combining instance resolvers, function resolvers, token materialization, fallback values, membership testing, and boolean conditions.
 
-[View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-token-expressions/basic_usage_example.py)
+[View full example](https://github.com/BlackGad/ps-poetry/blob/main/examples/ps-token-expressions/basic_usage_example.py)
 
 # Error Handling
 
