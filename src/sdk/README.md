@@ -6,7 +6,7 @@
 
 The `ps-plugin-sdk` package provides the shared abstractions, models, protocols, and helpers for building Poetry plugin modules. It defines data structures for representing projects and their dependencies, protocols for plugin lifecycle events, a dependency injection interface, and utility functions for reading `pyproject.toml` documents.
 
-Plugin modules depend on this package to interact with the Poetry plugin host without coupling to the internal plugin implementation.
+Plugin modules depend on this package to interact with the [Poetry plugin host](https://github.com/BlackGad/ps-poetry/blob/main/src/plugin/README.md) without coupling to the internal plugin implementation.
 
 For working project examples, see the [ps-poetry-examples](https://github.com/BlackGad/ps-poetry-examples) repository.
 

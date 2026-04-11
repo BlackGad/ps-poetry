@@ -6,7 +6,7 @@
 
 The `ps-plugin-module-check` module extends Poetry's built-in `check` command with a configurable sequence of quality checks across all projects in a monorepo. It provides seven built-in checkers — `poetry`, `environment`, `imports`, `ruff`, `pylint`, `pytest`, and `pyright` — with support for automatic fixing and per-project configuration.
 
-The module is registered as a `ps.module` entry point and activates when included in the host project's `[tool.ps-plugin]` configuration. Requires [`ps-plugin-core`](https://pypi.org/project/ps-plugin-core/) as the plugin host.
+The module is registered as a `ps.module` entry point and activates when included in the host project's `[tool.ps-plugin]` configuration. Requires [`ps-plugin-core`](https://github.com/BlackGad/ps-poetry/blob/main/src/plugin/README.md) as the plugin host.
 
 For working project examples, see the [ps-poetry-examples](https://github.com/BlackGad/ps-poetry-examples) repository.
 
@@ -109,4 +109,4 @@ Runs `pyright` on the collected source paths for static type checking. This chec
 
 `ICheck` is the abstract base class for implementing custom checkers. Subclasses implement `check(io, projects, fix)` to perform the check and return an optional exception on failure. The `can_check(projects)` method allows a checker to declare itself inapplicable to a given project list. Each subclass must declare a `name: ClassVar[str]` attribute that matches the name used in the `checks` configuration list.
 
-Register custom implementations with the DI container using `di.register(ICheck)` inside `poetry_activate` so the check module discovers them automatically via `di.resolve_many(ICheck)`.
+Register custom implementations with the [DI container](https://github.com/BlackGad/ps-poetry/blob/main/src/libraries/di/README.md) using `di.register(ICheck)` inside `poetry_activate` so the check module discovers them automatically via `di.resolve_many(ICheck)`.

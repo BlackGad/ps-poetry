@@ -6,7 +6,7 @@
 
 The `ps-plugin-module-delivery` module automates building and publishing packages across a monorepo. It extends Poetry's `build` and `publish` commands with unified version stamping, dependency constraint resolution, and topologically-ordered publish waves. A standalone `delivery` command displays the planned build and publish dependency tree without executing it.
 
-The module is registered as a `ps.module` entry point and activates when included in the host project's `[tool.ps-plugin]` configuration. Requires [`ps-plugin-core`](https://pypi.org/project/ps-plugin-core/) as the plugin host.
+The module is registered as a `ps.module` entry point and activates when included in the host project's `[tool.ps-plugin]` configuration. Requires [`ps-plugin-core`](https://github.com/BlackGad/ps-poetry/blob/main/src/plugin/README.md) as the plugin host.
 
 For working project examples, see the [ps-poetry-examples](https://github.com/BlackGad/ps-poetry-examples) repository.
 
@@ -61,6 +61,7 @@ version-patterns = [
     "{spec}"
 ]
 version-pinning = "compatible"
+deliver = true
 ```
 
 * `version-patterns` — Ordered list of version expression patterns. Each pattern is evaluated in sequence; the first one whose condition matches and whose expression produces a valid version wins. See **Version Patterns** below.
@@ -78,7 +79,7 @@ poetry build [INPUTS...] [--build-version VERSION]
 ```
 
 * `INPUTS` — Optional list of project names or paths. When omitted, all deliverable projects are built.
-* `--build-version` / `-b` — Override the computed version for all projects.
+* `--build-version` / `-b` — Provide a version value accessible as the `{in}` token in version patterns.
 
 The build stage patches all `pyproject.toml` files with resolved versions and dependency constraints, executes builds in parallel, then restores the original files.
 
@@ -89,7 +90,7 @@ poetry publish [INPUTS...] [--build-version VERSION] [--repository REPO] [--dry-
 ```
 
 * `INPUTS` — Optional list of project names or paths.
-* `--build-version` / `-b` — Override the computed version.
+* `--build-version` / `-b` — Provide a version value accessible as the `{in}` token in version patterns.
 * Standard Poetry publish options (`--repository`, `--username`, `--password`, `--cert`, `--client-cert`, `--dist-dir`, `--dry-run`, `--skip-existing`) are passed through.
 
 The publish stage processes projects in topological order, respecting inter-project dependencies so that each package is available before its dependents are published.
@@ -111,9 +112,8 @@ When no filter flags are provided, all three sections are displayed. Filter flag
 
 The formatted output includes project resolution details with per-project version, deliverable status, matched version pattern, and resolved dependencies. Verbosity flags (`-v`, `-vv`, `-vvv`) control the level of detail shown in formatted output:
 
-* Normal — project name, path, deliverable status, resolved version, and dependencies.
-* Verbose (`-v`) — additionally shows the matched version pattern, pinning rule, dependency paths, and constraint resolution sources.
-* Debug (`-vvv`) — additionally shows all evaluated version patterns, condition evaluation results, and skipped dependencies.
+* Normal — project name, path, deliverable status, resolved version, project dependencies (name only), and external dependencies with constraints.
+* Verbose (`-v`) — additionally shows all evaluated version patterns with numbered results (`skipped`, `matched`, `ignored`), the matched pattern string and pinning rule, dependency paths, and constraint resolution sources.
 
 JSON output includes full resolution data regardless of verbosity level.
 
@@ -180,7 +180,7 @@ When no fallback is specified, the following type-based defaults are used:
 
 ## Token Resolvers
 
-Patterns use the token expression syntax from `ps-token-expressions` with several built-in resolvers:
+Patterns use the token expression syntax from [`ps-token-expressions`](https://github.com/BlackGad/ps-poetry/blob/main/src/libraries/token_expressions/README.md) with several built-in resolvers:
 
 * `{in}` — The input version passed via `--build-version`. Supports all version accessors.
 * `{spec}` — The project's version from its `pyproject.toml`. Falls back to the host project version when the project version is `0.0.0`.
@@ -192,7 +192,7 @@ Patterns use the token expression syntax from `ps-token-expressions` with severa
 
 ### Version Accessors
 
-The following accessors apply to any version-bearing source (`in`, `spec`, `git:version`, `v:...`):
+The following accessors apply to any version-bearing source (`in`, `spec`, `git:version`, `v:...`). These correspond to the fields of the [`Version`](https://github.com/BlackGad/ps-poetry/blob/main/src/libraries/version/README.md) model from `ps-version`:
 
 | Accessor           | Meaning                                       |
 | ------------------ | --------------------------------------------- |
@@ -313,7 +313,7 @@ Examples:
 
 ### Custom Token Resolvers
 
-Additional token resolvers can be registered through the DI container. Implement a `BaseResolver` subclass from `ps.token_expressions`, then register a `TokenResolverEntry` tuple with the desired token source name. The delivery module collects all registered entries and passes them to the expression factory.
+Additional token resolvers can be registered through the DI container. Implement a [`BaseResolver`](https://github.com/BlackGad/ps-poetry/blob/main/src/libraries/token_expressions/README.md) subclass from `ps.token_expressions`, then register a `TokenResolverEntry` tuple with the desired token source name. The delivery module collects all registered entries and passes them to the expression factory.
 
 **Returning a string value** — the simplest resolver returns a string directly:
 
