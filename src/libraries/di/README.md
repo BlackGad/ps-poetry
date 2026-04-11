@@ -5,13 +5,13 @@ PS DI is a lightweight, thread-safe dependency injection container for Python. I
 # Installation
 
 ```bash
-pip install ps-di
+pip install ps-dependency-injection
 ```
 
 Or with Poetry:
 
 ```bash
-poetry add ps-di
+poetry add ps-dependency-injection
 ```
 
 # Quick Start
@@ -27,7 +27,7 @@ di.register(UserRepository, Lifetime.TRANSIENT).implementation(UserRepository)
 repo = di.resolve(UserRepository)
 ```
 
-[View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-di/basic_usage_example.py)
+[View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-dependency-injection/basic_usage_example.py)
 
 # Register Services
 
@@ -88,7 +88,7 @@ di.register(NotificationService, priority=Priority.MEDIUM).factory(NotificationS
 primary = di.resolve(NotificationService)  # sms (HIGH wins)
 ```
 
-[View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-di/priority_example.py)
+[View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-dependency-injection/priority_example.py)
 
 `Priority` values: `LOW` (default), `MEDIUM`, `HIGH`. When multiple registrations share the same priority, the most recently registered one wins.
 
@@ -132,7 +132,7 @@ print(log_message(message="Application started"))
 print(log_message(message="Low disk space", level="WARNING"))
 ```
 
-[View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-di/satisfy_example.py)
+[View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-dependency-injection/satisfy_example.py)
 
 The returned callable accepts keyword arguments at invocation time. Any keyword argument passed at invocation time overrides the corresponding resolved value, including DI-resolved parameters.
 
@@ -157,7 +157,7 @@ with di.scope() as request_scope:
 # scoped singletons released here; parent container unaffected
 ```
 
-[View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-di/scope_example.py)
+[View full example](https://github.com/BlackGad/ps-poetry/blob/main/src/examples/ps-dependency-injection/scope_example.py)
 
 The root container supports the same context manager protocol. Exiting a `with di:` block clears all registrations and releases every singleton instance held by the container.
 

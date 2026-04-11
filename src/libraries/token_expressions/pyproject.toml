@@ -1,8 +1,16 @@
 [project]
 name        = "ps-token-expressions"
-description = ""
+description = "Flexible token-based expression resolution and materialization library for Python"
+readme      = "README.md"
 requires-python = ">=3.10,<3.14"
 version = "0.0.0"
+authors = [
+    { name = "ztBlackGad" },
+]
+
+[project.urls]
+Homepage   = "https://github.com/BlackGad/ps-poetry"
+Repository = "https://github.com/BlackGad/ps-poetry"
 
 [tool.poetry]
 packages = [ { include = "ps/token_expressions", from = "src" } ]

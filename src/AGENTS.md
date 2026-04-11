@@ -28,7 +28,7 @@ The workspace is a monorepo containing the ps-poetry Poetry plugin and its compo
 * **`modules/<name>/tests/`** — Module unit tests
 * **`libraries/version/`** — Version parsing library (`ps-version`)
 * **`libraries/token_expressions/`** — Token expression library (`ps-token-expressions`)
-* **`libraries/di/`** — Dependency injection library (`ps-di`)
+* **`libraries/di/`** — Dependency injection library (`ps-dependency-injection`)
 * **`libraries/<name>/src/`** — Library source code
 * **`libraries/<name>/tests/`** — Library unit tests
 * **`experiments/`** — Experimental usage scripts (do not modify)

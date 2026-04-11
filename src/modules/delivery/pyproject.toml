@@ -1,8 +1,16 @@
 [project]
 name        = "ps-plugin-module-delivery"
-description = ""
+description = "Delivery module for ps-poetry: automated version stamping, dependency resolution, and topologically-ordered publishing"
+readme      = "README.md"
 requires-python = ">=3.10,<3.14"
 version = "0.0.0"
+authors = [
+    { name = "ztBlackGad" },
+]
+
+[project.urls]
+Homepage   = "https://github.com/BlackGad/ps-poetry"
+Repository = "https://github.com/BlackGad/ps-poetry"
 
 [project.entry-points."ps.module"]
 module_entry = "ps.plugin.module.delivery"
@@ -14,7 +22,7 @@ ps-plugin-sdk           = { path = "../../sdk", develop = true }
 
 
 [tool.poetry.dependencies]
-ps-di = {path = "../../libraries/di", develop = true}
+ps-dependency-injection = {path = "../../libraries/di", develop = true}
 
 [tool.poetry]
 packages = [ { include = "ps/plugin/module/delivery", from = "src" } ]

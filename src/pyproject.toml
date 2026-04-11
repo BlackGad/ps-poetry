@@ -1,8 +1,16 @@
 [project]
 name = "ps-poetry"
-description = ""
+description = "Modular Poetry plugin system with dependency injection, version management, and automated delivery"
+readme = "README.md"
 requires-python = ">=3.10,<3.14"
 dynamic = ["dependencies", "version"]
+authors = [
+    { name = "ztBlackGad" },
+]
+
+[project.urls]
+Homepage   = "https://github.com/BlackGad/ps-poetry"
+Repository = "https://github.com/BlackGad/ps-poetry"
 
 [tool.poetry]
 packages = [
@@ -28,7 +36,7 @@ pytest-asyncio = "^1.3.0"
 pyright = "^1.1.408"
 
 [tool.poetry.group.ps.dependencies]
-ps-di                       = { path = "libraries/di", develop = true }
+ps-dependency-injection      = { path = "libraries/di", develop = true }
 ps-version                  = { path = "libraries/version", develop = true }
 ps-token-expressions        = { path = "libraries/token_expressions", develop = true }
 ps-plugin-sdk               = { path = "sdk", develop = true }
@@ -39,7 +47,7 @@ ps-plugin-module-delivery   = { path = "modules/delivery", develop = true }
 [tool.poetry.requires-plugins]
 ps-plugin-core  = {path = "plugin", develop = true }
 ps-plugin-sdk   = {path = "sdk", develop = true }
-ps-di           = {path = "libraries/di", develop = true }
+ps-dependency-injection = {path = "libraries/di", develop = true }
 ps-version      = {path = "libraries/version", develop = true }
 
 [tool.ps-plugin]

@@ -1,14 +1,22 @@
 [project]
 name        = "ps-plugin-core"
-description = ""
+description = "Core Poetry application plugin: module discovery, dependency injection, and lifecycle management"
+readme      = "README.md"
 requires-python = ">=3.10,<3.14"
 version = "0.0.0"
+authors = [
+    { name = "ztBlackGad" },
+]
+
+[project.urls]
+Homepage   = "https://github.com/BlackGad/ps-poetry"
+Repository = "https://github.com/BlackGad/ps-poetry"
 
 [project.entry-points."poetry.application.plugin"]
 entry = "ps.plugin.core._plugin:Plugin"
 
 [tool.poetry.group.ps.dependencies]
-ps-di         = { path = "../libraries/di", develop = true }
+ps-dependency-injection = { path = "../libraries/di", develop = true }
 ps-plugin-sdk = { path = "../sdk", develop = true }
 
 [tool.poetry]

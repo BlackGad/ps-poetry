@@ -1,12 +1,20 @@
 [project]
 name        = "ps-plugin-sdk"
-description = ""
+description = "SDK for ps-poetry plugin modules: shared abstractions, models, protocols, and pyproject.toml utilities"
+readme      = "README.md"
 requires-python = ">=3.10,<3.14"
 version = "0.0.0"
+authors = [
+    { name = "ztBlackGad" },
+]
 dependencies = [
     "poetry",
     "pydantic",
 ]
+
+[project.urls]
+Homepage   = "https://github.com/BlackGad/ps-poetry"
+Repository = "https://github.com/BlackGad/ps-poetry"
 
 [tool.poetry.group.ps.dependencies]
 ps-version = { path = "../libraries/version", develop = true }

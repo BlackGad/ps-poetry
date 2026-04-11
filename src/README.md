@@ -24,11 +24,11 @@ The `ps-plugin-module-delivery` module automates building and publishing package
 
 # Libraries
 
-## ps-di
+## ps-dependency-injection
 
-`ps-di` is a lightweight, thread-safe dependency injection container for Python. It provides a `DI` class that manages service registration, resolution, and automatic constructor injection. Registrations support singleton and transient lifetimes, priority-based ordering, and resolution by type or string name. The plugin host and all modules use `ps-di` to wire their services.
+`ps-dependency-injection` is a lightweight, thread-safe dependency injection container for Python. It provides a `DI` class that manages service registration, resolution, and automatic constructor injection. Registrations support singleton and transient lifetimes, priority-based ordering, and resolution by type or string name. The plugin host and all modules use `ps-dependency-injection` to wire their services.
 
-[View ps-di documentation](https://github.com/BlackGad/ps-poetry/blob/main/src/libraries/di/README.md)
+[View ps-dependency-injection documentation](https://github.com/BlackGad/ps-poetry/blob/main/src/libraries/di/README.md)
 
 ## ps-version
 
