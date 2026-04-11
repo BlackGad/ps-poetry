@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from unittest.mock import MagicMock, PropertyMock
+from unittest.mock import MagicMock
 
 from cleo.io.io import IO
 
@@ -63,7 +63,7 @@ def _make_command(di: DI, metadata: ResolvedEnvironmentMetadata, options: dict[s
     io.is_verbose.return_value = False
     io.is_debug.return_value = False
 
-    type(cmd).io = PropertyMock(return_value=io)
+    cmd._io = io  # type: ignore[attr-defined]
     cmd.option = MagicMock(side_effect=lambda name: options.get(name, False))
 
     di.satisfy = MagicMock(return_value=lambda: metadata)
