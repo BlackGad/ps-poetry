@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: 'Perform a dry run (build without publishing)'
+        description: 'Dry run publish'
         type: boolean
         default: false
 
