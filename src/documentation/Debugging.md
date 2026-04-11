@@ -23,7 +23,7 @@ The workspace includes three pre-configured launch profiles:
 
 The debugging process performs the following steps:
 
-1. Executes the **Debugging** task that prepares the environment
+1. Executes the **Workspace: Debugging** task that writes the target project path and command line into [debug.env](../debug.env)
 2. Launches [launcher.py](../launcher.py) with the debugpy debugger attached
 3. Patches Poetry's Application class to inject the plugin
 4. Runs Poetry with the specified command in the target project context
@@ -70,5 +70,4 @@ The debugging configuration is defined in:
 ## Requirements
 
 * VS Code with Python and Debugpy extensions installed
-* Active workspace virtual environment
-* Built plugin core (see [Building.md](Building.md))
+* Active workspace virtual environment (see [building.md](building.md))

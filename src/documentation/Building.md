@@ -1,45 +1,24 @@
 # Building the Repository
 
-The build process for this repository follows a recursive pattern, consisting of two essential steps that must be executed in order.
+The workspace uses Poetry with local path dependencies. All packages (plugin, SDK, libraries, modules) are referenced as `develop = true` path dependencies in `pyproject.toml`, so a single `poetry sync` resolves and installs everything.
 
-## Build Process Overview
+## Setup
 
-The build is structured to ensure the plugin core is available before the host project environment is configured. This enables the plugin functionality across the entire monorepo structure.
-
-## Step 1: Build Plugin Core
-
-Navigate to the plugin directory and execute the standard Poetry build command:
+From the workspace root, synchronize the environment:
 
 ```bash
-cd plugin
-poetry build
-```
-
-This generates the plugin wheel file (`.whl`) in the `plugin/dist/` directory. The wheel file follows the naming convention:
-
-```bash
-ps_plugin_core-0.0.0-py3-none-any.whl
-```
-
-## Step 2: Restore Host Environment
-
-After the plugin core wheel is built, return to the workspace root and synchronize the environment:
-
-```bash
-cd ..
 poetry sync
 ```
 
 During this step:
 
-* The host project references the plugin core wheel file via the `tool.poetry.requires-plugins` configuration in `pyproject.toml`
-* Poetry installs the plugin from the local wheel file
-* The plugin becomes available for the entire repository
-* Monorepo mode is activated, enabling plugin functionality across all projects
+* Poetry resolves all local path dependencies (plugin, SDK, libraries, modules) in develop mode
+* The plugin core is installed via `tool.poetry.requires-plugins` from its local path
+* The plugin becomes available for all subsequent Poetry commands
 
 ## Automated Setup
 
-For convenience, use the `setup.ps1` script in the workspace root, which executes both steps automatically:
+For a clean environment, use the `setup.ps1` script in the workspace root:
 
 ```powershell
 .\setup.ps1
@@ -47,22 +26,29 @@ For convenience, use the `setup.ps1` script in the workspace root, which execute
 
 This script:
 
-1. Cleans the workspace (removes `.venv`, cache folders, and `__pycache__` directories)
-2. Builds the plugin core in the `plugin/` folder
-3. Synchronizes the workspace environment via `poetry sync`
+1. Removes dot-prefixed folders (except `.agents` and `.vscode`), `__pycache__` directories, and `dist` folders
+2. Runs `poetry sync` to restore the workspace environment
 
-## Build Requirements
+## CI Pipeline
 
-* Poetry 2.3.1 or higher
+The GitHub Actions workflow mirrors the local setup:
+
+1. Installs Poetry via pipx
+2. Runs `poetry sync` to set up the environment
+3. Runs `poetry check -vvv` to validate packages and execute tests
+4. Optionally builds and publishes packages to PyPI
+
+## Requirements
+
+* Poetry 2.3.2 or higher
 * Python 3.10 or higher
-* Active workspace virtual environment
 
 ## Verification
 
-After completing the build process, verify the plugin is correctly installed:
+After setup, verify the plugin is correctly installed:
 
 ```bash
-poetry env info
+poetry check
 ```
 
-The plugin should be listed in the installed packages, and subsequent Poetry commands will have access to the plugin functionality.
+The plugin activates during this command, running configured checks across all workspace packages.

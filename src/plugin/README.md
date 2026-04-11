@@ -90,7 +90,7 @@ The following types are pre-registered by the plugin host and can be used as fun
 | --- | --- | --- |
 | `IO` | `from cleo.io.io import IO` | Cleo IO for the current Poetry invocation |
 | `Application` | `from poetry.console.application import Application` | The active Poetry application instance |
-| `Environment` | `from ps.plugin.sdk.environment import Environment` | Resolved project environment with host/workspace access |
+| `Environment` | `from ps.plugin.sdk.project import Environment` | Resolved project environment with host/workspace access |
 | `PluginSettings` | `from ps.plugin.sdk.settings import PluginSettings` | Parsed `[tool.ps-plugin]` settings |
 | `EventDispatcher` | `from cleo.events.event_dispatcher import EventDispatcher` | The Cleo event dispatcher |
 
