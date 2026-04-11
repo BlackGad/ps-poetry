@@ -3,10 +3,17 @@
   "venv": ".venv",
   "typeCheckingMode": "standard",
   "pythonVersion": "3.13",
+  "include": [
+    "plugin",
+    "sdk",
+    "modules/*",
+    "libraries/*"
+  ],
   "exclude": [
     "**/__pycache__",
     "**/node_modules",
-    "**/.*", 
-    ".venv"
+    "**/.*",
+    ".venv",
+    ".poetry"
   ]
 }
