@@ -89,7 +89,7 @@ jobs:
         run: poetry check -vvv
 
       - name: Publish Test Results
-        uses: dorny/test-reporter@v2
+        uses: dorny/test-reporter@v3
         with:
           name: Test Results
           path: '${{ inputs.working_directory }}/report.xml'
