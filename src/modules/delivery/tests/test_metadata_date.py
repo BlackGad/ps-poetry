@@ -5,7 +5,7 @@ from ps.version import Version
 from ps.plugin.module.delivery.token_resolvers._date_resolver import format_date
 from ps.plugin.module.delivery.token_resolvers import DateResolver
 
-from .conftest import make_io, make_project, make_resolvers, resolve
+from .conftest import make_project, make_resolvers, resolve
 from ps.plugin.sdk.project import Environment
 from ps.plugin.module.delivery.stages._metadata import resolve_environment_metadata
 
@@ -173,7 +173,7 @@ def test_date_now_shared_across_projects(tmp_path):
     environment.add_project(proj_a_dir / "pyproject.toml")
     environment.add_project(proj_b_dir / "pyproject.toml")
     resolvers = make_resolvers(extra_resolvers=[("date", DateResolver(fixed))])
-    result = resolve_environment_metadata(make_io(), environment, resolvers)
+    result = resolve_environment_metadata(environment, resolvers)
 
     proj_a_path = (proj_a_dir / "pyproject.toml").resolve()
     proj_b_path = (proj_b_dir / "pyproject.toml").resolve()

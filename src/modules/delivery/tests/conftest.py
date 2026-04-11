@@ -1,9 +1,6 @@
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Optional
-from unittest.mock import MagicMock
-
-from cleo.io.io import IO
 
 from ps.version import Version
 from ps.plugin.sdk.project import Environment, Project, parse_project
@@ -14,13 +11,6 @@ from ps.plugin.module.delivery.stages._metadata import (
     ResolvedEnvironmentMetadata,
     resolve_environment_metadata,
 )
-
-
-def make_io() -> IO:
-    io = MagicMock(spec=IO)
-    io.is_debug.return_value = False
-    io.is_verbose.return_value = False
-    return io
 
 
 def make_project(tmp_path: Path, *, name: str = "test-project", version: str = "1.2.3", patterns: Optional[list[str]] = None) -> Optional[Project]:
@@ -72,7 +62,6 @@ def resolve(
     host_patterns: Optional[list[str]] = None,
     project_version: str = "1.2.3",
     project_patterns: Optional[list[str]] = None,
-    io: Optional[IO] = None,
     extra_resolvers: Optional[list[TokenResolverEntry]] = None,
 ) -> ResolvedEnvironmentMetadata:
     host_dir = tmp_path / "host"
@@ -87,7 +76,7 @@ def resolve(
     environment.add_project(project_dir / "pyproject.toml")
 
     resolvers = make_resolvers(input_version=input_version, extra_resolvers=extra_resolvers)
-    full_result = resolve_environment_metadata(io or make_io(), environment, resolvers)
+    full_result = resolve_environment_metadata(environment, resolvers)
 
     project_path = (project_dir / "pyproject.toml").resolve()
     return ResolvedEnvironmentMetadata(projects={project_path: full_result.projects[project_path]})

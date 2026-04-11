@@ -3,7 +3,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional
 
-from cleo.io.io import IO
 from packaging.specifiers import SpecifierSet
 
 from ps.plugin.sdk.project._environment import Environment
@@ -17,6 +16,7 @@ from ps.plugin.sdk.project import (
 from ps.plugin.sdk.toml import TomlValue
 
 from .._delivery_settings import DeliverySettings
+from ..output import DependencyResolution, ProjectResolution, VersionPatternResult
 
 _default_version_patterns: list[str] = [
     "[{in}] {in}",
@@ -50,6 +50,7 @@ class ResolvedProjectMetadata:
 @dataclass
 class ResolvedEnvironmentMetadata:
     projects: dict[Path, ResolvedProjectMetadata] = field(default_factory=dict)
+    resolutions: list[ProjectResolution] = field(default_factory=list)
 
 
 def _split_version_pattern(pattern: str) -> tuple[Optional[str], str]:
@@ -62,128 +63,126 @@ def _split_version_pattern(pattern: str) -> tuple[Optional[str], str]:
     return None, pattern
 
 
-def _validate_and_match_condition(io: IO, factory: ExpressionFactory, condition_pattern: str) -> bool:
+def _validate_and_match_condition(factory: ExpressionFactory, condition_pattern: str) -> tuple[bool, list[str]]:
     condition_validation_result = factory.validate_match(condition_pattern)
     if not condition_validation_result.success:
-        if io.is_debug():
-            io.write_line(f"  <fg=dark_gray>- Version: Condition '<fg=cyan>{condition_pattern}</> did not match (validation failed).</>")
-            for error in condition_validation_result.errors:
-                io.write_line(f"    <fg=dark_gray>- <fg=red>{error}</></>")
-        return False
+        return False, [str(e) for e in condition_validation_result.errors]
     if not factory.match(condition_pattern):
-        if io.is_debug():
-            io.write_line(f"  <fg=dark_gray>- Version: Condition '<fg=cyan>{condition_pattern}</> evaluated to false.</>")
-        return False
-    if io.is_debug():
-        io.write_line(f"  <fg=dark_gray>- Version: Condition '<fg=cyan>{condition_pattern}</> evaluated to true.</>")
-    return True
+        return False, []
+    return True, []
 
 
 def _resolve_version_from_pattern(
-    io: IO,
     factory: ExpressionFactory,
     version_pattern: str,
     default_version: Version,
-) -> Optional[tuple[Version, str]]:
+) -> tuple[Optional[tuple[Version, str]], str, list[str]]:
     version_validation_result = factory.validate_materialize(version_pattern)
     if not version_validation_result.success:
-        if io.is_debug():
-            io.write_line(f"  <fg=dark_gray>- Version pattern '<fg=cyan>{version_pattern}</> is invalid.</>")
-            for error in version_validation_result.errors:
-                io.write_line(f"    <fg=dark_gray>- <fg=red>{error}</></>")
-        return None
+        return None, "", [str(e) for e in version_validation_result.errors]
 
     raw_version = factory.materialize(version_pattern)
     parsed_version = Version.parse(raw_version)
-    if parsed_version is None and io.is_debug():
-        io.write_line(f"  <fg=dark_gray>- Version pattern '<fg=cyan>{version_pattern}</> resolved to '<fg=yellow>{raw_version}</> but is not a valid version.</>")
+    errors: list[str] = []
+    if parsed_version is None:
+        errors.append(f"Resolved to '{raw_version}' but is not a valid version.")
 
-    return parsed_version or default_version, version_pattern
+    return (parsed_version or default_version, version_pattern), raw_version, errors
 
 
 def _resolve_project_version(
-    io: IO,
     factory: ExpressionFactory,
     version_patterns: list[str],
-    pinning_rule: VersionConstraint,
-) -> Optional[Version]:
+) -> tuple[Optional[Version], str, list[VersionPatternResult]]:
+    pattern_results: list[VersionPatternResult] = []
+    matched_pattern = ""
     for pattern in version_patterns:
         condition_pattern, version_pattern = _split_version_pattern(pattern)
-        if condition_pattern is not None and not _validate_and_match_condition(io, factory, condition_pattern):
-            continue
 
-        resolved_tuple = _resolve_version_from_pattern(io, factory, version_pattern, _default_version)
-        if resolved_tuple:
-            version, matched_pattern = resolved_tuple
-            if io.is_verbose():
-                io.write_line(f"  - Version: <fg=green>{version}</> (Pattern: '<fg=cyan>{matched_pattern}</>', Pinning rule: <fg=cyan>{pinning_rule.value}</>)")
-            else:
-                io.write_line(f"  - Version: <fg=green>{version}</>")
-            return version
+        result = VersionPatternResult(pattern=pattern)
+        if condition_pattern is not None:
+            matched, errors = _validate_and_match_condition(factory, condition_pattern)
+            result.condition = condition_pattern
+            result.condition_matched = matched
+            result.errors = errors
+            if not matched:
+                pattern_results.append(result)
+                continue
 
-    return None
+        resolved, raw, errors = _resolve_version_from_pattern(factory, version_pattern, _default_version)
+        result.resolved_raw = raw
+        result.errors.extend(errors)
+        if resolved:
+            version, matched_pattern = resolved
+            result.matched = True
+            pattern_results.append(result)
+            return version, matched_pattern, pattern_results
+
+        pattern_results.append(result)
+
+    return None, matched_pattern, pattern_results
 
 
 def _resolve_project_dependencies(
-    io: IO,
     project: Project,
     host_dependencies: dict[str, ProjectDependency],
-) -> tuple[list[ResolvedDependencyVersion], list[Path]]:
+) -> tuple[list[ResolvedDependencyVersion], list[Path], list[DependencyResolution]]:
     resolved: list[ResolvedDependencyVersion] = []
     project_dependency_paths: list[Path] = []
+    dep_resolutions: list[DependencyResolution] = []
 
     project_deps = [dep for dep in project.dependencies if dep.path is not None and dep.develop]
     third_party_deps = [dep for dep in project.dependencies if dep.path is None or not dep.develop]
 
     for dep in project_deps:
-        base_line = f"  - Project dependency '<fg=cyan>{dep.name}</>'"
-        if io.is_verbose():
-            io.write_line(f"{base_line} [<fg=dark_gray>{dep.path}</>]")
-        else:
-            io.write_line(base_line)
-
-        assert dep.path is not None  # Filtered above
+        assert dep.path is not None
         path = (dep.path if dep.path.suffix == ".toml" else dep.path / "pyproject.toml").resolve()
         project_dependency_paths.append(path)
+
+        dep_resolutions.append(DependencyResolution(
+            name=dep.name or "",
+            constraint=str(dep.version_constraint or ""),
+            is_project=True,
+            path=str(dep.path),
+        ))
 
         constraint = dep.version_constraint
         if constraint is None:
             continue
-
         resolved.append(ResolvedDependencyVersion(dependency=dep, version_constraint=constraint))
 
     for dep in third_party_deps:
         constraint = dep.version_constraint
         if constraint is None:
-            if io.is_debug():
-                io.write_line(f"  <fg=dark_gray>- Dependency '<fg=cyan>{dep.name}</> skipped (no version constraint).</>")
+            dep_resolutions.append(DependencyResolution(
+                name=dep.name or "",
+                constraint="",
+                source="skipped",
+            ))
             continue
 
-        detail: Optional[str] = None
+        source = "direct"
         if str(constraint) == "":
             dep_name = dep.name
             host_dep = host_dependencies.get(dep_name) if dep_name else None
             host_constraint = host_dep.version_constraint if host_dep else None
             if host_constraint:
                 constraint = host_constraint
-                detail = f"Resolved from <fg=cyan>host</>: <fg=green>{host_constraint}</>"
+                source = "host"
             else:
-                detail = f"from <fg=cyan>{'host-no-constraint' if host_dep else 'not-found'}</>"
-        elif io.is_debug():
-            detail = "<fg=dark_gray>direct</>"
+                source = "host-no-constraint" if host_dep else "not-found"
 
-        base_line = f"  - Dependency '<fg=cyan>{dep.name}</>': <fg=green>{constraint}</>"
-        if detail and io.is_verbose():
-            io.write_line(f"{base_line} ({detail})")
-        elif not io.is_debug() or detail:
-            io.write_line(base_line)
-
+        dep_resolutions.append(DependencyResolution(
+            name=dep.name or "",
+            constraint=str(constraint),
+            source=source,
+        ))
         resolved.append(ResolvedDependencyVersion(dependency=dep, version_constraint=constraint))
 
-    return resolved, project_dependency_paths
+    return resolved, project_dependency_paths, dep_resolutions
 
 
-def resolve_environment_metadata(io: IO, environment: Environment, resolvers: list[TokenResolverEntry]) -> ResolvedEnvironmentMetadata:
+def resolve_environment_metadata(environment: Environment, resolvers: list[TokenResolverEntry]) -> ResolvedEnvironmentMetadata:
     host_project = environment.host_project
 
     host_project_delivery_settings = DeliverySettings.model_validate(host_project.plugin_settings.model_dump())
@@ -195,6 +194,7 @@ def resolve_environment_metadata(io: IO, environment: Environment, resolvers: li
     }
 
     resolved_projects: dict[Path, ResolvedProjectMetadata] = {}
+    resolutions: list[ProjectResolution] = []
     for project in environment.projects:
         project_display_name = project.name.value or project.path.name
         project_delivery_settings = DeliverySettings.model_validate(project.plugin_settings.model_dump())
@@ -209,20 +209,6 @@ def resolve_environment_metadata(io: IO, environment: Environment, resolvers: li
         else:
             deliver = DeliverableType.ENABLED
 
-        io.write_line(f"<fg=magenta>Resolving project:</> <fg=blue>{project_display_name}</> [<fg=dark_gray>{project.path}</>]")
-
-        if deliver == DeliverableType.ENABLED:
-            deliver_label = "<fg=green>Enabled</>"
-        elif deliver == DeliverableType.DISABLED_BY_PACKAGE_MODE:
-            deliver_label = "<fg=red>Disabled (package-mode)</>"
-        else:
-            deliver_label = "<fg=red>Disabled (deliver option)</>"
-        io.write_line(f"  - Deliverable: {deliver_label}")
-
-        if io.is_debug():
-            for i, pattern in enumerate(version_patterns, 1):
-                io.write_line(f"  <fg=dark_gray>- Version pattern [{i}]: '<fg=cyan>{pattern}</>'</>")
-
         project_spec_version = Version.parse(project.version.value)
         if project_spec_version is None or project_spec_version == _default_version:
             project_spec_version = host_project_version
@@ -235,10 +221,21 @@ def resolve_environment_metadata(io: IO, environment: Environment, resolvers: li
         metadata = ResolvedProjectMetadata()
         metadata.pinning = pinning_rule
         metadata.deliver = deliver
-        version = _resolve_project_version(io, factory, version_patterns, pinning_rule)
+        version, matched_pattern, pattern_results = _resolve_project_version(factory, version_patterns)
         if version is not None:
             metadata.version = version
-        metadata.dependencies, metadata.project_dependencies = _resolve_project_dependencies(io, project, host_dependencies)
+        metadata.dependencies, metadata.project_dependencies, dep_resolutions = _resolve_project_dependencies(project, host_dependencies)
         resolved_projects[project.path] = metadata
 
-    return ResolvedEnvironmentMetadata(projects=resolved_projects)
+        resolutions.append(ProjectResolution(
+            name=project_display_name,
+            path=str(project.path),
+            version=str(metadata.version),
+            deliver=deliver.value,
+            pinning=pinning_rule.value,
+            matched_pattern=matched_pattern,
+            pattern_results=pattern_results,
+            dependencies=dep_resolutions,
+        ))
+
+    return ResolvedEnvironmentMetadata(projects=resolved_projects, resolutions=resolutions)

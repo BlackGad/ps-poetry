@@ -5,7 +5,7 @@ from ps.plugin.sdk.project import Environment, parse_project, Project
 
 from ps.plugin.module.delivery.stages._metadata import DeliverableType, resolve_environment_metadata
 
-from .conftest import make_io, make_project, make_resolvers
+from .conftest import make_project, make_resolvers
 
 
 def _make_project_with_package_mode(tmp_path: Path, package_mode: Optional[bool]) -> Optional[Project]:
@@ -60,7 +60,7 @@ def _resolve_deliver(tmp_path: Path, package_mode: Optional[bool]) -> Deliverabl
     environment = Environment(host_dir / "pyproject.toml")
     environment.add_project(project_dir / "pyproject.toml")
 
-    result = resolve_environment_metadata(make_io(), environment, make_resolvers())
+    result = resolve_environment_metadata(environment, make_resolvers())
     project_path = (project_dir / "pyproject.toml").resolve()
     return result.projects[project_path].deliver
 
@@ -77,7 +77,7 @@ def _resolve_deliver_from_setting(tmp_path: Path, deliver: Optional[bool]) -> De
     environment = Environment(host_dir / "pyproject.toml")
     environment.add_project(project_dir / "pyproject.toml")
 
-    result = resolve_environment_metadata(make_io(), environment, make_resolvers())
+    result = resolve_environment_metadata(environment, make_resolvers())
     project_path = (project_dir / "pyproject.toml").resolve()
     return result.projects[project_path].deliver
 
@@ -134,6 +134,6 @@ def test_package_mode_false_takes_priority_over_deliver_setting(tmp_path):
     environment = Environment(host_dir / "pyproject.toml")
     environment.add_project(project_dir / "pyproject.toml")
 
-    result = resolve_environment_metadata(make_io(), environment, make_resolvers())
+    result = resolve_environment_metadata(environment, make_resolvers())
     project_path = (project_dir / "pyproject.toml").resolve()
     assert result.projects[project_path].deliver == DeliverableType.DISABLED_BY_PACKAGE_MODE

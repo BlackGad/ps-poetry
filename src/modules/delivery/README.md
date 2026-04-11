@@ -91,10 +91,25 @@ The publish stage processes projects in topological order, respecting inter-proj
 ## Delivery
 
 ```bash
-poetry delivery
+poetry delivery [--json] [--projects] [--dependency-tree] [--publish-order]
 ```
 
-Displays the dependency tree and publish wave ordering for all deliverable projects. No files are modified.
+Displays the delivery plan for the workspace without modifying any files.
+
+* `--json` — Output in JSON format instead of formatted text.
+* `--projects` — Show project resolution details only.
+* `--dependency-tree` — Show the dependency tree only.
+* `--publish-order` — Show the publish wave ordering only.
+
+When no filter flags are provided, all three sections are displayed. Filter flags may be combined to show multiple sections.
+
+The formatted output includes project resolution details with per-project version, deliverable status, matched version pattern, and resolved dependencies. Verbosity flags (`-v`, `-vv`, `-vvv`) control the level of detail shown in formatted output:
+
+* Normal — project name, path, deliverable status, resolved version, and dependencies.
+* Verbose (`-v`) — additionally shows the matched version pattern, pinning rule, dependency paths, and constraint resolution sources.
+* Debug (`-vvv`) — additionally shows all evaluated version patterns, condition evaluation results, and skipped dependencies.
+
+JSON output includes full resolution data regardless of verbosity level.
 
 # Version Patterns
 
