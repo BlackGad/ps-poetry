@@ -95,3 +95,12 @@ jobs:
         run: |
           poetry build
           poetry publish --skip-existing
+
+      - name: Print published versions
+        if: ${{ inputs.publish }}
+        working-directory: ${{ inputs.working_directory }}
+        run: |
+          poetry delivery --json --projects | python -c "
+          import sys, json
+          for p in json.load(sys.stdin)['projects']:
+              print(f\"::notice::{p['name']}: {p['version']}\")"
