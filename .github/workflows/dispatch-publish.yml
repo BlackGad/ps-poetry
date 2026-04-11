@@ -5,6 +5,11 @@ on:
   #   branches:
   #     - main
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Perform a dry run (build without publishing)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -18,5 +23,6 @@ jobs:
     with:
       working_directory: src
       publish: true
+      dry_run: ${{ inputs.dry_run }}
     secrets:
       PYPI_PAT: ${{ secrets.PYPI_PAT }}

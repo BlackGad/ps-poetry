@@ -12,6 +12,11 @@ on:
         type: boolean
         default: false
         description: 'Whether to build and publish packages to PyPI'
+      dry_run:
+        required: false
+        type: boolean
+        default: false
+        description: 'Perform a dry run (build without publishing)'
     secrets:
       PYPI_PAT:
         required: false
@@ -97,7 +102,7 @@ jobs:
           POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_PAT }}
         run: |
           poetry build -v
-          poetry publish --skip-existing --dry-run
+          poetry publish --skip-existing ${{ inputs.dry_run && '--dry-run' || '' }}
 
       - name: Print published versions
         if: ${{ inputs.publish }}
