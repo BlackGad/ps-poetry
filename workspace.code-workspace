@@ -121,6 +121,19 @@
 				],
 				"problemMatcher": []
 			},
+			{
+				"label": "Workspace: Publish to Local",
+				"type": "shell",
+				"command": "powershell",
+				"args": [
+					"-NoProfile",
+					"-ExecutionPolicy",
+					"Bypass",
+					"-Command",
+					"poetry publish --build --repository local"
+				],
+				"problemMatcher": []
+			},
 		],
 		"inputs": [
           {

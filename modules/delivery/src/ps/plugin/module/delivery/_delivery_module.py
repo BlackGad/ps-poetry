@@ -137,8 +137,27 @@ class DeliveryModule:
 
             # Execute build or publish command
             is_publish = isinstance(event.command, PublishCommand)
+            opts = event.io.input.options
+
+            needs_build = not is_publish or opts.get("build")
+            if needs_build:
+                build_exit_code = build_projects(
+                    event.io,
+                    filtered_projects,
+                    formats=BuildCommand._prepare_formats(opts.get("format")) if not is_publish else None,
+                    clean=bool(opts.get("clean")) if not is_publish else False,
+                    output=(opts.get("output") if not is_publish else opts.get("dist-dir")) or "dist",
+                    config_settings=BuildCommand._prepare_config_settings(
+                        local_version=opts.get("local-version"),
+                        config_settings=opts.get("config-settings"),
+                        io=event.io,
+                    ) if not is_publish else None,
+                )
+                if build_exit_code != 0:
+                    self._exit_code = build_exit_code
+                    return
+
             if is_publish:
-                opts = event.io.input.options
                 cert = opts.get("cert")
                 client_cert = opts.get("client-cert")
                 dist_dir = opts.get("dist-dir")
@@ -155,20 +174,6 @@ class DeliveryModule:
                     dist_dir=Path(dist_dir) if dist_dir else None,
                     dry_run=bool(opts.get("dry-run")),
                     skip_existing=bool(opts.get("skip-existing")),
-                )
-            else:
-                opts = event.io.input.options
-                self._exit_code = build_projects(
-                    event.io,
-                    filtered_projects,
-                    formats=BuildCommand._prepare_formats(opts.get("format")),
-                    clean=bool(opts.get("clean")),
-                    output=opts.get("output") or "dist",
-                    config_settings=BuildCommand._prepare_config_settings(
-                        local_version=opts.get("local-version"),
-                        config_settings=opts.get("config-settings"),
-                        io=event.io,
-                    ),
                 )
         finally:
             environment.restore_projects(environment.projects)

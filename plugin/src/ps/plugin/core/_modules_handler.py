@@ -137,13 +137,18 @@ def _load_module_infos(io: IO) -> list[_ModuleInfo]:
         if inspect.isclass(loaded):
             all_modules.extend(_scan_class(loaded, dist))
         elif inspect.ismodule(loaded):
+            func_groups: dict[str, _ModuleInfo] = {}
             for _, obj in inspect.getmembers(loaded):
                 if inspect.isclass(obj) and obj.__module__.startswith(loaded.__name__):
                     all_modules.extend(_scan_class(obj, dist))
                 elif inspect.isfunction(obj) and obj.__module__ == loaded.__name__:
                     info = _scan_function(obj, dist)
                     if info:
-                        all_modules.append(info)
+                        if info.name in func_groups:
+                            func_groups[info.name].handlers.update(info.handlers)
+                        else:
+                            func_groups[info.name] = info
+            all_modules.extend(func_groups.values())
         elif inspect.isfunction(loaded):
             info = _scan_function(loaded, dist)
             if info:
@@ -168,7 +173,10 @@ def _detect_collisions(modules: list[_ModuleInfo], io: IO) -> list[_ModuleInfo]:
         paths = {m.path for m in group}
         if len(paths) == 1 and None not in paths:
             log_debug(io, f"<fg=dark_gray>Module '<fg=cyan>{name}</>' discovered via multiple entry points, using single instance</>")
-            result.append(group[0])
+            merged = group[0]
+            for other in group[1:]:
+                merged.handlers.update(other.handlers)
+            result.append(merged)
         else:
             dist_list = ", ".join(
                 f"<fg=yellow>{m.distribution or 'unknown'}</>" for m in group
@@ -199,8 +207,8 @@ class _ModulesHandler:
 
         specified = self._plugin_settings.modules
         if specified is not None:
-            name_map = {m.name: m for m in modules}
-            modules = [name_map[n] for n in specified if n in name_map]
+            name_map = {m.name.lower(): m for m in modules}
+            modules = [name_map[n.lower()] for n in specified if n.lower() in name_map]
             selected_names = {m.name for m in modules}
         else:
             modules = []

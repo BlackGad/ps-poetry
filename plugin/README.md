@@ -153,3 +153,294 @@ At debug level all verbose output is included, with the following additions prin
 * `Module <name> disabled itself during activation` — emitted when `poetry_activate` returns `False`.
 * `Processing <event> event` — emitted each time an event listener fires during command execution.
 * `Command execution stopped after <event> handler` — emitted when a `command` handler cancels command execution.
+
+# Advanced: Creating Your Own Module
+
+This section guides you through creating and publishing your own plugin module. A plugin module can extend existing Poetry commands, add new commands, or hook into the Poetry execution lifecycle.
+
+## Module Structure
+
+A plugin module is a Python package with an entry point registered under the `ps.module` group. The simplest structure:
+
+```bash
+my-custom-module/
+├── pyproject.toml
+├── README.md
+├── main.py          # Your package code
+└── ps-extension.py  # Plugin module (separate file)
+```
+
+## Step 1: Create the Project
+
+Create a new Poetry project:
+
+```bash
+mkdir my-custom-module
+cd my-custom-module
+poetry init -n
+```
+
+Configure your `pyproject.toml` to register the module entry point and require the plugin:
+
+```toml
+# Register your extension module entry point
+[project.entry-points."ps.module"]
+my_module = "ps-extension"  # Points to ps-extension.py file
+
+# Define what gets packaged and distributed
+[tool.poetry]
+packages = [
+    { include = "main.py" }  # Only package main.py, NOT ps-extension.py
+]
+
+# Require ps-plugin-core to be installed as a Poetry plugin
+[tool.poetry.requires-plugins]
+ps-plugin-core = "*"
+
+# Enable the plugin and activate your module
+[tool.ps-plugin]
+modules = ["foo"]  # Module name from the entry point above
+
+## Step 2: Implement the Module
+
+Create `main.py` with your package code:
+
+```python
+def hello():
+    print("Hello World!")
+```
+
+Create `ps-extension.py` with the plugin activation function:
+
+```python
+def poetry_activate_foo(application):
+    print("Hello from extension!")
+```
+
+The `poetry_activate` function is called once when the plugin activates. The `application` parameter is automatically injected by the dependency injection system.
+
+> **Note:** For the simplest extension, you don't need `ps-plugin-sdk`. Add it only when you need access to SDK utilities like `Environment`, `PluginSettings`, or helper functions.
+
+### Advanced: Use a Module Class
+
+For more complex modules that need to maintain state or handle multiple events, use a class.
+
+First, add `ps-plugin-sdk` to your dependencies:
+
+```bash
+poetry add ps-plugin-sdk
+```
+
+Then implement your module class:
+
+```python
+from typing import ClassVar
+
+from cleo.events.console_command_event import ConsoleCommandEvent
+from cleo.io.inputs.option import Option
+from poetry.console.application import Application
+from poetry.console.commands.check import CheckCommand
+
+from ps.plugin.sdk.events import ensure_option
+
+
+class MyModule:
+    name: ClassVar[str] = "my-module"
+
+    def poetry_activate(self, application: Application) -> bool:
+        ensure_option(CheckCommand, Option(
+            name="strict",
+            description="Enable strict validation mode.",
+            shortcut="s",
+            flag=True
+        ))
+        return True
+
+    def poetry_command(self, event: ConsoleCommandEvent) -> None:
+        if not isinstance(event.command, CheckCommand):
+            return
+
+        io = event.io
+        strict_mode = io.input.options.get("strict", False)
+
+        if strict_mode:
+            io.write_line("<info>Running in strict mode</info>")
+            # Add your strict validation logic here
+```
+
+### Advanced: Add a Custom Command
+
+This example adds a new `poetry status` command to display workspace information:
+
+```python
+from typing import ClassVar
+
+from cleo.commands.command import Command
+from cleo.io.inputs.option import Option
+from poetry.console.application import Application
+
+from ps.di import DI
+from ps.plugin.sdk.project import Environment
+
+
+class StatusCommand(Command):
+    name = "status"
+    description = "Display workspace status and project information."
+    options = [
+        Option("--verbose", "-v", flag=True, description="Show detailed information")
+    ]
+
+    def __init__(self, di: DI) -> None:
+        super().__init__()
+        self._di = di
+
+    def handle(self) -> int:
+        environment = self._di.resolve(Environment)
+        assert environment is not None
+
+        io = self.io
+        verbose = self.option("verbose")
+
+        io.write_line(f"<info>Host project:</info> {environment.host_project.name.value}")
+        io.write_line(f"<info>Total projects:</info> {len(environment.projects)}")
+
+        if verbose:
+            io.write_line("\n<info>Projects:</info>")
+            for project in environment.projects:
+                io.write_line(f"  - {project.name.value} ({project.path})")
+
+        return 0
+
+
+class MyModule:
+    name: ClassVar[str] = "my-module"
+
+    def poetry_activate(self, application: Application, di: DI) -> bool:
+        application.add(di.spawn(StatusCommand))
+        return True
+```
+
+## Step 3: Use Dependency Injection
+
+All handler functions and command constructors are invoked through the [`DI.satisfy`](https://github.com/BlackGad/ps-poetry/blob/main/libraries/di/README.md) wrapper. Simply declare parameters with type hints and they will be injected automatically.
+
+### Pre-registered Types
+
+The following types are available for injection in any handler:
+
+* `Application` (from `poetry.console.application`) — The Poetry application instance
+* `IO` (from `cleo.io.io`) — Console input/output interface
+* `Environment` (from `ps.plugin.sdk.project`) — Workspace environment with all discovered projects
+* `PluginSettings` (from `ps.plugin.sdk.settings`) — Parsed `[tool.ps-plugin]` configuration
+* `EventDispatcher` (from `cleo.events.event_dispatcher`) — Cleo event dispatcher
+* `DI` (from `ps.di`) — The dependency injection container itself
+
+Inside event handlers, these additional types are available:
+
+* `ConsoleCommandEvent` (from `cleo.events.console_command_event`)
+* `ConsoleTerminateEvent` (from `cleo.events.console_terminate_event`)
+* `ConsoleErrorEvent` (from `cleo.events.console_error_event`)
+* `ConsoleSignalEvent` (from `cleo.events.console_signal_event`)
+
+### Register Custom Types
+
+Register your own types in `poetry_activate`:
+
+```python
+from ps.di import DI
+from my_namespace.services import MyService
+
+
+class MyModule:
+    name: ClassVar[str] = "my-module"
+
+    def poetry_activate(self, di: DI) -> bool:
+        di.register(MyService).singleton()
+        return True
+
+    def poetry_command(self, service: MyService) -> None:
+        service.do_something()
+```
+
+## Step 4: Test Locally
+
+Plugin modules must be installed as packages — they cannot be defined inline within a project. Create a separate test project and install your module as a path dependency:
+
+```bash
+mkdir test-project
+cd test-project
+poetry init -n
+```
+
+Add your module as a development dependency in the test project's `pyproject.toml`:
+
+```toml
+[tool.poetry.dependencies]
+python = "^3.10"
+my-custom-module = { path = "../my-custom-module", develop = true }
+
+[tool.ps-plugin]
+modules = ["my-module"]
+```
+
+Install dependencies and test your module:
+
+```bash
+poetry install
+poetry check -v
+# or
+poetry status -v
+```
+
+> **Note:** Entry points require `package-mode = true` (the default). Projects with `package-mode = false` are not installed as distributions and cannot expose entry points. Always keep your module project in package mode.
+
+## Step 5: Publish Your Module
+
+Build and publish your module to PyPI:
+
+```bash
+poetry build
+poetry publish
+```
+
+Users can then install it globally or per-project:
+
+```bash
+poetry self add my-custom-module
+```
+
+Or declare it in `pyproject.toml`:
+
+```toml
+[tool.poetry.requires-plugins]
+my-custom-module = "*"
+
+[tool.ps-plugin]
+modules = ["my-module"]
+```
+
+## Module Best Practices
+
+* **Unique naming** — Use a distinctive module name to avoid collisions. Include a prefix or namespace (e.g., `company-module-name`).
+* **Minimal activation** — Return `False` from `poetry_activate` when your module should not participate (e.g., when required configuration is missing).
+* **Event filtering** — In `poetry_command`, check `isinstance(event.command, TargetCommand)` before processing to avoid interfering with unrelated commands.
+* **Disable with care** — Call `event.disable_command()` only when you fully replace the original command's behavior. Otherwise, let it execute normally.
+* **Respect verbosity** — Print informational output only when `io.is_verbose()` or `io.is_debug()` returns `True`.
+* **Type hints** — Always provide type hints on function parameters to enable automatic dependency injection.
+* **Documentation** — Document your module's configuration options, commands, and expected behavior in a README.
+
+## Complete Example
+
+For complete working examples, see:
+
+* [ps-plugin-module-check](https://github.com/BlackGad/ps-poetry/blob/main/modules/check/README.md) — Extends the `poetry check` command with configurable quality checks
+* [ps-plugin-module-delivery](https://github.com/BlackGad/ps-poetry/blob/main/modules/delivery/README.md) — Adds a `poetry delivery` command and extends `poetry build` and `poetry publish`
+* [ps-poetry-examples](https://github.com/BlackGad/ps-poetry-examples) — Working project examples demonstrating module usage
+
+## Troubleshooting
+
+**Module not loaded:** Ensure `[project.entry-points."ps.module"]` is declared correctly and points to a valid Python module or class. Run `poetry install` after modifying entry points.
+
+**Dependencies not injected:** Verify that all function parameters have type hints matching registered types. Check that `ps.di` is imported from `ps.di`, not `ps.dependency_injection`.
+
+**Name collision:** If another distribution exposes a module with the same name, both modules will be skipped. Choose a unique name or configure your module as the only one in the `modules` list.

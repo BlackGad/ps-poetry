@@ -15,10 +15,17 @@ from poetry.plugins.application_plugin import ApplicationPlugin
 from poetry.utils.env import EnvManager
 
 from ps.di import DI
+from ps.plugin.sdk.setup_extension_template import ExtensionTemplate
 from ps.plugin.sdk.logging import log_debug, log_verbose
 from ps.plugin.sdk.project import Environment
 from ps.plugin.sdk.settings import PluginSettings, parse_plugin_settings_from_document
 
+from .commands import SetupExtensionCommand
+from .commands.create_extension import (
+    BlankClassTemplate,
+    BlankFunctionTemplate,
+    CustomCommandTemplate,
+)
 from ._modules_handler import _ModulesHandler
 
 _EVENT_LISTENERS = {
@@ -110,6 +117,12 @@ class Plugin(ApplicationPlugin):
         handler = di.spawn(_ModulesHandler)
         handler.discover_and_instantiate()
         handler.activate()
+
+        di.register(ExtensionTemplate).factory(lambda: BlankFunctionTemplate())
+        di.register(ExtensionTemplate).factory(lambda: BlankClassTemplate())
+        di.register(ExtensionTemplate).factory(lambda: CustomCommandTemplate())
+
+        application.add(di.spawn(SetupExtensionCommand))
 
         for event_type, event_constant in _EVENT_LISTENERS.items():
             fns = handler.get_event_handlers(event_type)

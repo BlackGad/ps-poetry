@@ -81,9 +81,9 @@ checks = [
 # ps-delivery settings
 version-patterns = [
     "[{in}] {in}",
-    "[{git:mainline} and {git:dirty}] {git:version:major}.{git:version:minor<0>}.{git:distance}+{date:%Y%m%d%H%M}",
+    "[{git:mainline} and {git:dirty}] {git:version:major}.{git:version:minor<0>}.{git:distance}.post{date:%d%H%M}",
     "[{git:mainline}] {git:version:major}.{git:version:minor<0>}.{git:distance}",
-    "[{git:dirty}] {git:version:major}.{git:version:minor<0>}.{git:distance}+{git:branch}.{date:%Y%m%d%H%M}",
+    "[{git:dirty}] {git:version:major}.{git:version:minor<0>}.{git:distance}rc{date:%d%H%M}",
     "{git:version:major}.{git:version:minor<0>}.{git:distance}+{git:branch}"
 ]
 deliver = false
