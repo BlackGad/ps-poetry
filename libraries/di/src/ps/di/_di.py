@@ -43,20 +43,6 @@ class DI:
         self._signature_cache: dict[Any, inspect.Signature] = {}
         self._type_name_cache: dict[str, Type] = {}
 
-    def _resolve_type(self, key: Type[T] | str) -> Type[T]:
-        if isinstance(key, str):
-            if key not in self._type_name_cache:
-                found = next((t for t in self._registry if t.__name__ == key), None)
-                if found is None:
-                    raise ValueError(f"Cannot resolve type from string '{key}' - no matching type registered")
-                self._type_name_cache[key] = found
-            return self._type_name_cache[key]
-        return key
-
-    def register(self, cls: Type[T] | str, lifetime: Lifetime = Lifetime.SINGLETON, priority: Priority = Priority.LOW) -> Binding[T]:
-        resolved_cls = cast(Type[T], self._resolve_type(cls)) if isinstance(cls, str) else cls
-        return Binding(self, resolved_cls, lifetime=lifetime, priority=priority)
-
     def __enter__(self) -> Self:
         return self
 
@@ -65,6 +51,10 @@ class DI:
             self._registry.clear()
         self._signature_cache.clear()
         self._type_name_cache.clear()
+
+    def register(self, cls: Type[T] | str, lifetime: Lifetime = Lifetime.SINGLETON, priority: Priority = Priority.LOW) -> Binding[T]:
+        resolved_cls = cast(Type[T], self._resolve_type(cls)) if isinstance(cls, str) else cls
+        return Binding(self, resolved_cls, lifetime=lifetime, priority=priority)
 
     def resolve(self, key: Type[T] | str) -> Optional[T]:
         resolved_key = self._resolve_type(key) if isinstance(key, str) else key
@@ -82,10 +72,61 @@ class DI:
             return []
         return registrations.resolve_all()
 
+    def spawn(self, cls: Type[T], *args: Any, **kwargs: Any) -> T:
+        fn = cls.__init__
+        if args:
+            if fn not in self._signature_cache:
+                self._signature_cache[fn] = inspect.signature(fn)
+            params = list(self._signature_cache[fn].parameters.values())[1:]
+            kwargs = {p.name: v for p, v in zip(params, args, strict=False)} | kwargs
+        return cls(**self._resolve_kwargs(fn, skip_self=True, explicit_kwargs=kwargs))
+
+    def satisfy(self, fn: Callable[..., R], **kwargs: Any) -> Callable[..., R]:
+        resolved_kwargs = self._resolve_kwargs(fn, skip_self=False, explicit_kwargs=kwargs)
+
+        def wrapper(**override: Any) -> R:
+            return fn(**resolved_kwargs | override)
+
+        return wrapper
+
+    def scope(self) -> "DI":
+        return _ScopedDI(self)
+
     def _register(self, cls: Type[T], registration: _Registration[T]) -> None:
         with self._lock_registry_access:
             registrations = self._registry.setdefault(cls, _Registrations())
         registrations.add_registration(registration)
+
+    def _resolve_type(self, key: Type[T] | str) -> Type[T]:
+        if isinstance(key, str):
+            if key not in self._type_name_cache:
+                found = next((t for t in self._registry if t.__name__ == key), None)
+                if found is None:
+                    raise ValueError(f"Cannot resolve type from string '{key}' - no matching type registered")
+                self._type_name_cache[key] = found
+            return self._type_name_cache[key]
+        return key
+
+    def _normalize_name(self, name: str) -> str:
+        return name.casefold().replace("_", "")
+
+    def _find_type_by_name(self, normalized: str) -> Optional[Type]:
+        with self._lock_registry_access:
+            return next(
+                (t for t in self._registry if self._normalize_name(getattr(t, "__name__", "")) == normalized),
+                None
+            )
+
+    def _try_resolve_by_name(self, param_name: str, has_default: bool, default: Any) -> tuple[bool, Any]:
+        normalized = self._normalize_name(param_name)
+        matched_type = self._find_type_by_name(normalized)
+        if matched_type is not None:
+            resolved = self.resolve(matched_type)
+            if resolved is not None:
+                return True, resolved
+        if has_default:
+            return True, default
+        return False, None
 
     def _try_resolve_annotation(self, annotation: Any, has_default: bool, default: Any) -> tuple[bool, Any]:
         if annotation is DI or (isinstance(annotation, type) and issubclass(annotation, DI)):
@@ -133,52 +174,26 @@ class DI:
                 continue
 
             annotation = type_hints.get(param.name, param.annotation)
+            has_default = param.default != inspect.Parameter.empty
+
             if annotation == inspect.Parameter.empty:
+                found, value = self._try_resolve_by_name(param.name, has_default, param.default)
+                if found:
+                    final_kwargs[param.name] = value
                 continue
 
-            has_default = param.default != inspect.Parameter.empty
-            ok, value = self._try_resolve_annotation(annotation, has_default, param.default)
-            if not ok:
+            found, value = self._try_resolve_annotation(annotation, has_default, param.default)
+            if not found:
                 raise ValueError(f"Cannot resolve required dependency {annotation} for parameter {param.name}")
             final_kwargs[param.name] = value
 
         return final_kwargs
-
-    def spawn(self, cls: Type[T], *args: Any, **kwargs: Any) -> T:
-        fn = cls.__init__
-        if args:
-            if fn not in self._signature_cache:
-                self._signature_cache[fn] = inspect.signature(fn)
-            params = list(self._signature_cache[fn].parameters.values())[1:]
-            kwargs = {p.name: v for p, v in zip(params, args, strict=False)} | kwargs
-        return cls(**self._resolve_kwargs(fn, skip_self=True, explicit_kwargs=kwargs))
-
-    def satisfy(self, fn: Callable[..., R], **kwargs: Any) -> Callable[..., R]:
-        resolved_kwargs = self._resolve_kwargs(fn, skip_self=False, explicit_kwargs=kwargs)
-
-        def wrapper(**override: Any) -> R:
-            return fn(**resolved_kwargs | override)
-
-        return wrapper
-
-    def scope(self) -> "DI":
-        return _ScopedDI(self)
 
 
 class _ScopedDI(DI):
     def __init__(self, parent: DI) -> None:
         super().__init__()
         self._parent = parent
-
-    def _resolve_type(self, key: Type[T] | str) -> Type[T]:
-        if isinstance(key, str):
-            if key not in self._type_name_cache:
-                found = next((t for t in self._registry if t.__name__ == key), None)
-                if found is None:
-                    return self._parent._resolve_type(key)
-                self._type_name_cache[key] = found
-            return self._type_name_cache[key]
-        return key
 
     def resolve(self, key: Type[T] | str) -> Optional[T]:
         resolved_key = self._resolve_type(key) if isinstance(key, str) else key
@@ -195,3 +210,19 @@ class _ScopedDI(DI):
         scoped_results: List[T] = registrations.resolve_all() if registrations is not None else []
         parent_results: List[T] = self._parent.resolve_many(key)
         return scoped_results + parent_results
+
+    def _resolve_type(self, key: Type[T] | str) -> Type[T]:
+        if isinstance(key, str):
+            if key not in self._type_name_cache:
+                found = next((t for t in self._registry if t.__name__ == key), None)
+                if found is None:
+                    return self._parent._resolve_type(key)
+                self._type_name_cache[key] = found
+            return self._type_name_cache[key]
+        return key
+
+    def _find_type_by_name(self, normalized: str) -> Optional[Type]:
+        matched = super()._find_type_by_name(normalized)
+        if matched is not None:
+            return matched
+        return self._parent._find_type_by_name(normalized)

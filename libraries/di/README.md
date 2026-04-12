@@ -106,6 +106,7 @@ primary = di.resolve(NotificationService)  # sms (HIGH wins)
 * A parameter typed as `List[T]` receives the result of `resolve_many(T)`.
 * A parameter typed as `Optional[T]` receives the result of `resolve(T)`, falling back to the default value when nothing is registered.
 * Any other typed parameter receives the result of `resolve(T)`. If `resolve` returns `None` and no default exists, `spawn` raises `ValueError`.
+* A parameter **without a type annotation** is resolved by name: the parameter name is normalized (case-folded with underscores removed) and matched against the `__name__` of registered types using the same normalization. For example, a parameter named `application` matches a registered `Application` type, and `event_dispatcher` matches `EventDispatcher`.
 
 Positional and keyword arguments passed to `spawn` override automatic resolution:
 
@@ -128,6 +129,7 @@ repo = di.spawn(UserRepository, logger=custom_logger)  # explicit override
 * Parameters typed as `List[T]` receive all registered instances of `T`.
 * Parameters typed as `Optional[T]` receive `None` when no registration exists.
 * Parameters marked with `REQUIRED` are excluded from DI resolution and must be supplied by the caller.
+* Parameters **without a type annotation** are resolved by name using the same normalization rules as `spawn` (case-folded, underscores removed, matched against registered type names).
 
 ```python
 from ps.di import DI, REQUIRED
@@ -151,6 +153,7 @@ Resolution in a scoped container follows these rules:
 * `resolve` checks the scoped registry first; if nothing is registered, it falls through to the parent.
 * `resolve_many` returns scoped registrations followed by parent registrations, with scoped results first.
 * `spawn` and `satisfy` use the scoped resolver, so injected dependencies prefer scoped registrations.
+* Name-based resolution (for untyped parameters) searches the scoped registry first, then the parent.
 * A parameter typed as `DI` receives the scoped instance, not the parent.
 
 Scopes support the context manager protocol. Exiting the `with` block clears the scoped registry and releases all singleton instances held by the scope, enabling deterministic cleanup of resources such as database connections or file handles.
