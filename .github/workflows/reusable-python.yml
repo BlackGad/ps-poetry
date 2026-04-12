@@ -101,8 +101,7 @@ jobs:
         env:
           POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_PAT }}
         run: |
-          poetry build -v
-          poetry publish --skip-existing ${{ inputs.dry_run && '--dry-run' || '' }}
+          poetry publish --build --skip-existing ${{ inputs.dry_run && '--dry-run' || '' }} -v
 
       - name: Print published versions
         if: ${{ inputs.publish }}
