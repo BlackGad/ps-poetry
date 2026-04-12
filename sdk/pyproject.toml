@@ -20,10 +20,6 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-dependencies = [
-    "poetry",
-    "pydantic",
-]
 
 [project.urls]
 Homepage   = "https://github.com/BlackGad/ps-poetry"
@@ -33,6 +29,8 @@ Examples   = "https://github.com/BlackGad/ps-poetry-examples"
 
 [tool.poetry.dependencies]
 ps-version = { path = "../libraries/version", develop = true }
+poetry = "*"
+pydantic = "*"
 
 [tool.poetry]
 packages = [ { include = "ps/plugin/sdk", from = "src" } ]
