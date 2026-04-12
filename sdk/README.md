@@ -101,6 +101,33 @@ Additional fields declared in the TOML section are preserved under `model_extra`
 * `set(new_value)` — Overwrites the value in the underlying document without altering surrounding TOML formatting.
 * `TomlValue.locate(document, candidates)` — Resolves the first matching dotted path from an ordered list of candidates and returns a `TomlValue`. Falls back to the first candidate path when none match.
 
+# Extension Template
+
+The `ExtensionTemplate` protocol in `ps.plugin.sdk.setup_extension_template` defines the interface for scaffolding templates used by the [`ps setup-extension`](https://github.com/BlackGad/ps-poetry/blob/main/plugin/README.md) command. Any package can register additional templates through the DI container to extend the built-in selection.
+
+The protocol requires the following attributes and method:
+
+* `name` (`str`) — Display name shown in the template selection prompt.
+* `description` (`str`) — Short description of what the template generates.
+* `dependencies` (`list[str]`) — Package names to install automatically before generating the file (e.g. `["poetry"]`).
+* `questions` (`list[ExtensionTemplateQuestion]`) — Additional prompts presented to the user before generation.
+* `template` (`str`) — Python source code template with `{variable}` placeholders.
+* `prepare_variables(variables) -> dict[str, str]` — Hook to transform or add template variables after user input is collected. Receives and returns the full variable dictionary.
+
+`ExtensionTemplateQuestion` is a dataclass with:
+
+* `name` (`str`) — Variable name for the answer.
+* `prompt` (`str`) — Text displayed to the user.
+* `options` (`list[str]`, optional) — Fixed choices for a selection prompt.
+* `default` (`str`, optional) — Default answer value.
+
+`TomlValue` locates a TOML entry within a `TOMLDocument` by navigating a dotted-key path. It is used throughout the SDK to provide stable references to document values that can later be read or overwritten in place.
+
+* `value` — Returns the current value at the resolved path, or `None` if not found.
+* `exists` — Returns `True` if the path was resolved successfully during construction.
+* `set(new_value)` — Overwrites the value in the underlying document without altering surrounding TOML formatting.
+* `TomlValue.locate(document, candidates)` — Resolves the first matching dotted path from an ordered list of candidates and returns a `TomlValue`. Falls back to the first candidate path when none match.
+
 # Environment
 
 `Environment` manages a collection of `Project` objects representing a multi-project workspace. Initialize it with the path to any `pyproject.toml` and it discovers the full project graph automatically:

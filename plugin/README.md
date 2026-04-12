@@ -57,8 +57,10 @@ Modules are discovered by scanning the `ps.module` entry-point group at runtime.
 An entry point may resolve to:
 
 * **A class** — instance methods matching the pattern form one module; static/class methods with a suffix form additional modules grouped by suffix.
-* **A Python module (namespace)** — all classes and module-level functions inside it are scanned recursively.
+* **A Python module (namespace)** — all classes and module-level functions inside it are scanned recursively. Functions sharing the same suffix are grouped into a single module.
 * **A plain function** — must have a suffix (e.g. `poetry_command_delivery`).
+
+When a Python module contains multiple functions with the same suffix (e.g. `poetry_activate_foo`, `poetry_command_foo`, `poetry_terminate_foo`), they are merged into a single module named by that suffix. This allows a single file to define all lifecycle handlers for one module without requiring a class.
 
 ## Module naming
 
@@ -444,3 +446,108 @@ For complete working examples, see:
 **Dependencies not injected:** Verify that all function parameters have type hints matching registered types. Check that `ps.di` is imported from `ps.di`, not `ps.dependency_injection`.
 
 **Name collision:** If another distribution exposes a module with the same name, both modules will be skipped. Choose a unique name or configure your module as the only one in the `modules` list.
+
+# Extension Scaffolding
+
+The `ps setup-extension` command provides interactive scaffolding for creating new plugin modules directly inside the current project. It generates the extension source file, registers the entry point in `pyproject.toml`, and adds the module to the `[tool.ps-plugin] modules` list.
+
+Run the command from a project directory:
+
+```bash
+poetry ps setup-extension
+```
+
+The command prompts for an extension name, a template, and any template-specific questions. It then writes the generated file into an `extensions/` directory relative to the project root and updates `pyproject.toml` accordingly.
+
+The generated entry point value follows the pattern `extensions.<snake_name>`, where `<snake_name>` is the normalized module name (lowercased with hyphens and dots replaced by underscores).
+
+Four default variables are available in every template:
+
+* `{name}` — the original extension name as entered by the user
+* `{safe_name}` — name with hyphens and dots replaced by underscores, preserving case
+* `{snake_name}` — lowercase version of `safe_name`
+* `{pascal_name}` — PascalCase version of the name
+
+## Built-in Templates
+
+Three templates are included out of the box.
+
+### Entry functions
+
+Function-based extension module with all poetry handler functions. Each function follows the `poetry_<event>_<suffix>` naming convention and receives the appropriate event type. Functions sharing the same suffix are automatically grouped into a single module during discovery.
+
+```python
+from cleo.events.console_command_event import ConsoleCommandEvent
+from cleo.events.console_terminate_event import ConsoleTerminateEvent
+from poetry.console.application import Application
+
+
+def poetry_activate_my_ext(application: Application) -> bool:
+    print("Hello from extension my_ext")
+    return True
+
+
+def poetry_command_my_ext(event: ConsoleCommandEvent) -> None:
+    print("Command event in my_ext")
+
+
+def poetry_terminate_my_ext(event: ConsoleTerminateEvent) -> None:
+    print("Terminate event in my_ext")
+```
+
+### Entry class
+
+Class-based extension module where all handler methods belong to a single `ExtensionModule` class. The class `name` attribute determines the module name. Instance methods do not require a suffix.
+
+```python
+from typing import ClassVar
+
+from cleo.events.console_command_event import ConsoleCommandEvent
+from poetry.console.application import Application
+
+
+class ExtensionModule:
+    name: ClassVar[str] = "my-ext"
+
+    def poetry_activate(self, application: Application) -> bool:
+        print("Hello from extension my-ext")
+        return True
+
+    def poetry_command(self, event: ConsoleCommandEvent) -> None:
+        print("Command event in my-ext")
+```
+
+### Custom command
+
+Module that registers a new Poetry command. The template prompts for a command name and generates a `CustomCommand` class with example arguments and options, along with an activation function that registers it with the application.
+
+```python
+from cleo.commands.command import Command
+from cleo.io.inputs.argument import Argument
+from cleo.io.inputs.option import Option
+from poetry.console.application import Application
+
+
+class CustomCommand(Command):
+    name = "greet"
+    description = ""
+    arguments = [
+        Argument(name="arg-value", description="A single argument value", default=None, required=False),
+    ]
+    options = [
+        Option("--flag", flag=True, requires_value=False, shortcut="j", description="Flag option"),
+    ]
+
+    def handle(self) -> int:
+        print("Handling greet")
+        return 0
+
+
+def poetry_activate_my_ext(application: Application) -> bool:
+    application.add(CustomCommand())
+    return True
+```
+
+## Custom Templates
+
+Additional templates can be provided by any installed package through the dependency injection system. Register an `ExtensionTemplate` implementation from `ps.plugin.sdk.setup_extension_template` in the DI container during plugin activation, and it will appear in the template selection list alongside the built-in templates.
