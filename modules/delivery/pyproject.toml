@@ -31,14 +31,10 @@ Examples   = "https://github.com/BlackGad/ps-poetry-examples"
 [project.entry-points."ps.module"]
 module_entry = "ps.plugin.module.delivery"
 
-[tool.poetry.group.ps.dependencies]
-ps-version              = { path = "../../libraries/version", develop = true }
-ps-token-expressions    = { path = "../../libraries/token_expressions", develop = true }
-ps-plugin-sdk           = { path = "../../sdk", develop = true }
-
-
 [tool.poetry.dependencies]
-ps-dependency-injection = {path = "../../libraries/di", develop = true}
+ps-plugin-sdk           = { path = "../../sdk", develop = true }
+ps-token-expressions    = { path = "../../libraries/token_expressions", develop = true }
+ps-dependency-injection = { path = "../../libraries/di", develop = true }
 
 [tool.poetry]
 packages = [ { include = "ps/plugin/module/delivery", from = "src" } ]

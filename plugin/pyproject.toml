@@ -31,9 +31,9 @@ Examples   = "https://github.com/BlackGad/ps-poetry-examples"
 [project.entry-points."poetry.application.plugin"]
 entry = "ps.plugin.core._plugin:Plugin"
 
-[tool.poetry.group.ps.dependencies]
+[tool.poetry.dependencies]
 ps-dependency-injection = { path = "../libraries/di", develop = true }
-ps-plugin-sdk = { path = "../sdk", develop = true }
+ps-plugin-sdk           = { path = "../sdk", develop = true }
 
 [tool.poetry]
 packages = [ { include = "ps/plugin/core", from = "src" } ]

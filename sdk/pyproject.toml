@@ -31,7 +31,7 @@ Repository = "https://github.com/BlackGad/ps-poetry"
 Issues     = "https://github.com/BlackGad/ps-poetry/issues"
 Examples   = "https://github.com/BlackGad/ps-poetry-examples"
 
-[tool.poetry.group.ps.dependencies]
+[tool.poetry.dependencies]
 ps-version = { path = "../libraries/version", develop = true }
 
 [tool.poetry]

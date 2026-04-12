@@ -1204,7 +1204,7 @@ files = [
 [[package]]
 name = "ps-dependency-injection"
 version = "0.0.0"
-description = ""
+description = "Lightweight, thread-safe dependency injection container for Python"
 optional = false
 python-versions = ">=3.10,<3.14"
 groups = ["ps"]
@@ -1218,12 +1218,16 @@ url = "libraries/di"
 [[package]]
 name = "ps-plugin-core"
 version = "0.0.0"
-description = ""
+description = "Core Poetry application plugin: module discovery, dependency injection, and lifecycle management"
 optional = false
 python-versions = ">=3.10,<3.14"
 groups = ["ps"]
 files = []
 develop = true
+
+[package.dependencies]
+ps-dependency-injection = {path = "../libraries/di", develop = true}
+ps-plugin-sdk = {path = "../sdk", develop = true}
 
 [package.source]
 type = "directory"
@@ -1232,7 +1236,7 @@ url = "plugin"
 [[package]]
 name = "ps-plugin-module-check"
 version = "0.0.0"
-description = ""
+description = "Check module for ps-poetry: configurable quality checks including ruff, pyright, pytest, and more"
 optional = false
 python-versions = ">=3.10,<3.14"
 groups = ["ps"]
@@ -1241,6 +1245,7 @@ develop = true
 
 [package.dependencies]
 ps-dependency-injection = {path = "../../libraries/di", develop = true}
+ps-plugin-sdk = {path = "../../sdk", develop = true}
 
 [package.source]
 type = "directory"
@@ -1249,7 +1254,7 @@ url = "modules/check"
 [[package]]
 name = "ps-plugin-module-delivery"
 version = "0.0.0"
-description = ""
+description = "Delivery module for ps-poetry: automated version stamping, dependency resolution, and topologically-ordered publishing"
 optional = false
 python-versions = ">=3.10,<3.14"
 groups = ["ps"]
@@ -1258,6 +1263,8 @@ develop = true
 
 [package.dependencies]
 ps-dependency-injection = {path = "../../libraries/di", develop = true}
+ps-plugin-sdk = {path = "../../sdk", develop = true}
+ps-token-expressions = {path = "../../libraries/token_expressions", develop = true}
 
 [package.source]
 type = "directory"
@@ -1266,7 +1273,7 @@ url = "modules/delivery"
 [[package]]
 name = "ps-plugin-sdk"
 version = "0.0.0"
-description = ""
+description = "SDK for ps-poetry plugin modules: shared abstractions, models, protocols, and pyproject.toml utilities"
 optional = false
 python-versions = ">=3.10,<3.14"
 groups = ["ps"]
@@ -1284,7 +1291,7 @@ url = "sdk"
 [[package]]
 name = "ps-token-expressions"
 version = "0.0.0"
-description = ""
+description = "Flexible token-based expression resolution and materialization library for Python"
 optional = false
 python-versions = ">=3.10,<3.14"
 groups = ["ps"]
@@ -1298,7 +1305,7 @@ url = "libraries/token_expressions"
 [[package]]
 name = "ps-version"
 version = "0.0.0"
-description = ""
+description = "Parse, compare, and format version numbers across PEP 440, SemVer, NuGet, CalVer, and loose formats"
 optional = false
 python-versions = ">=3.10,<3.14"
 groups = ["ps"]
