@@ -11,6 +11,7 @@ from ps.di import DI
 from ps.plugin.sdk.logging import log_debug, log_verbose
 from ps.plugin.sdk.settings import PluginSettings
 
+_ENTRY_POINT_VALUE_PATTERN = re.compile(r"^[\w][\w.]*(?::[\w][\w.]*)?$")
 _HANDLER_PATTERN = re.compile(r"^poetry_(activate|command|error|terminate|signal)(_\w+)?$")
 _EVENT_TYPES = ("activate", "command", "error", "terminate", "signal")
 
@@ -119,6 +120,13 @@ def _load_module_infos(io: IO) -> list[_ModuleInfo]:
     for entry_point in metadata.entry_points(group="ps.module"):
         ep_name = f"{entry_point.group}:{entry_point.name}"
         try:
+            ep_value = getattr(entry_point, "value", None)
+            if isinstance(ep_value, str) and not _ENTRY_POINT_VALUE_PATTERN.match(ep_value):
+                raise ValueError(
+                    f"Entry point value '{ep_value}' is not a valid Python module path. "
+                    f"Module names may only contain letters, digits, and underscores — hyphens are not allowed "
+                    f"(e.g. use '{ep_value.replace('-', '_')}' instead of '{ep_value}')."
+                )
             loaded = entry_point.load()
             dist = _get_distribution(entry_point)
         except Exception as e:
