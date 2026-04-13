@@ -19,7 +19,7 @@ class EnableCommand(Command):
 
         ps_plugin = _ensure_ps_plugin_section(document)
 
-        if "enabled" in ps_plugin and ps_plugin["enabled"] is False:
+        if "enabled" in ps_plugin and not bool(ps_plugin["enabled"]):
             del ps_plugin["enabled"]
             self.line("<info>Removed 'enabled = false' from [tool.ps-plugin].</info>")
         else:
@@ -43,7 +43,7 @@ class DisableCommand(Command):
 
         ps_plugin = _ensure_ps_plugin_section(document)
 
-        if "enabled" in ps_plugin and ps_plugin["enabled"] is False:
+        if "enabled" in ps_plugin and not bool(ps_plugin["enabled"]):
             self.line("<comment>Plugin is already disabled.</comment>")
         else:
             ps_plugin["enabled"] = False
