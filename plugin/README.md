@@ -117,6 +117,7 @@ The following types are pre-registered by the plugin host and can be used as fun
 | `Environment` | `from ps.plugin.sdk.project import Environment` | Resolved project [environment](https://github.com/BlackGad/ps-poetry/blob/main/sdk/README.md) with host/workspace access |
 | `PluginSettings` | `from ps.plugin.sdk.settings import PluginSettings` | Parsed [`[tool.ps-plugin]` settings](https://github.com/BlackGad/ps-poetry/blob/main/sdk/README.md) |
 | `EventDispatcher` | `from cleo.events.event_dispatcher import EventDispatcher` | The Cleo event dispatcher |
+| `DI` | `from ps.di import DI` | The dependency injection container itself |
 
 Inside event handlers (`poetry_command`, `poetry_error`, `poetry_terminate`, `poetry_signal`), additional types are registered in a scoped DI container:
 
