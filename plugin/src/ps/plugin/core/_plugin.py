@@ -20,7 +20,7 @@ from ps.plugin.sdk.logging import log_debug, log_verbose
 from ps.plugin.sdk.project import Environment
 from ps.plugin.sdk.settings import PluginSettings, parse_plugin_settings_from_document
 
-from .commands import SetupExtensionCommand
+from .commands import DisableCommand, EnableCommand, SetupExtensionCommand
 from .commands.create_extension import (
     BlankClassTemplate,
     BlankFunctionTemplate,
@@ -94,6 +94,10 @@ class Plugin(ApplicationPlugin):
 
         io = self._ensure_io(application)
         project_toml = application.poetry.pyproject.data
+
+        application.add(EnableCommand(application))
+        application.add(DisableCommand(application))
+
         try:
             settings: PluginSettings = parse_plugin_settings_from_document(project_toml)
             if not settings.enabled:

@@ -33,7 +33,7 @@ The plugin activates automatically whenever the `[tool.ps-plugin]` section is pr
 [tool.ps-plugin]
 ```
 
-All installed modules registered under the `ps.module` entry-point group are discovered and loaded. Use the `enabled = false` setting to explicitly opt out.
+All installed modules registered under the `ps.module` entry-point group are discovered and loaded. Use the `enabled = false` setting or the `ps disable` command to explicitly opt out.
 
 # Plugin Configuration
 
@@ -47,6 +47,22 @@ All plugin settings reside in the `[tool.ps-plugin]` section of `pyproject.toml`
 [tool.ps-plugin]
 modules = ["delivery", "check"]
 ```
+
+## Enable and Disable
+
+The `ps enable` and `ps disable` commands toggle the plugin for the current project by managing the `[tool.ps-plugin]` section in `pyproject.toml`. Both commands are always available, even when the plugin is disabled.
+
+```bash
+poetry ps disable
+```
+
+Running `ps disable` ensures the `[tool.ps-plugin]` section exists (creating it with an empty `modules` list if absent) and sets `enabled = false`. All module discovery and lifecycle event handling is suppressed until the plugin is re-enabled.
+
+```bash
+poetry ps enable
+```
+
+Running `ps enable` removes the `enabled = false` entry from `[tool.ps-plugin]`, restoring normal plugin activation. If the plugin is already enabled, the command reports that no changes were necessary.
 
 # Module Loading
 
