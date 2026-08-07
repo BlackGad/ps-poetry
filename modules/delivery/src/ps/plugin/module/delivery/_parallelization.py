@@ -84,13 +84,24 @@ def run_topological(
 ) -> int:
     lock = threading.Lock()
     done_events: dict[int, threading.Event] = {id(item): threading.Event() for item in items}
+    exit_codes: dict[int, int] = {}
 
     def _run_and_flush(item: T) -> int:
-        for dep in get_deps(item):
+        deps = get_deps(item)
+        for dep in deps:
             done_events[id(dep)].wait()
-        result, out, err = _run_buffered(io, item, fn)
-        with lock:
-            _flush(io, _normalize(out), _normalize(err))
+
+        failed_deps = [dep for dep in deps if exit_codes.get(id(dep), 0) != 0]
+        if failed_deps:
+            result = 1
+            with lock:
+                io.write_error_line("<error>Skipped: one or more dependencies failed</error>")
+        else:
+            result, out, err = _run_buffered(io, item, fn)
+            with lock:
+                _flush(io, _normalize(out), _normalize(err))
+
+        exit_codes[id(item)] = result
         done_events[id(item)].set()
         return result
 
