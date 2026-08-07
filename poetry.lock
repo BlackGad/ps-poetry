@@ -1118,7 +1118,7 @@ name = "ps-dependency-injection"
 version = "0.0.0"
 description = "Lightweight, thread-safe dependency injection container for Python"
 optional = false
-python-versions = ">=3.12,<3.14"
+python-versions = ">=3.12,<3.15"
 groups = ["ps"]
 files = []
 develop = true
@@ -1132,7 +1132,7 @@ name = "ps-plugin-core"
 version = "0.0.0"
 description = "Core Poetry application plugin: module discovery, dependency injection, and lifecycle management"
 optional = false
-python-versions = ">=3.12,<3.14"
+python-versions = ">=3.12,<3.15"
 groups = ["ps"]
 files = []
 develop = true
@@ -1150,7 +1150,7 @@ name = "ps-plugin-module-check"
 version = "0.0.0"
 description = "Check module for ps-poetry: configurable quality checks including ruff, pyright, pytest, and more"
 optional = false
-python-versions = ">=3.12,<3.14"
+python-versions = ">=3.12,<3.15"
 groups = ["ps"]
 files = []
 develop = true
@@ -1168,7 +1168,7 @@ name = "ps-plugin-module-delivery"
 version = "0.0.0"
 description = "Delivery module for ps-poetry: automated version stamping, dependency resolution, and topologically-ordered publishing"
 optional = false
-python-versions = ">=3.12,<3.14"
+python-versions = ">=3.12,<3.15"
 groups = ["ps"]
 files = []
 develop = true
@@ -1187,7 +1187,7 @@ name = "ps-plugin-sdk"
 version = "0.0.0"
 description = "SDK for ps-poetry plugin modules: shared abstractions, models, protocols, and pyproject.toml utilities"
 optional = false
-python-versions = ">=3.12,<3.14"
+python-versions = ">=3.12,<3.15"
 groups = ["ps"]
 files = []
 develop = true
@@ -1206,7 +1206,7 @@ name = "ps-token-expressions"
 version = "0.0.0"
 description = "Flexible token-based expression resolution and materialization library for Python"
 optional = false
-python-versions = ">=3.12,<3.14"
+python-versions = ">=3.12,<3.15"
 groups = ["ps"]
 files = []
 develop = true
@@ -1220,7 +1220,7 @@ name = "ps-version"
 version = "0.0.0"
 description = "Parse, compare, and format version numbers across PEP 440, SemVer, NuGet, CalVer, and loose formats"
 optional = false
-python-versions = ">=3.12,<3.14"
+python-versions = ">=3.12,<3.15"
 groups = ["ps"]
 files = []
 develop = true
@@ -2012,5 +2012,5 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 
 [metadata]
 lock-version = "2.1"
-python-versions = ">=3.12,<3.14"
-content-hash = "ee6b91a5b3ea36378ac995623da1f5856563027ad3f7ca5a22fd88e6b8ceb2d3"
+python-versions = ">=3.12,<3.15"
+content-hash = "9688352599ea4ad3d5b9566ebac06ff337d4fd78dc977c06bd1b1b5b7f9a24fb"

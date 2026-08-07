@@ -3,7 +3,7 @@ name = "ps-poetry"
 description = "Modular Poetry plugin system with dependency injection, version management, and automated delivery"
 readme = "README.md"
 license = {text = "MIT"}
-requires-python = ">=3.12,<3.14"
+requires-python = ">=3.12,<3.15"
 dynamic = ["dependencies", "version"]
 authors = [
     { name = "ztBlackGad" },
@@ -16,6 +16,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Software Development :: Build Tools",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
