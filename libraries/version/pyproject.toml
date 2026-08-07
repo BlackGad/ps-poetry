@@ -3,7 +3,7 @@ name        = "ps-version"
 description = "Parse, compare, and format version numbers across PEP 440, SemVer, NuGet, CalVer, and loose formats"
 readme      = "README.md"
 license     = {text = "MIT"}
-requires-python = ">=3.10,<3.14"
+requires-python = ">=3.12,<3.15"
 version = "0.0.0"
 authors = [
     { name = "ztBlackGad" },
@@ -14,10 +14,9 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Software Development :: Version Control",
 ]

@@ -7,6 +7,11 @@ on:
         required: true
         type: string
         description: 'Working directory'
+      python_version:
+        required: false
+        type: string
+        default: '3.13'
+        description: 'Python version to set up'
       publish:
         required: false
         type: boolean
@@ -21,9 +26,6 @@ on:
       PYPI_PAT:
         required: false
         description: 'PyPI token for publishing (required when publish is true)'
-
-env:
-  PYTHON_VERSION: "3.13"
 
 jobs:
   python:
@@ -43,7 +45,7 @@ jobs:
         id: setup_python
         uses: actions/setup-python@v6
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: ${{ inputs.python_version }}
 
       - name: Setup pipx custom paths
         id: pipx-env
@@ -91,7 +93,7 @@ jobs:
       - name: Publish Test Results
         uses: dorny/test-reporter@v3
         with:
-          name: Test Results
+          name: Test Results (py${{ inputs.python_version }})
           path: '${{ inputs.working_directory }}/report.xml'
           reporter: java-junit
 

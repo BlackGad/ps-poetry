@@ -395,7 +395,7 @@ Add your module as a development dependency in the test project's `pyproject.tom
 
 ```toml
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.12"
 my-custom-module = { path = "../my-custom-module", develop = true }
 
 [tool.ps-plugin]
