@@ -70,4 +70,4 @@ The debugging configuration is defined in:
 ## Requirements
 
 * VS Code with Python and Debugpy extensions installed
-* Active workspace virtual environment (see [building.md](building.md))
+* Active workspace virtual environment (see [Building.md](Building.md))
