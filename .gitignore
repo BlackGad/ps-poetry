@@ -212,4 +212,4 @@ __marimo__/
 .ruff_cache
 dist/
 report.xml
-src/debug.env
+debug.env
