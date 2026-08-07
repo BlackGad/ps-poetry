@@ -13,9 +13,12 @@ permissions:
 
 jobs:
   validate:
-    name: Validate Python Project
+    name: Validate Python Project (py${{ matrix.python_version }})
+    strategy:
+      fail-fast: false
+      matrix:
+        python_version: ['3.12', '3.13']
     uses: ./.github/workflows/reusable-python.yml
     with:
       working_directory: .
-
-    
+      python_version: ${{ matrix.python_version }}

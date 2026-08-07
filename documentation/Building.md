@@ -41,7 +41,7 @@ The GitHub Actions workflow mirrors the local setup:
 ## Requirements
 
 * Poetry 2.3.2 or higher
-* Python 3.10 or higher
+* Python 3.12 or higher
 
 ## Verification
 
